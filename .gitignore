@@ -84,7 +84,14 @@ ENV/
 *.sqlite
 *.sqlite3
 *.db
+test_*.db
 
 # Backup files
 *.bak
 *.backup
+
+# Development and debug files
+debug-*.py
+*-server.py
+debug.log
+*.debug
