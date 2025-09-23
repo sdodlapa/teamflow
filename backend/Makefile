@@ -17,16 +17,13 @@ help: ## Show this help message
 # Environment setup
 setup: ## Setup development environment
 	@echo "$(BLUE)Setting up development environment...$(RESET)"
-	python -m venv venv
-	source venv/bin/activate && pip install --upgrade pip
-	source venv/bin/activate && pip install -r requirements.txt
-	source venv/bin/activate && pip install -r requirements-dev.txt
+	@echo "$(YELLOW)Using project-level virtual environment at ../venv$(RESET)"
+	cd .. && pip install -e ".[dev]"
 	@echo "$(GREEN)Environment setup complete!$(RESET)"
 
 install: ## Install dependencies
 	@echo "$(BLUE)Installing dependencies...$(RESET)"
-	pip install -r requirements.txt
-	pip install -r requirements-dev.txt
+	cd .. && pip install -e ".[dev]"
 	@echo "$(GREEN)Dependencies installed!$(RESET)"
 
 # Testing commands
@@ -85,13 +82,21 @@ type-check: ## Run type checking
 	mypy app/
 
 # Development server
-dev: ## Run development server
-	@echo "$(BLUE)Starting development server...$(RESET)"
-	uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+dev: ## Run development server with timeout protection
+	@echo "$(BLUE)Starting development server with timeout protection...$(RESET)"
+	../scripts/start-server.sh
+
+dev-simple: ## Run simple development server (legacy)
+	@echo "$(BLUE)Starting simple development server...$(RESET)"
+	cd .. && teamflow-server
 
 dev-debug: ## Run development server with debug logging
 	@echo "$(BLUE)Starting development server with debug logging...$(RESET)"
-	uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 --log-level debug
+	cd .. && DEBUG=1 teamflow-server
+
+kill-server: ## Emergency server shutdown
+	@echo "$(RED)Emergency server shutdown...$(RESET)"
+	../scripts/kill-server.sh
 
 # Database operations
 db-upgrade: ## Apply database migrations
@@ -146,10 +151,8 @@ security-check: ## Run security checks
 
 update-deps: ## Update dependencies
 	@echo "$(BLUE)Updating dependencies...$(RESET)"
-	pip-compile requirements.in
-	pip-compile requirements-dev.in
-	pip install -r requirements.txt
-	pip install -r requirements-dev.txt
+	@echo "$(YELLOW)Dependencies are managed in ../pyproject.toml$(RESET)"
+	cd .. && pip install -e ".[dev]" --upgrade
 
 # Docker operations (if using Docker)
 docker-build: ## Build Docker image
@@ -190,7 +193,8 @@ ci-quality: ## Run all quality checks for CI
 # Production helpers
 prod-requirements: ## Generate production requirements.txt
 	@echo "$(BLUE)Generating production requirements...$(RESET)"
-	pip freeze | grep -v -f requirements-dev.txt > requirements-prod.txt
+	@echo "$(YELLOW)Production dependencies are defined in ../pyproject.toml$(RESET)"
+	cd .. && pip freeze > backend/requirements-generated.txt
 
 health-check: ## Check if server is healthy
 	@echo "$(BLUE)Checking server health...$(RESET)"

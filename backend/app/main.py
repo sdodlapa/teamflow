@@ -141,8 +141,33 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(
-        "app.main:app",
+        "backend.app.main:app",
         host="0.0.0.0",
         port=8000,
         reload=True if settings.ENVIRONMENT == "development" else False,
+    )
+
+
+def main():
+    """Entry point for the teamflow-server command."""
+    import sys
+    import os
+    import uvicorn
+    
+    # Add backend directory to Python path
+    backend_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)))
+    if backend_dir not in sys.path:
+        sys.path.insert(0, backend_dir)
+    
+    print("🚀 Starting TeamFlow server from", backend_dir)
+    print("📁 Project root:", os.path.dirname(backend_dir))
+    print("🔧 Environment: development")
+    print("📡 Server will be available at: http://localhost:8000")
+    print("📚 API docs: http://localhost:8000/docs")
+    
+    uvicorn.run(
+        "app.main:app",
+        host="127.0.0.1",  # Changed from 0.0.0.0 to localhost
+        port=8000,
+        reload=True,
     )

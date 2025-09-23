@@ -18,11 +18,11 @@ class Settings(BaseSettings):
 
     # Database
     DATABASE_URL: str = Field(
-        default="sqlite+aiosqlite:///./teamflow_dev.db",
+        default="sqlite+aiosqlite:///./backend/teamflow_dev.db",
         description="Database connection URL",
     )
     TEST_DATABASE_URL: Optional[str] = Field(
-        default="sqlite+aiosqlite:///./teamflow_test.db",
+        default="sqlite+aiosqlite:///./backend/teamflow_test.db",
         description="Test database connection URL",
     )
 

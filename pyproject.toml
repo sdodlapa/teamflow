@@ -1,0 +1,254 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "teamflow"
+version = "1.0.0"
+description = "Enterprise task management platform with FastAPI backend and React frontend"
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [
+    {name = "TeamFlow Development Team"},
+]
+keywords = ["task-management", "enterprise", "fastapi", "react", "collaboration"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Framework :: FastAPI",
+    "Topic :: Office/Business :: Scheduling",
+]
+requires-python = ">=3.11"
+
+# Production dependencies
+dependencies = [
+    # FastAPI and ASGI server
+    "fastapi==0.104.1",
+    "uvicorn[standard]==0.24.0",
+    "gunicorn==21.2.0",
+    
+    # Database
+    "sqlalchemy==2.0.23",
+    "psycopg2-binary==2.9.9",
+    "alembic==1.12.1",
+    "aiosqlite==0.19.0",
+    
+    # Authentication and security
+    "python-jose[cryptography]==3.3.0",
+    "passlib[bcrypt]==1.7.4",
+    "python-multipart==0.0.6",
+    
+    # Validation and serialization
+    "pydantic==2.5.0",
+    "pydantic-settings==2.1.0",
+    "email-validator==2.3.0",
+    
+    # HTTP client and utilities
+    "httpx==0.25.2",
+    "python-dateutil==2.8.2",
+    
+    # Redis and caching
+    "redis==5.0.1",
+    "celery==5.3.4",
+    
+    # Email
+    "emails==0.6",
+    
+    # Environment and configuration
+    "python-dotenv==1.0.0",
+    
+    # Monitoring and logging
+    "prometheus-client==0.19.0",
+    "structlog==23.2.0",
+    "psutil==5.9.6",
+    
+    # AWS SDK (for production deployment)
+    "boto3==1.34.0",
+    "botocore==1.34.0",
+    
+    # File Management and Processing
+    "Pillow==10.1.0",
+    "python-magic==0.4.27",
+    "aiofiles==23.2.1",
+    "brotli==1.1.0",
+    
+    # WebSocket Support
+    "websockets==12.0",
+]
+
+# Optional dependency groups
+[project.optional-dependencies]
+# Development dependencies
+dev = [
+    # Testing
+    "pytest==7.4.3",
+    "pytest-asyncio==0.21.1",
+    "pytest-cov==4.1.0",
+    "pytest-mock==3.12.0",
+    "factory-boy==3.3.0",
+    "faker==20.1.0",
+    "pytest-httpx==0.26.0",
+    
+    # Code quality and linting
+    "black==23.11.0",
+    "isort==5.12.0",
+    "flake8==6.1.0",
+    "mypy==1.7.1",
+    
+    # Pre-commit hooks
+    "pre-commit==3.6.0",
+    
+    # Development tools
+    "watchfiles==0.21.0",
+    
+    # Security tools
+    "bandit==1.7.5",
+    
+    # Type stubs
+    "types-python-dateutil==2.8.19.14",
+    "types-redis==4.6.0.11",
+    "types-requests==2.31.0.10",
+]
+
+# Testing only
+test = [
+    "pytest==7.4.3",
+    "pytest-asyncio==0.21.1",
+    "pytest-cov==4.1.0",
+    "pytest-mock==3.12.0",
+    "factory-boy==3.3.0",
+    "faker==20.1.0",
+    "pytest-httpx==0.26.0",
+]
+
+# Deployment and production tools
+deploy = [
+    "boto3==1.34.0",
+    "botocore==1.34.0",
+    "gunicorn==21.2.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/teamflow/teamflow"
+Documentation = "https://teamflow.readthedocs.io"
+Repository = "https://github.com/teamflow/teamflow.git"
+"Bug Tracker" = "https://github.com/teamflow/teamflow/issues"
+
+[project.scripts]
+teamflow-server = "backend.scripts.server:main"
+
+# Tool configurations
+[tool.black]
+line-length = 88
+target-version = ['py311', 'py312']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+  | node_modules
+  | frontend
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = ["backend", "app"]
+skip_glob = ["frontend/*", "node_modules/*"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+exclude = [
+    "frontend/",
+    "node_modules/",
+    "build/",
+    "dist/",
+]
+
+[[tool.mypy.overrides]]
+module = [
+    "celery.*",
+    "redis.*",
+    "emails.*",
+    "magic.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["backend/tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--verbose",
+    "--tb=short",
+    "--strict-markers",
+    "--disable-warnings",
+    "--cov=backend/app",
+    "--cov-report=term-missing",
+    "--cov-report=html:htmlcov",
+    "--cov-report=xml",
+    "--cov-fail-under=85",
+]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "api: API endpoint tests", 
+    "auth: Authentication related tests",
+    "database: Database related tests",
+    "slow: Slow running tests",
+]
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["backend/app"]
+omit = [
+    "backend/app/main.py",
+    "backend/app/core/config.py", 
+    "*/migrations/*",
+    "*/tests/*",
+    "*/venv/*",
+    "*/__pycache__/*",
+    "frontend/*",
+    "node_modules/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError", 
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+[tool.bandit]
+exclude_dirs = ["frontend", "node_modules", "tests"]
+skips = ["B101", "B601"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["backend"]
+
+[tool.hatch.build.targets.wheel.sources]
+"backend" = "backend"
