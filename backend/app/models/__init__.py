@@ -10,6 +10,8 @@ from app.models.project import (Project, ProjectMember, ProjectMemberRole,
                                 ProjectPriority, ProjectStatus)
 from app.models.task import (Task, TaskComment, TaskDependency, TaskPriority, 
                             TaskStatus)
+from app.models.time_tracking import (TaskTimeLog, TaskTemplate, TaskActivity,
+                                      TaskMention, TaskAssignmentHistory)
 from app.models.user import User, UserRole, UserStatus
 
 __all__ = [
@@ -33,4 +35,9 @@ __all__ = [
     "TaskDependency",
     "TaskStatus",
     "TaskPriority",
+    "TaskTimeLog",
+    "TaskTemplate",
+    "TaskActivity",
+    "TaskMention",
+    "TaskAssignmentHistory",
 ]

@@ -85,6 +85,12 @@ class Task(Base):
         back_populates="depends_on_task",
         cascade="all, delete-orphan"
     )
+    
+    # Advanced feature relationships
+    time_logs = relationship("TaskTimeLog", back_populates="task", cascade="all, delete-orphan")
+    activities = relationship("TaskActivity", back_populates="task", cascade="all, delete-orphan")
+    mentions = relationship("TaskMention", back_populates="task", cascade="all, delete-orphan")
+    assignment_history = relationship("TaskAssignmentHistory", back_populates="task", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<Task(id={self.id}, title='{self.title}', status='{self.status}')>"
@@ -132,6 +138,7 @@ class TaskComment(Base):
     # Relationships
     task = relationship("Task", back_populates="comments")
     user = relationship("User", back_populates="task_comments")
+    mentions = relationship("TaskMention", back_populates="comment", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<TaskComment(id={self.id}, task_id={self.task_id}, user_id={self.user_id})>"

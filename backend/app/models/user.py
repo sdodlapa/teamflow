@@ -79,6 +79,35 @@ class User(Base):
     task_comments = relationship(
         "TaskComment", back_populates="user", cascade="all, delete-orphan"
     )
+    
+    # Advanced feature relationships
+    time_logs = relationship("TaskTimeLog", back_populates="user", cascade="all, delete-orphan")
+    task_activities = relationship("TaskActivity", back_populates="user", cascade="all, delete-orphan")
+    created_task_templates = relationship("TaskTemplate", back_populates="creator", cascade="all, delete-orphan")
+    
+    # Mention relationships
+    received_mentions = relationship(
+        "TaskMention", foreign_keys="TaskMention.mentioned_user_id", 
+        back_populates="mentioned_user", cascade="all, delete-orphan"
+    )
+    created_mentions = relationship(
+        "TaskMention", foreign_keys="TaskMention.mentioning_user_id", 
+        back_populates="mentioning_user", cascade="all, delete-orphan"
+    )
+    
+    # Assignment history relationships
+    previous_assignments = relationship(
+        "TaskAssignmentHistory", foreign_keys="TaskAssignmentHistory.previous_assignee_id",
+        back_populates="previous_assignee", cascade="all, delete-orphan"
+    )
+    new_assignments = relationship(
+        "TaskAssignmentHistory", foreign_keys="TaskAssignmentHistory.new_assignee_id",
+        back_populates="new_assignee", cascade="all, delete-orphan"
+    )
+    assignments_made = relationship(
+        "TaskAssignmentHistory", foreign_keys="TaskAssignmentHistory.assigned_by",
+        back_populates="assigner", cascade="all, delete-orphan"
+    )
 
     @property
     def full_name(self) -> str:

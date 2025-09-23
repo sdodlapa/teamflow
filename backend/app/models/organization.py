@@ -62,6 +62,9 @@ class Organization(Base):
     projects = relationship(
         "Project", back_populates="organization", cascade="all, delete-orphan"
     )
+    task_templates = relationship(
+        "TaskTemplate", back_populates="organization", cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         return f"<Organization(id={self.id}, name='{self.name}')>"
