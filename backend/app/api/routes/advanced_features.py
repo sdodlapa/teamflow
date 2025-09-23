@@ -58,6 +58,9 @@ from app.schemas.advanced_features import (
 )
 from app.schemas.task import TaskRead
 
+# Import real-time notification service
+from app.services.realtime_notifications import trigger_time_tracking_notification
+
 router = APIRouter(prefix="/advanced", tags=["advanced-features"])
 
 
@@ -125,6 +128,21 @@ async def start_time_tracking(
     
     await db.commit()
     await db.refresh(time_log)
+    
+    # Trigger real-time notification
+    try:
+        time_log_data = {
+            "id": time_log.id,
+            "task_id": time_log.task_id,
+            "user_id": time_log.user_id,
+            "start_time": time_log.start_time.isoformat(),
+            "description": time_log.description
+        }
+        await trigger_time_tracking_notification(time_log_data, task, current_user, "started", db)
+    except Exception as e:
+        # Log error but don't fail the request
+        import logging
+        logging.getLogger(__name__).warning(f"Failed to send real-time notification: {e}")
     
     return TaskTimeLogResponse(
         id=time_log.id,

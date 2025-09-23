@@ -33,6 +33,13 @@ from app.schemas.task import (
 )
 from app.schemas.user import UserRead
 
+# Import real-time notification service
+from app.services.realtime_notifications import (
+    trigger_task_created_notification,
+    trigger_task_updated_notification,
+    trigger_comment_created_notification
+)
+
 router = APIRouter()
 
 
@@ -187,6 +194,16 @@ async def create_task(
         .where(Task.id == task.id)
     )
     task_with_relations = result.scalar_one()
+    
+    # Trigger real-time notification
+    try:
+        current_user_model = await User.get_by_email(db, email=current_user.email)
+        if current_user_model:
+            await trigger_task_created_notification(task_with_relations, current_user_model, db)
+    except Exception as e:
+        # Log error but don't fail the request
+        import logging
+        logging.getLogger(__name__).warning(f"Failed to send real-time notification: {e}")
     
     return build_task_read(task_with_relations)
 
