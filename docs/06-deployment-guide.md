@@ -2,12 +2,55 @@
 
 ## Deployment Overview
 
-TeamFlow supports multiple deployment strategies to accommodate different environments and requirements. This guide covers everything from local development to production-grade AWS deployment with auto-scaling, monitoring, and disaster recovery.
+This guide covers deployment strategies from local development through production deployment. The current implementation focuses on backend deployment with containerization planned for Phase 5.
 
-### Deployment Environments
-- **Development**: Local development with Docker Compose
-- **Staging**: AWS ECS with shared resources for testing
-- **Production**: AWS ECS/EKS with high availability, auto-scaling, and monitoring
+## Current Status
+- ✅ **Development Setup**: Complete local development environment
+- ✅ **Backend Ready**: Production-ready FastAPI application
+- 📅 **Containerization**: Planned for Phase 5
+- 📅 **CI/CD Pipeline**: Planned for Phase 5
+- 📅 **Production Deployment**: Planned for Phase 5
+
+---
+
+## Local Development Deployment
+
+### Prerequisites
+- Python 3.11+
+- Git
+- SQLite (included) or PostgreSQL
+
+### Quick Start
+```bash
+# Clone repository
+git clone <repository-url>
+cd teamflow/backend
+
+# Setup virtual environment
+python -m venv venv
+source venv/bin/activate  # macOS/Linux
+# or venv\Scripts\activate  # Windows
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Setup database
+alembic upgrade head
+
+# Start development server
+python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+### Environment Configuration
+```env
+# .env file for development
+DATABASE_URL=sqlite:///./teamflow.db
+SECRET_KEY=development-secret-key-change-in-production
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=60
+DEBUG=True
+ENVIRONMENT=development
+```
 
 ### Infrastructure as Code
 All infrastructure is managed using Terraform for consistency, versioning, and reproducibility across environments.
