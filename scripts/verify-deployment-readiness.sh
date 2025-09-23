@@ -111,7 +111,7 @@ echo -e "\n${YELLOW}=== Documentation ===${NC}"
 
 # Documentation checks
 check_component "Main Documentation" \
-    "test -f README-FINAL.md && test -f PROJECT-CONSOLIDATION-FINAL.md" \
+    "test -f README.md && test -f docs/ARCHITECTURE.md && test -f LICENSE" \
     "Verify comprehensive project documentation"
 
 check_component "Development Docs" \
