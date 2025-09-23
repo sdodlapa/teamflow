@@ -65,6 +65,30 @@ class Settings(BaseSettings):
     MAX_UPLOAD_SIZE: int = Field(
         default=10485760, description="Maximum file upload size in bytes"  # 10MB
     )
+    
+    # File Management Settings
+    FILE_UPLOAD_PATH: str = Field(default="./uploads", description="File storage path")
+    MAX_FILE_SIZE: int = Field(default=100 * 1024 * 1024, description="Maximum file size in bytes")  # 100MB
+    ALLOWED_FILE_EXTENSIONS: List[str] = Field(
+        default=[
+            ".pdf", ".doc", ".docx", ".txt", ".rtf",  # Documents
+            ".jpg", ".jpeg", ".png", ".gif", ".svg", ".webp",  # Images
+            ".xls", ".xlsx", ".csv",  # Spreadsheets
+            ".ppt", ".pptx",  # Presentations
+            ".zip", ".rar", ".tar", ".gz",  # Archives
+            ".mp4", ".avi", ".mov", ".mp3", ".wav"  # Media
+        ],
+        description="Allowed file extensions"
+    )
+    
+    # File Processing Settings
+    ENABLE_FILE_COMPRESSION: bool = Field(default=True, description="Enable file compression")
+    ENABLE_THUMBNAIL_GENERATION: bool = Field(default=True, description="Enable thumbnail generation")
+    THUMBNAIL_QUALITY: int = Field(default=85, description="Thumbnail JPEG quality")
+    
+    # File Security Settings
+    ENABLE_VIRUS_SCANNING: bool = Field(default=False, description="Enable virus scanning")
+    FILE_SCAN_TIMEOUT: int = Field(default=30, description="File scan timeout in seconds")
 
     # Rate Limiting
     RATE_LIMIT_PER_MINUTE: int = Field(

@@ -13,6 +13,10 @@ from app.models.task import (Task, TaskComment, TaskDependency, TaskPriority,
 from app.models.time_tracking import (TaskTimeLog, TaskTemplate, TaskActivity,
                                       TaskMention, TaskAssignmentHistory)
 from app.models.user import User, UserRole, UserStatus
+from app.models.file_management import (
+    FileUpload, FileVersion, FileThumbnail,
+    FileAccessPermission, FileDownload, FileShare
+)
 
 __all__ = [
     "Base",
@@ -40,4 +44,10 @@ __all__ = [
     "TaskActivity",
     "TaskMention",
     "TaskAssignmentHistory",
+    "FileUpload",
+    "FileVersion",
+    "FileThumbnail",
+    "FileAccessPermission",
+    "FileDownload",
+    "FileShare",
 ]

@@ -413,9 +413,21 @@ class ConnectionManager:
                     exclude_user=user_id
                 )
     
-    def _get_current_timestamp(self) -> str:
-        """Get current timestamp as ISO string."""
-        return datetime.utcnow().isoformat()
+    def _get_timestamp(self) -> str:
+        """Get current timestamp in ISO format."""
+        return datetime.now().isoformat()
+
+
+# Global connection manager instance
+_connection_manager: Optional[ConnectionManager] = None
+
+
+def get_connection_manager() -> ConnectionManager:
+    """Get the global connection manager instance."""
+    global _connection_manager
+    if _connection_manager is None:
+        _connection_manager = ConnectionManager()
+    return _connection_manager
 
 
 # Global connection manager instance
