@@ -5,10 +5,8 @@ Provides webhook management, delivery tracking, and retry mechanisms.
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import Optional, Dict, Any, List
-import uuid
 
 from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, JSON, ForeignKey, Index
-from sqlalchemy.dialects.postgresql import UUID, ARRAY
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.hybrid import hybrid_property
 
@@ -57,27 +55,27 @@ class WebhookEndpoint(Base):
     __tablename__ = "webhook_endpoints"
 
     id = Column(Integer, primary_key=True, index=True)
-    uuid = Column(UUID(as_uuid=True), default=uuid.uuid4, unique=True, index=True)
+    webhook_uuid = Column(String(36), unique=True, index=True)
     name = Column(String(255), nullable=False)
     description = Column(Text)
     url = Column(String(2048), nullable=False)
     secret = Column(String(255))  # For signature verification
     
     # Event configuration
-    event_types = Column(ARRAY(String), nullable=False, default=[])
-    filters = Column(JSON, default={})  # Additional filtering conditions
+    event_types = Column(String(1000), nullable=False, default="[]")  # Store as JSON string
+    filters = Column(JSON, default="{}")  # Additional filtering conditions
     
     # Delivery settings
     is_active = Column(Boolean, default=True)
-    status = Column(String(20), default=WebhookStatus.ACTIVE)
+    status = Column(String(20), default=WebhookStatus.ACTIVE.value)
     timeout_seconds = Column(Integer, default=30)
     max_retries = Column(Integer, default=3)
     retry_delay_seconds = Column(Integer, default=60)
     
     # Headers and authentication
-    headers = Column(JSON, default={})  # Custom headers to include
+    headers = Column(JSON, default="{}")  # Custom headers to include
     auth_type = Column(String(50))  # bearer, basic, api_key, custom
-    auth_config = Column(JSON, default={})  # Auth configuration
+    auth_config = Column(JSON, default="{}")  # Auth configuration
     
     # Rate limiting
     rate_limit_per_minute = Column(Integer, default=60)
@@ -104,13 +102,6 @@ class WebhookEndpoint(Base):
     creator = relationship("User", foreign_keys=[created_by])
     deliveries = relationship("WebhookDelivery", back_populates="endpoint", cascade="all, delete-orphan")
     
-    # Indexes
-    __table_args__ = (
-        Index("idx_webhook_endpoints_org_status", "organization_id", "status"),
-        Index("idx_webhook_endpoints_active", "is_active"),
-        Index("idx_webhook_endpoints_events", "event_types"),
-    )
-    
     @hybrid_property
     def success_rate(self) -> float:
         """Calculate delivery success rate."""
@@ -121,7 +112,7 @@ class WebhookEndpoint(Base):
     @hybrid_property
     def is_healthy(self) -> bool:
         """Check if webhook endpoint is healthy."""
-        if not self.is_active or self.status != WebhookStatus.ACTIVE:
+        if not self.is_active or self.status != WebhookStatus.ACTIVE.value:
             return False
         
         # Check recent failures
@@ -139,7 +130,7 @@ class WebhookDelivery(Base):
     __tablename__ = "webhook_deliveries"
 
     id = Column(Integer, primary_key=True, index=True)
-    uuid = Column(UUID(as_uuid=True), default=uuid.uuid4, unique=True, index=True)
+    delivery_uuid = Column(String(36), unique=True, index=True)
     
     # Webhook and event information
     endpoint_id = Column(Integer, ForeignKey("webhook_endpoints.id"), nullable=False)
@@ -147,13 +138,13 @@ class WebhookDelivery(Base):
     event_id = Column(String(255))  # Original event ID
     
     # Delivery details
-    status = Column(String(20), default=DeliveryStatus.PENDING)
+    status = Column(String(20), default=DeliveryStatus.PENDING.value)
     attempt_number = Column(Integer, default=1)
     max_attempts = Column(Integer, default=3)
     
     # Request data
     payload = Column(JSON, nullable=False)
-    headers = Column(JSON, default={})
+    headers = Column(JSON, default="{}")
     url = Column(String(2048), nullable=False)
     signature = Column(String(255))  # HMAC signature
     
@@ -180,19 +171,11 @@ class WebhookDelivery(Base):
     endpoint = relationship("WebhookEndpoint", back_populates="deliveries")
     organization = relationship("Organization")
     
-    # Indexes
-    __table_args__ = (
-        Index("idx_webhook_deliveries_endpoint_status", "endpoint_id", "status"),
-        Index("idx_webhook_deliveries_scheduled", "scheduled_at"),
-        Index("idx_webhook_deliveries_retry", "next_retry_at"),
-        Index("idx_webhook_deliveries_event", "event_type", "event_id"),
-    )
-    
     @hybrid_property
     def is_successful(self) -> bool:
         """Check if delivery was successful."""
         return (
-            self.status == DeliveryStatus.DELIVERED and
+            self.status == DeliveryStatus.DELIVERED.value and
             self.response_status_code and
             200 <= self.response_status_code < 300
         )
@@ -201,7 +184,7 @@ class WebhookDelivery(Base):
     def can_retry(self) -> bool:
         """Check if delivery can be retried."""
         return (
-            self.status in [DeliveryStatus.FAILED, DeliveryStatus.RETRYING] and
+            self.status in [DeliveryStatus.FAILED.value, DeliveryStatus.RETRYING.value] and
             self.attempt_number < self.max_attempts and
             datetime.utcnow() >= (self.next_retry_at or datetime.utcnow())
         )
@@ -215,7 +198,7 @@ class WebhookEvent(Base):
     __tablename__ = "webhook_events"
 
     id = Column(Integer, primary_key=True, index=True)
-    uuid = Column(UUID(as_uuid=True), default=uuid.uuid4, unique=True, index=True)
+    event_uuid = Column(String(36), unique=True, index=True)
     
     # Event details
     event_type = Column(String(100), nullable=False)
@@ -224,12 +207,12 @@ class WebhookEvent(Base):
     
     # Event data
     payload = Column(JSON, nullable=False)
-    context = Column(JSON, default={})  # Additional context
+    context = Column(JSON, default="{}")  # Additional context
     
     # Processing status
     is_processed = Column(Boolean, default=False)
     processed_at = Column(DateTime)
-    processing_errors = Column(JSON, default=[])
+    processing_errors = Column(JSON, default="[]")
     
     # Targeting
     organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=False)
@@ -242,13 +225,6 @@ class WebhookEvent(Base):
     # Relationships
     organization = relationship("Organization")
     user = relationship("User")
-    
-    # Indexes
-    __table_args__ = (
-        Index("idx_webhook_events_processing", "is_processed", "scheduled_for"),
-        Index("idx_webhook_events_type_org", "event_type", "organization_id"),
-        Index("idx_webhook_events_source", "event_source", "source_id"),
-    )
 
 
 class ExternalIntegration(Base):
@@ -259,7 +235,7 @@ class ExternalIntegration(Base):
     __tablename__ = "external_integrations"
 
     id = Column(Integer, primary_key=True, index=True)
-    uuid = Column(UUID(as_uuid=True), default=uuid.uuid4, unique=True, index=True)
+    integration_uuid = Column(String(36), unique=True, index=True)
     
     # Integration details
     name = Column(String(255), nullable=False)
@@ -267,9 +243,9 @@ class ExternalIntegration(Base):
     provider_type = Column(String(50), nullable=False)  # oauth2, api_key, webhook
     
     # Configuration
-    config = Column(JSON, nullable=False, default={})
-    credentials = Column(JSON, default={})  # Encrypted credentials
-    scopes = Column(ARRAY(String), default=[])
+    config = Column(JSON, nullable=False, default="{}")
+    credentials = Column(JSON, default="{}")  # Encrypted credentials
+    scopes = Column(String(1000), default="[]")  # Store as JSON string
     
     # OAuth2 specific
     client_id = Column(String(255))
@@ -297,13 +273,6 @@ class ExternalIntegration(Base):
     # Relationships
     organization = relationship("Organization", back_populates="external_integrations")
     creator = relationship("User", foreign_keys=[created_by])
-    
-    # Indexes
-    __table_args__ = (
-        Index("idx_external_integrations_org_provider", "organization_id", "provider"),
-        Index("idx_external_integrations_active", "is_active", "is_connected"),
-        Index("idx_external_integrations_sync", "last_sync_at", "sync_frequency_minutes"),
-    )
     
     @hybrid_property
     def needs_token_refresh(self) -> bool:
@@ -341,13 +310,6 @@ class APIRateLimit(Base):
     
     # Relationships
     organization = relationship("Organization")
-    
-    # Indexes
-    __table_args__ = (
-        Index("idx_api_rate_limits_subject", "subject_type", "subject_id"),
-        Index("idx_api_rate_limits_window", "window_start", "window_size_seconds"),
-        Index("idx_api_rate_limits_org", "organization_id"),
-    )
     
     @hybrid_property
     def is_exceeded(self) -> bool:

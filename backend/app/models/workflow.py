@@ -109,7 +109,7 @@ class WorkflowDefinition(Base):
     
     # Execution settings
     is_enabled = Column(Boolean, default=True, index=True)
-    status = Column(SQLEnum(WorkflowStatus), default=WorkflowStatus.ACTIVE, index=True)
+    status = Column(SQLEnum(WorkflowStatus), default=WorkflowStatus.ACTIVE.value, index=True)
     
     # Scheduling and limits
     max_executions_per_day = Column(Integer, default=1000)

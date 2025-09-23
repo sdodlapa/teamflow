@@ -12,7 +12,6 @@ from sqlalchemy import (
     Float, Date, Enum as SQLEnum, Index, CheckConstraint, UniqueConstraint
 )
 from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 
 from app.core.database import Base

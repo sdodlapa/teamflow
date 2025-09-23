@@ -28,6 +28,14 @@ from app.models.workflow import (
     WorkflowDefinition, BusinessRule, WorkflowExecution, AutomationRule,
     WorkflowTemplate
 )
+from app.models.webhooks import (
+    WebhookEndpoint, WebhookDelivery, WebhookEvent, ExternalIntegration,
+    APIRateLimit
+)
+from app.models.security import (
+    AuditLog, SecurityAlert, APIKey, GDPRRequest, DataConsentRecord,
+    SecurityConfiguration, LoginAttempt
+)
 
 __all__ = [
     "Base",
@@ -78,4 +86,16 @@ __all__ = [
     "WorkflowExecution",
     "AutomationRule",
     "WorkflowTemplate",
+    "WebhookEndpoint",
+    "WebhookDelivery",
+    "WebhookEvent",
+    "ExternalIntegration",
+    "APIRateLimit",
+    "AuditLog",
+    "SecurityAlert",
+    "APIKey",
+    "GDPRRequest",
+    "DataConsentRecord",
+    "SecurityConfiguration",
+    "LoginAttempt",
 ]

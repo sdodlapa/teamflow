@@ -6,7 +6,6 @@ from enum import Enum
 from typing import Dict, List, Optional
 
 from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text, JSON, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.hybrid import hybrid_property
 
@@ -82,7 +81,8 @@ class AuditLog(Base):
     
     __tablename__ = "audit_logs"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    id = Column(Integer, primary_key=True, index=True)
+    audit_uuid = Column(String(36), unique=True, default=lambda: str(uuid.uuid4()), index=True)
     
     # Action details
     action_type = Column(String(50), nullable=False, index=True)
@@ -91,8 +91,8 @@ class AuditLog(Base):
     description = Column(Text, nullable=False)
     
     # User and context
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True, index=True)
-    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=True, index=True)
     session_id = Column(String(255), nullable=True, index=True)
     
     # Request details
@@ -102,7 +102,7 @@ class AuditLog(Base):
     request_path = Column(String(500), nullable=True)
     
     # Security context
-    risk_level = Column(String(20), nullable=False, default=SecurityRiskLevel.LOW)
+    risk_level = Column(String(20), nullable=False, default=SecurityRiskLevel.LOW.value)
     is_suspicious = Column(Boolean, default=False, index=True)
     
     # Metadata
@@ -126,17 +126,18 @@ class SecurityAlert(Base):
     
     __tablename__ = "security_alerts"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    id = Column(Integer, primary_key=True, index=True)
+    alert_uuid = Column(String(36), unique=True, default=lambda: str(uuid.uuid4()), index=True)
     
     # Alert details
     alert_type = Column(String(50), nullable=False, index=True)
-    severity = Column(String(20), nullable=False, default=SecurityRiskLevel.MEDIUM)
+    severity = Column(String(20), nullable=False, default=SecurityRiskLevel.MEDIUM.value)
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=False)
     
     # Context
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True, index=True)
-    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=True, index=True)
     ip_address = Column(String(45), nullable=True, index=True)
     
     # Alert data
@@ -146,7 +147,7 @@ class SecurityAlert(Base):
     # Status
     is_resolved = Column(Boolean, default=False, index=True)
     resolved_at = Column(DateTime, nullable=True)
-    resolved_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    resolved_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     resolution_notes = Column(Text, nullable=True)
     
     # Timestamps
@@ -167,7 +168,8 @@ class APIKey(Base):
     
     __tablename__ = "api_keys"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    id = Column(Integer, primary_key=True, index=True)
+    api_uuid = Column(String(36), unique=True, default=lambda: str(uuid.uuid4()), index=True)
     
     # Key details
     name = Column(String(255), nullable=False)
@@ -176,8 +178,8 @@ class APIKey(Base):
     prefix = Column(String(10), nullable=False, index=True)  # First few chars for identification
     
     # Access control
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
-    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=False, index=True)
     scopes = Column(JSON, nullable=False)  # List of allowed scopes
     
     # Restrictions
@@ -214,7 +216,7 @@ class GDPRRequest(Base):
     
     __tablename__ = "gdpr_requests"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    id = Column(Integer, primary_key=True, default=lambda: str(uuid.uuid4()))
     
     # Request details
     request_type = Column(String(50), nullable=False, index=True)  # export, deletion, portability
@@ -222,8 +224,8 @@ class GDPRRequest(Base):
     description = Column(Text, nullable=True)
     
     # User context
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
-    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=True)
     
     # Request data
     data_categories = Column(JSON, nullable=True)  # Categories of data requested
@@ -231,8 +233,8 @@ class GDPRRequest(Base):
     legal_basis = Column(String(100), nullable=True)  # Legal basis for processing
     
     # Processing
-    processed_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
-    processed_at = Column(DateTime, nullable=True)
+    processed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    processed_at = Column(DateTime)
     completion_notes = Column(Text, nullable=True)
     
     # Data export
@@ -261,11 +263,11 @@ class DataConsentRecord(Base):
     
     __tablename__ = "data_consent_records"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    id = Column(Integer, primary_key=True, default=lambda: str(uuid.uuid4()))
     
     # Consent details
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
-    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=True)
     
     # Consent specifics
     purpose = Column(String(50), nullable=False, index=True)  # What data is used for
@@ -311,10 +313,10 @@ class SecurityConfiguration(Base):
     
     __tablename__ = "security_configurations"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    id = Column(Integer, primary_key=True, default=lambda: str(uuid.uuid4()))
     
     # Configuration scope
-    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=True, index=True)
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=True)
     config_type = Column(String(50), nullable=False, index=True)  # password_policy, session, etc.
     
     # Configuration data
@@ -322,8 +324,8 @@ class SecurityConfiguration(Base):
     is_active = Column(Boolean, default=True, index=True)
     
     # Management
-    created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    updated_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    updated_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
@@ -343,7 +345,7 @@ class LoginAttempt(Base):
     
     __tablename__ = "login_attempts"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    id = Column(Integer, primary_key=True, default=lambda: str(uuid.uuid4()))
     
     # Attempt details
     username = Column(String(255), nullable=False, index=True)
@@ -355,8 +357,8 @@ class LoginAttempt(Base):
     failure_reason = Column(String(100), nullable=True)  # invalid_password, account_locked, etc.
     
     # Context
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True, index=True)
-    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=True)
     
     # Security flags
     is_suspicious = Column(Boolean, default=False, index=True)
