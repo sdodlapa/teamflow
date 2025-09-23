@@ -205,3 +205,17 @@ full-check: format lint test coverage security-check ## Full quality check
 
 reset-dev: clean clean-db db-upgrade ## Reset development environment
 	@echo "$(GREEN)Development environment reset!$(RESET)"
+
+# CI/CD specific commands
+.PHONY: ci-docker-test ci-local-pipeline
+ci-docker-test: ## Test Docker build and health check
+	@echo "$(BLUE)Testing Docker build and health check...$(RESET)"
+	docker build -t teamflow-backend .
+	docker run --rm -d -p 8000:8000 --name test-container teamflow-backend
+	sleep 10
+	curl -f http://localhost:8000/health || (docker stop test-container && exit 1)
+	docker stop test-container
+	@echo "$(GREEN)Docker test passed!$(RESET)"
+
+ci-local-pipeline: deps format lint test coverage security-check ci-docker-test ## Run full local CI pipeline
+	@echo "$(GREEN)🎉 Local CI pipeline completed successfully!$(RESET)"

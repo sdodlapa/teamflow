@@ -13,7 +13,7 @@ from app.core.dependencies import get_current_active_user
 from app.core.security import (create_access_token, get_password_hash,
                                verify_password)
 from app.models.user import User, UserStatus
-from app.schemas.user import (Token, UserCreate, UserLogin, UserRead,
+from app.schemas.user import (Token, UserLogin, UserRead,
                               UserRegister)
 
 router = APIRouter()
