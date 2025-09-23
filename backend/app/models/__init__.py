@@ -1,16 +1,29 @@
 """Import all models to ensure they are registered with SQLAlchemy."""
 
-from app.models.base import BaseModel
-from app.models.user import User, UserRole, UserStatus
-from app.models.organization import Organization, OrganizationMember, OrganizationPlan, OrganizationStatus, OrganizationMemberRole
-from app.models.project import Project, ProjectMember, ProjectStatus, ProjectPriority, ProjectMemberRole
-
 # Make Base available for Alembic
 from app.core.database import Base
+from app.models.base import BaseModel
+from app.models.organization import (Organization, OrganizationMember,
+                                     OrganizationMemberRole, OrganizationPlan,
+                                     OrganizationStatus)
+from app.models.project import (Project, ProjectMember, ProjectMemberRole,
+                                ProjectPriority, ProjectStatus)
+from app.models.user import User, UserRole, UserStatus
 
 __all__ = [
-    "Base", "BaseModel",
-    "User", "UserRole", "UserStatus",
-    "Organization", "OrganizationMember", "OrganizationPlan", "OrganizationStatus", "OrganizationMemberRole",
-    "Project", "ProjectMember", "ProjectStatus", "ProjectPriority", "ProjectMemberRole"
+    "Base",
+    "BaseModel",
+    "User",
+    "UserRole",
+    "UserStatus",
+    "Organization",
+    "OrganizationMember",
+    "OrganizationPlan",
+    "OrganizationStatus",
+    "OrganizationMemberRole",
+    "Project",
+    "ProjectMember",
+    "ProjectStatus",
+    "ProjectPriority",
+    "ProjectMemberRole",
 ]

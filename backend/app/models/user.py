@@ -1,25 +1,30 @@
 """User model for authentication and user management."""
 
+import enum
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, Enum as SQLEnum
-from sqlalchemy.orm import relationship
+
+from sqlalchemy import Boolean, Column, DateTime
+from sqlalchemy import Enum as SQLEnum
+from sqlalchemy import Integer, String, Text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-import enum
+from sqlalchemy.orm import relationship
 
 from app.core.database import Base
 
 
 class UserRole(str, enum.Enum):
     """User roles in the system."""
+
     USER = "user"
-    ADMIN = "admin" 
+    ADMIN = "admin"
     SUPER_ADMIN = "super_admin"
 
 
 class UserStatus(str, enum.Enum):
     """User account status."""
+
     ACTIVE = "active"
     INACTIVE = "inactive"
     SUSPENDED = "suspended"
@@ -28,65 +33,59 @@ class UserStatus(str, enum.Enum):
 
 class User(Base):
     """User model for authentication and profile management."""
-    
+
     __tablename__ = "users"
-    
+
     # Primary key
     id = Column(Integer, primary_key=True, index=True)
-    
+
     # Authentication
     email = Column(String(255), unique=True, index=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
     is_verified = Column(Boolean, default=False)
-    
+
     # Profile
     first_name = Column(String(100), nullable=False)
     last_name = Column(String(100), nullable=False)
     avatar_url = Column(String(500), nullable=True)
     bio = Column(Text, nullable=True)
-    
+
     # System
     role = Column(SQLEnum(UserRole), default=UserRole.USER, nullable=False)
     status = Column(SQLEnum(UserStatus), default=UserStatus.PENDING, nullable=False)
-    
+
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    updated_at = Column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
     last_login_at = Column(DateTime, nullable=True)
-    
+
     # Relationships
     organization_memberships = relationship(
-        "OrganizationMember", 
-        back_populates="user",
-        cascade="all, delete-orphan"
+        "OrganizationMember", back_populates="user", cascade="all, delete-orphan"
     )
     project_memberships = relationship(
-        "ProjectMember", 
-        back_populates="user",
-        cascade="all, delete-orphan"
+        "ProjectMember", back_populates="user", cascade="all, delete-orphan"
     )
-    
+
     @property
     def full_name(self) -> str:
         """Get user's full name."""
         return f"{self.first_name} {self.last_name}"
-    
+
     @classmethod
     async def get_by_email(cls, db: AsyncSession, email: str) -> Optional["User"]:
         """Get user by email address."""
-        result = await db.execute(
-            select(cls).where(cls.email == email)
-        )
+        result = await db.execute(select(cls).where(cls.email == email))
         return result.scalar_one_or_none()
-    
+
     @classmethod
     async def get_by_id(cls, db: AsyncSession, user_id: int) -> Optional["User"]:
         """Get user by ID."""
-        result = await db.execute(
-            select(cls).where(cls.id == user_id)
-        )
+        result = await db.execute(select(cls).where(cls.id == user_id))
         return result.scalar_one_or_none()
-    
+
     @classmethod
     async def create(cls, db: AsyncSession, **kwargs) -> "User":
         """Create a new user."""
@@ -95,17 +94,17 @@ class User(Base):
         await db.commit()
         await db.refresh(user)
         return user
-    
+
     async def update(self, db: AsyncSession, **kwargs) -> "User":
         """Update user fields."""
         for key, value in kwargs.items():
             if hasattr(self, key):
                 setattr(self, key, value)
-        
+
         self.updated_at = datetime.utcnow()
         await db.commit()
         await db.refresh(self)
         return self
-    
+
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email='{self.email}', role='{self.role}')>"

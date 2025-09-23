@@ -1,15 +1,17 @@
+import time
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-import time
 
+from app.api import api_router
 from app.core.config import settings
 from app.core.database import create_tables
-from app.api import api_router
+
 
 def create_application() -> FastAPI:
     """Create and configure the FastAPI application."""
-    
+
     app = FastAPI(
         title="TeamFlow API",
         description="Enterprise task management and collaboration platform",
@@ -44,7 +46,7 @@ def create_application() -> FastAPI:
             "status": "healthy",
             "environment": settings.ENVIRONMENT,
             "version": "1.0.0",
-            "timestamp": time.time()
+            "timestamp": time.time(),
         }
 
     # Root endpoint
@@ -54,8 +56,10 @@ def create_application() -> FastAPI:
         return {
             "message": "TeamFlow API",
             "version": "1.0.0",
-            "docs": "/docs" if settings.ENVIRONMENT != "production" else "Docs disabled in production",
-            "health": "/health"
+            "docs": "/docs"
+            if settings.ENVIRONMENT != "production"
+            else "Docs disabled in production",
+            "health": "/health",
         }
 
     # Global exception handler
@@ -69,14 +73,13 @@ def create_application() -> FastAPI:
                 content={
                     "detail": "Internal server error",
                     "error": str(exc),
-                    "type": type(exc).__name__
-                }
+                    "type": type(exc).__name__,
+                },
             )
         else:
             # In production, return generic error message
             return JSONResponse(
-                status_code=500,
-                content={"detail": "Internal server error"}
+                status_code=500, content={"detail": "Internal server error"}
             )
 
     # Include API routers
@@ -84,8 +87,10 @@ def create_application() -> FastAPI:
 
     return app
 
+
 # Create the application instance
 app = create_application()
+
 
 # Create database tables on startup (for development)
 # In production, this should be handled by Alembic migrations
@@ -98,19 +103,24 @@ async def startup_event():
             await create_tables()
         print(f"TeamFlow API starting up in {settings.ENVIRONMENT} mode with database")
     except Exception as e:
-        print(f"TeamFlow API starting up in {settings.ENVIRONMENT} mode WITHOUT database (Error: {e})")
+        print(
+            f"TeamFlow API starting up in {settings.ENVIRONMENT} mode WITHOUT database (Error: {e})"
+        )
         print("Note: Database features will be unavailable until database is connected")
+
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Application shutdown event."""
     print("TeamFlow API shutting down")
 
+
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(
         "app.main:app",
         host="0.0.0.0",
         port=8000,
-        reload=True if settings.ENVIRONMENT == "development" else False
+        reload=True if settings.ENVIRONMENT == "development" else False,
     )
