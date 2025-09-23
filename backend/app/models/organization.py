@@ -81,6 +81,14 @@ class Organization(Base):
     workflow_definitions = relationship(
         "WorkflowDefinition", back_populates="organization", cascade="all, delete-orphan"
     )
+    
+    # Webhook and integration relationships
+    webhook_endpoints = relationship(
+        "WebhookEndpoint", back_populates="organization", cascade="all, delete-orphan"
+    )
+    external_integrations = relationship(
+        "ExternalIntegration", back_populates="organization", cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         return f"<Organization(id={self.id}, name='{self.name}')>"
