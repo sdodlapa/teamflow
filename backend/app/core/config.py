@@ -15,11 +15,11 @@ class Settings(BaseSettings):
     
     # Database
     DATABASE_URL: str = Field(
-        default="postgresql://teamflow:teamflow_dev@localhost:5432/teamflow_dev",
+        default="sqlite+aiosqlite:///./teamflow_dev.db",
         description="Database connection URL"
     )
     TEST_DATABASE_URL: Optional[str] = Field(
-        default="postgresql://teamflow:teamflow_test@localhost:5432/teamflow_test",
+        default="sqlite+aiosqlite:///./teamflow_test.db",
         description="Test database connection URL"
     )
     
@@ -111,6 +111,8 @@ class Settings(BaseSettings):
         """Get synchronous database URL for SQLAlchemy."""
         if self.DATABASE_URL.startswith("postgresql://"):
             return self.DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
+        elif self.DATABASE_URL.startswith("sqlite+aiosqlite://"):
+            return self.DATABASE_URL.replace("sqlite+aiosqlite://", "sqlite://", 1)
         return self.DATABASE_URL
 
 
