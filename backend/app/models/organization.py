@@ -65,6 +65,22 @@ class Organization(Base):
     task_templates = relationship(
         "TaskTemplate", back_populates="organization", cascade="all, delete-orphan"
     )
+    
+    # Analytics relationships
+    report_templates = relationship(
+        "ReportTemplate", back_populates="organization", cascade="all, delete-orphan"
+    )
+    reports = relationship(
+        "Report", back_populates="organization", cascade="all, delete-orphan"  
+    )
+    dashboards = relationship(
+        "Dashboard", back_populates="organization", cascade="all, delete-orphan"
+    )
+    
+    # Workflow relationships
+    workflow_definitions = relationship(
+        "WorkflowDefinition", back_populates="organization", cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         return f"<Organization(id={self.id}, name='{self.name}')>"

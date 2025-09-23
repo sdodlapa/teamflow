@@ -17,6 +17,17 @@ from app.models.file_management import (
     FileUpload, FileVersion, FileThumbnail,
     FileAccessPermission, FileDownload, FileShare
 )
+from app.models.search import (
+    SearchIndexEntry, SavedSearch, SearchFilter, SearchHistory
+)
+from app.models.analytics import (
+    ReportTemplate, Report, ReportExport, ReportSchedule,
+    Dashboard, DashboardWidget, AnalyticsMetric, ReportAlert
+)
+from app.models.workflow import (
+    WorkflowDefinition, BusinessRule, WorkflowExecution, AutomationRule,
+    WorkflowTemplate
+)
 
 __all__ = [
     "Base",
@@ -50,4 +61,21 @@ __all__ = [
     "FileAccessPermission",
     "FileDownload",
     "FileShare",
+    "SearchIndexEntry",
+    "SavedSearch",
+    "SearchFilter",
+    "SearchHistory",
+    "ReportTemplate",
+    "Report",
+    "ReportExport",
+    "ReportSchedule",
+    "Dashboard",
+    "DashboardWidget",
+    "AnalyticsMetric",
+    "ReportAlert",
+    "WorkflowDefinition",
+    "BusinessRule",
+    "WorkflowExecution",
+    "AutomationRule",
+    "WorkflowTemplate",
 ]

@@ -143,7 +143,7 @@ class Report(Base):
     
     # Report data
     data = Column(JSON, nullable=False, default={})  # Processed report data
-    metadata = Column(JSON, default={})  # Generation metadata
+    generation_metadata = Column(JSON, default={})  # Generation metadata
     filters_applied = Column(JSON, default={})  # Filters used for this report
     
     # Generation info
