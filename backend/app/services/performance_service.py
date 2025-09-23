@@ -187,8 +187,9 @@ class PerformanceMonitor:
         """Collect system performance metrics"""
         while self.monitoring_active:
             try:
-                # System metrics
-                cpu_percent = psutil.cpu_percent(interval=1)
+                # FIXED: Use non-blocking CPU measurement
+                # First call returns 0.0, subsequent calls return actual percentage
+                cpu_percent = psutil.cpu_percent(interval=None)  # Non-blocking
                 memory = psutil.virtual_memory()
                 disk = psutil.disk_usage('/')
                 
@@ -253,33 +254,100 @@ class PerformanceMonitor:
                 await asyncio.sleep(30)
     
     async def _get_database_metrics(self) -> Dict[str, Any]:
-        """Get database performance metrics"""
+        """Get database performance metrics (database-agnostic) with proper session handling."""
         try:
-            async for db in get_db():
-                # Query database statistics
-                result = await db.execute(text("""
-                    SELECT 
-                        (SELECT count(*) FROM pg_stat_activity WHERE state = 'active') as active_connections,
-                        (SELECT count(*) FROM pg_stat_activity) as total_connections,
-                        (SELECT sum(blks_hit) * 100.0 / (sum(blks_hit) + sum(blks_read)) 
-                         FROM pg_stat_database WHERE datname = current_database()) as cache_hit_ratio
-                """))
+            from app.core.config import settings
+            
+            # Use direct database URL check instead of session iteration
+            db_url = str(settings.DATABASE_URL)
+            
+            # Create a single database session with timeout
+            db_gen = get_db()
+            db = await db_gen.__anext__()
+            
+            try:
+                if "sqlite" in db_url.lower():
+                    # SQLite-specific metrics
+                    result = await asyncio.wait_for(
+                        db.execute(text("""
+                            SELECT 
+                                (SELECT COUNT(*) FROM sqlite_master WHERE type='table') as table_count,
+                                0 as active_connections,
+                                0 as total_connections,
+                                0 as cache_hit_ratio
+                        """)),
+                        timeout=5.0  # 5 second timeout
+                    )
+                elif "postgresql" in db_url.lower():
+                    # PostgreSQL-specific metrics
+                    result = await asyncio.wait_for(
+                        db.execute(text("""
+                            SELECT 
+                                (SELECT count(*) FROM pg_stat_activity WHERE state = 'active') as active_connections,
+                                (SELECT count(*) FROM pg_stat_activity) as total_connections,
+                                (SELECT sum(blks_hit) * 100.0 / (sum(blks_hit) + sum(blks_read)) 
+                                 FROM pg_stat_database WHERE datname = current_database()) as cache_hit_ratio,
+                                (SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public') as table_count
+                        """)),
+                        timeout=5.0  # 5 second timeout
+                    )
+                else:
+                    # Generic fallback
+                    return {
+                        "active_connections": 0,
+                        "total_connections": 0,
+                        "cache_hit_ratio": 0,
+                        "table_count": 0
+                    }
+                
                 row = result.fetchone()
                 
                 if row:
-                    return {
-                        "active_connections": row[0] or 0,
-                        "total_connections": row[1] or 0,
-                        "cache_hit_ratio": round(float(row[2] or 0), 2)
-                    }
-                break
+                    if "sqlite" in db_url.lower():
+                        return {
+                            "active_connections": row[1],
+                            "total_connections": row[2],
+                            "cache_hit_ratio": row[3],
+                            "table_count": row[0]
+                        }
+                    else:
+                        return {
+                            "active_connections": row[0] or 0,
+                            "total_connections": row[1] or 0,
+                            "cache_hit_ratio": round(float(row[2] or 0), 2),
+                            "table_count": row[3] or 0
+                        }
+                        
+            finally:
+                # Properly close the database session
+                await db.close()
+                await db_gen.aclose()
+                
+        except asyncio.TimeoutError:
+            print("Database metrics query timed out after 5 seconds")
+            return {
+                "active_connections": 0,
+                "total_connections": 0,
+                "cache_hit_ratio": 0,
+                "table_count": 0,
+                "error": "timeout"
+            }
         except Exception as e:
             print(f"Error getting database metrics: {e}")
+            return {
+                "active_connections": 0,
+                "total_connections": 0,
+                "cache_hit_ratio": 0,
+                "table_count": 0,
+                "error": str(e)
+            }
         
+        # Fallback return
         return {
             "active_connections": 0,
             "total_connections": 0,
-            "cache_hit_ratio": 0
+            "cache_hit_ratio": 0,
+            "table_count": 0
         }
     
     def get_system_metrics(self) -> Dict[str, Any]:

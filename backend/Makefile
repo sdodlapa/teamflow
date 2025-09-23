@@ -112,16 +112,26 @@ db-revision: ## Create new database migration
 	@read -p "Migration message: " message; \
 	alembic revision --autogenerate -m "$$message"
 
-db-reset: ## Reset database (WARNING: destroys all data)
+db-setup: ## Set up database tables with new architecture
+	@echo "$(BLUE)Setting up database tables...$(RESET)"
+	python setup_database.py
+	@echo "$(GREEN)Database setup complete!$(RESET)"
+
+db-reset: ## Reset database and create tables (WARNING: destroys all data)
 	@echo "$(RED)WARNING: This will destroy all database data!$(RESET)"
 	@read -p "Are you sure? (y/N): " confirm; \
 	if [ "$$confirm" = "y" ] || [ "$$confirm" = "Y" ]; then \
-		rm -f teamflow.db; \
-		alembic upgrade head; \
+		echo "$(BLUE)Resetting database...$(RESET)"; \
+		python setup_database.py --reset; \
 		echo "$(GREEN)Database reset complete!$(RESET)"; \
 	else \
 		echo "$(YELLOW)Database reset cancelled.$(RESET)"; \
 	fi
+
+db-sample: ## Reset database and create tables with sample data
+	@echo "$(BLUE)Setting up database with sample data...$(RESET)"
+	python setup_database.py --reset --sample-data
+	@echo "$(GREEN)Database setup with sample data complete!$(RESET)"
 
 # Cleanup
 clean: ## Clean temporary files and cache

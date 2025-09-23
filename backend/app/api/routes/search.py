@@ -635,11 +635,14 @@ async def index_entity(
 
 async def _background_bulk_index(entity_types: List[str], organization_id: int, force_reindex: bool):
     """Background task for bulk indexing."""
-    from app.core.database import SessionLocal
+    from app.core.database import AsyncSessionLocal
     
-    db = SessionLocal()
-    try:
-        for entity_type in entity_types:
-            index_service.bulk_index(entity_type, organization_id, db, force_reindex)
-    finally:
-        db.close()
+    async with AsyncSessionLocal() as db:
+        try:
+            for entity_type in entity_types:
+                await index_service.bulk_index_async(entity_type, organization_id, db, force_reindex)
+        except Exception as e:
+            print(f"Background bulk index error: {e}")
+            await db.rollback()
+        else:
+            await db.commit()
