@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import List, Optional
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, computed_field
 
 from app.models.user import UserRole, UserStatus
 
@@ -65,6 +65,7 @@ class UserRead(UserBase):
     updated_at: datetime
     last_login_at: Optional[datetime] = None
 
+    @computed_field
     @property
     def full_name(self) -> str:
         """Get user's full name."""

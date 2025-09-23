@@ -3,7 +3,7 @@ Authentication dependencies for FastAPI endpoints.
 """
 from typing import Optional
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,8 +12,21 @@ from app.core.security import verify_token
 from app.models.user import User
 from app.schemas.user import UserRead
 
-# HTTP Bearer token security
-security = HTTPBearer()
+# HTTP Bearer token security that returns 401 instead of 403
+class HTTPBearerAuth(HTTPBearer):
+    async def __call__(self, request: Request) -> HTTPAuthorizationCredentials:
+        try:
+            return await super().__call__(request)
+        except HTTPException as e:
+            if e.status_code == 403:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Not authenticated",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+            raise
+
+security = HTTPBearerAuth()
 
 
 async def get_current_user(

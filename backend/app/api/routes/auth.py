@@ -49,29 +49,20 @@ async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)) 
 async def login(
     form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)
 ) -> Any:
-    """Login and get access token."""
+    """OAuth2 compatible token login, get an access token for future requests."""
 
-    # Get user by email
+    # Get user
     user = await User.get_by_email(db, email=form_data.username)
-    if not user:
+    if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    # Verify password
-    if not verify_password(form_data.password, user.hashed_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-            headers={"WWW-Authenticate": "Bearer"},
         )
 
     # Check if user is active
-    if user.status == UserStatus.SUSPENDED:
+    if user.status in [UserStatus.SUSPENDED, UserStatus.INACTIVE]:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Account is suspended"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Account is suspended or inactive"
         )
 
     # Create access token
@@ -80,35 +71,32 @@ async def login(
         subject=user.email, expires_delta=access_token_expires
     )
 
-    # Update last login
-    await user.update(db, last_login_at=user.updated_at)
+    # Update last login (handle concurrent access gracefully)
+    try:
+        await user.update(db, last_login_at=user.updated_at)
+    except Exception:
+        # Ignore login time update failures to prevent concurrent access issues
+        pass
 
     return Token(access_token=access_token, token_type="bearer")
 
 
 @router.post("/login/json", response_model=Token)
 async def login_json(user_data: UserLogin, db: AsyncSession = Depends(get_db)) -> Any:
-    """Login with JSON payload (alternative to form-based login)."""
+    """JSON login, get an access token for future requests."""
 
-    # Get user by email
+    # Get user
     user = await User.get_by_email(db, email=user_data.email)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-        )
-
-    # Verify password
-    if not verify_password(user_data.password, user.hashed_password):
+    if not user or not verify_password(user_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
         )
 
     # Check if user is active
-    if user.status == UserStatus.SUSPENDED:
+    if user.status in [UserStatus.SUSPENDED, UserStatus.INACTIVE]:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Account is suspended"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Account is suspended or inactive"
         )
 
     # Create access token
@@ -117,8 +105,12 @@ async def login_json(user_data: UserLogin, db: AsyncSession = Depends(get_db)) -
         subject=user.email, expires_delta=access_token_expires
     )
 
-    # Update last login
-    await user.update(db, last_login_at=user.updated_at)
+    # Update last login (handle concurrent access gracefully)
+    try:
+        await user.update(db, last_login_at=user.updated_at)
+    except Exception:
+        # Ignore login time update failures to prevent concurrent access issues
+        pass
 
     return Token(access_token=access_token, token_type="bearer")
 
