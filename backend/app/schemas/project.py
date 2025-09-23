@@ -1,8 +1,10 @@
 """Project Pydantic schemas for API serialization."""
 
+from __future__ import annotations
+
 from datetime import datetime, date
 from typing import Optional, List
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, EmailStr
 
 from app.models.project import ProjectStatus, ProjectPriority, ProjectMemberRole
 
@@ -15,13 +17,11 @@ class ProjectBase(BaseModel):
 
 class ProjectCreate(ProjectBase):
     """Schema for creating a new project."""
-    key: str = Field(..., min_length=2, max_length=10, pattern=r'^[A-Z][A-Z0-9]*$')
     organization_id: int
+    status: ProjectStatus = Field(default=ProjectStatus.PLANNING)
     priority: ProjectPriority = Field(default=ProjectPriority.MEDIUM)
     start_date: Optional[date] = None
-    due_date: Optional[date] = None
-    color: str = Field(default="#1f2937", pattern=r'^#[0-9A-Fa-f]{6}$')
-    is_public: bool = Field(default=False)
+    end_date: Optional[date] = None
 
 
 class ProjectUpdate(BaseModel):
@@ -31,31 +31,7 @@ class ProjectUpdate(BaseModel):
     status: Optional[ProjectStatus] = None
     priority: Optional[ProjectPriority] = None
     start_date: Optional[date] = None
-    due_date: Optional[date] = None
-    color: Optional[str] = Field(None, pattern=r'^#[0-9A-Fa-f]{6}$')
-    icon: Optional[str] = Field(None, max_length=50)
-    is_public: Optional[bool] = None
-
-
-class ProjectRead(ProjectBase):
-    """Schema for reading project data."""
-    model_config = ConfigDict(from_attributes=True)
-    
-    id: int
-    key: str
-    organization_id: int
-    owner_id: int
-    status: ProjectStatus
-    priority: ProjectPriority
-    start_date: Optional[date]
-    due_date: Optional[date]
-    completed_at: Optional[datetime]
-    is_public: bool
-    is_archived: bool
-    color: str
-    icon: Optional[str]
-    created_at: datetime
-    updated_at: datetime
+    end_date: Optional[date] = None
 
 
 class ProjectMemberBase(BaseModel):
@@ -63,16 +39,15 @@ class ProjectMemberBase(BaseModel):
     role: ProjectMemberRole = Field(default=ProjectMemberRole.DEVELOPER)
 
 
-class ProjectMemberCreate(ProjectMemberBase):
+class ProjectMemberCreate(BaseModel):
     """Schema for adding a member to project."""
-    user_id: int
-    project_id: int
+    user_email: EmailStr
+    role: ProjectMemberRole = Field(default=ProjectMemberRole.DEVELOPER)
 
 
 class ProjectMemberUpdate(BaseModel):
     """Schema for updating project member."""
-    role: Optional[ProjectMemberRole] = None
-    is_active: Optional[bool] = None
+    role: ProjectMemberRole
 
 
 class ProjectMemberRead(ProjectMemberBase):
@@ -82,23 +57,37 @@ class ProjectMemberRead(ProjectMemberBase):
     id: int
     user_id: int
     project_id: int
-    is_active: bool
     joined_at: datetime
+    
+    # Include user details (will be populated by the API)
+    # user: Optional[UserRead] = None
+
+
+class ProjectRead(ProjectBase):
+    """Schema for reading project data."""
+    model_config = ConfigDict(from_attributes=True)
+    
+    id: int
+    organization_id: int
+    status: ProjectStatus
+    priority: ProjectPriority
+    is_active: bool
+    start_date: Optional[date]
+    end_date: Optional[date]
+    created_at: datetime
     updated_at: datetime
+    
+    # Include member list
+    # members: List[ProjectMemberRead] = []
 
 
-class ProjectInvite(BaseModel):
-    """Schema for inviting users to project."""
-    user_id: int
-    role: ProjectMemberRole = Field(default=ProjectMemberRole.DEVELOPER)
+class ProjectList(BaseModel):
+    """Schema for paginated project list."""
+    projects: List[ProjectRead]
+    total: int
+    skip: int
+    limit: int
 
 
-class ProjectStats(BaseModel):
-    """Schema for project statistics."""
-    total_tasks: int
-    completed_tasks: int
-    in_progress_tasks: int
-    todo_tasks: int
-    total_members: int
-    active_members: int
-    progress_percentage: float
+# Import after class definitions to avoid circular imports
+# from app.schemas.user import UserRead

@@ -1,47 +1,52 @@
 """Database configuration and session management."""
 
-from sqlalchemy import create_engine
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, Session
-from typing import Generator
+from typing import AsyncGenerator
 
 from app.core.config import settings
 
-# Create SQLAlchemy engine
-engine = create_engine(
-    settings.database_url_sync,
+# Create async SQLAlchemy engine
+async_engine = create_async_engine(
+    settings.DATABASE_URL,
     pool_pre_ping=True,
     pool_recycle=300,
     echo=settings.DEBUG,  # Log SQL queries in debug mode
 )
 
-# Create SessionLocal class
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# Create async SessionLocal class
+AsyncSessionLocal = async_sessionmaker(
+    async_engine,
+    class_=AsyncSession,
+    expire_on_commit=False
+)
 
 # Create Base class for models
 Base = declarative_base()
 
 
-def get_db() -> Generator[Session, None, None]:
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """
-    Dependency to get database session.
+    Dependency to get async database session.
     
     Yields:
-        Session: SQLAlchemy database session
+        AsyncSession: SQLAlchemy async database session
     """
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+        finally:
+            await session.close()
 
 
 # Database utilities for testing and setup
-def create_tables():
+async def create_tables():
     """Create all database tables."""
-    Base.metadata.create_all(bind=engine)
+    async with async_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 
 
-def drop_tables():
+async def drop_tables():
     """Drop all database tables."""
-    Base.metadata.drop_all(bind=engine)
+    async with async_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)

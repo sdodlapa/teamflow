@@ -4,12 +4,8 @@ from fastapi.responses import JSONResponse
 import time
 
 from app.core.config import settings
-from app.core.database import engine
-from app.models import Base
-
-# Import routers (will be added as we build them)
-# from app.api.auth import router as auth_router
-# from app.api.users import router as users_router
+from app.core.database import create_tables
+from app.api import api_router
 
 def create_application() -> FastAPI:
     """Create and configure the FastAPI application."""
@@ -83,9 +79,8 @@ def create_application() -> FastAPI:
                 content={"detail": "Internal server error"}
             )
 
-    # Include API routers (will be uncommented as we build them)
-    # app.include_router(auth_router, prefix="/api/auth", tags=["Authentication"])
-    # app.include_router(users_router, prefix="/api/users", tags=["Users"])
+    # Include API routers
+    app.include_router(api_router, prefix="/api/v1")
 
     return app
 
@@ -100,7 +95,7 @@ async def startup_event():
     try:
         if settings.ENVIRONMENT == "development":
             # Create tables if they don't exist (development only)
-            Base.metadata.create_all(bind=engine)
+            await create_tables()
         print(f"TeamFlow API starting up in {settings.ENVIRONMENT} mode with database")
     except Exception as e:
         print(f"TeamFlow API starting up in {settings.ENVIRONMENT} mode WITHOUT database (Error: {e})")

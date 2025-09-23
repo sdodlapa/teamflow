@@ -4,20 +4,21 @@ from datetime import datetime
 from typing import Optional
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, Enum as SQLEnum
 from sqlalchemy.orm import relationship
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 import enum
 
-from app.models.base import Base
+from app.core.database import Base
 
 
-class UserRole(enum.Enum):
-    """User roles within the application."""
-    ADMIN = "admin"
-    MANAGER = "manager"
-    MEMBER = "member"
-    VIEWER = "viewer"
+class UserRole(str, enum.Enum):
+    """User roles in the system."""
+    USER = "user"
+    ADMIN = "admin" 
+    SUPER_ADMIN = "super_admin"
 
 
-class UserStatus(enum.Enum):
+class UserStatus(str, enum.Enum):
     """User account status."""
     ACTIVE = "active"
     INACTIVE = "inactive"
@@ -26,31 +27,26 @@ class UserStatus(enum.Enum):
 
 
 class User(Base):
-    """User model for authentication and user management."""
+    """User model for authentication and profile management."""
     
     __tablename__ = "users"
     
-    # Primary identification
+    # Primary key
     id = Column(Integer, primary_key=True, index=True)
-    email = Column(String(255), unique=True, index=True, nullable=False)
-    username = Column(String(50), unique=True, index=True, nullable=False)
     
     # Authentication
+    email = Column(String(255), unique=True, index=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
-    is_active = Column(Boolean, default=True, nullable=False)
-    is_verified = Column(Boolean, default=False, nullable=False)
+    is_verified = Column(Boolean, default=False)
     
-    # Profile information
-    first_name = Column(String(50), nullable=False)
-    last_name = Column(String(50), nullable=False)
-    full_name = Column(String(100), nullable=True)  # Computed field
-    avatar_url = Column(String(255), nullable=True)
+    # Profile
+    first_name = Column(String(100), nullable=False)
+    last_name = Column(String(100), nullable=False)
+    avatar_url = Column(String(500), nullable=True)
     bio = Column(Text, nullable=True)
-    timezone = Column(String(50), default="UTC", nullable=False)
-    language = Column(String(10), default="en", nullable=False)
     
-    # Role and status
-    role = Column(SQLEnum(UserRole), default=UserRole.MEMBER, nullable=False)
+    # System
+    role = Column(SQLEnum(UserRole), default=UserRole.USER, nullable=False)
     status = Column(SQLEnum(UserStatus), default=UserStatus.PENDING, nullable=False)
     
     # Timestamps
@@ -58,40 +54,58 @@ class User(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     last_login_at = Column(DateTime, nullable=True)
     
-    # Verification and password reset
-    verification_token = Column(String(255), nullable=True)
-    verification_token_expires = Column(DateTime, nullable=True)
-    password_reset_token = Column(String(255), nullable=True)
-    password_reset_expires = Column(DateTime, nullable=True)
-    
-    # Relationships (will be added as we create more models)
-    # organizations = relationship("OrganizationMember", back_populates="user")
-    # projects = relationship("ProjectMember", back_populates="user")
-    # created_tasks = relationship("Task", back_populates="creator", foreign_keys="Task.creator_id")
-    # assigned_tasks = relationship("Task", back_populates="assignee", foreign_keys="Task.assignee_id")
-    
-    def __repr__(self) -> str:
-        return f"<User(id={self.id}, email='{self.email}', username='{self.username}')>"
+    # Relationships
+    organization_memberships = relationship(
+        "OrganizationMember", 
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+    project_memberships = relationship(
+        "ProjectMember", 
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
     
     @property
-    def display_name(self) -> str:
-        """Get the user's display name."""
-        if self.full_name:
-            return self.full_name
-        return f"{self.first_name} {self.last_name}".strip()
+    def full_name(self) -> str:
+        """Get user's full name."""
+        return f"{self.first_name} {self.last_name}"
     
-    def update_full_name(self) -> None:
-        """Update the full_name field based on first_name and last_name."""
-        self.full_name = f"{self.first_name} {self.last_name}".strip()
+    @classmethod
+    async def get_by_email(cls, db: AsyncSession, email: str) -> Optional["User"]:
+        """Get user by email address."""
+        result = await db.execute(
+            select(cls).where(cls.email == email)
+        )
+        return result.scalar_one_or_none()
     
-    def is_admin(self) -> bool:
-        """Check if user has admin role."""
-        return self.role == UserRole.ADMIN
+    @classmethod
+    async def get_by_id(cls, db: AsyncSession, user_id: int) -> Optional["User"]:
+        """Get user by ID."""
+        result = await db.execute(
+            select(cls).where(cls.id == user_id)
+        )
+        return result.scalar_one_or_none()
     
-    def is_manager(self) -> bool:
-        """Check if user has manager role or higher."""
-        return self.role in [UserRole.ADMIN, UserRole.MANAGER]
+    @classmethod
+    async def create(cls, db: AsyncSession, **kwargs) -> "User":
+        """Create a new user."""
+        user = cls(**kwargs)
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+        return user
     
-    def can_manage_users(self) -> bool:
-        """Check if user can manage other users."""
-        return self.role in [UserRole.ADMIN, UserRole.MANAGER]
+    async def update(self, db: AsyncSession, **kwargs) -> "User":
+        """Update user fields."""
+        for key, value in kwargs.items():
+            if hasattr(self, key):
+                setattr(self, key, value)
+        
+        self.updated_at = datetime.utcnow()
+        await db.commit()
+        await db.refresh(self)
+        return self
+    
+    def __repr__(self) -> str:
+        return f"<User(id={self.id}, email='{self.email}', role='{self.role}')>"

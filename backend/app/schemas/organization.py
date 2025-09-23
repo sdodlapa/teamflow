@@ -1,10 +1,12 @@
 """Organization Pydantic schemas for API serialization."""
 
+from __future__ import annotations
+
 from datetime import datetime
 from typing import Optional, List
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, EmailStr
 
-from app.models.organization import OrganizationPlan, OrganizationStatus, OrganizationMemberRole
+from app.models.organization import OrganizationPlan, OrganizationMemberRole
 
 
 class OrganizationBase(BaseModel):
@@ -16,7 +18,6 @@ class OrganizationBase(BaseModel):
 
 class OrganizationCreate(OrganizationBase):
     """Schema for creating a new organization."""
-    slug: str = Field(..., min_length=3, max_length=50, pattern=r'^[a-z0-9-]+$')
     plan: OrganizationPlan = Field(default=OrganizationPlan.FREE)
 
 
@@ -25,23 +26,6 @@ class OrganizationUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
     description: Optional[str] = Field(None, max_length=1000)
     website: Optional[str] = Field(None, max_length=255)
-    logo_url: Optional[str] = Field(None, max_length=255)
-
-
-class OrganizationRead(OrganizationBase):
-    """Schema for reading organization data."""
-    model_config = ConfigDict(from_attributes=True)
-    
-    id: int
-    slug: str
-    logo_url: Optional[str]
-    plan: OrganizationPlan
-    status: OrganizationStatus
-    max_members: int
-    max_projects: int
-    created_at: datetime
-    updated_at: datetime
-    trial_ends_at: Optional[datetime]
 
 
 class OrganizationMemberBase(BaseModel):
@@ -49,16 +33,15 @@ class OrganizationMemberBase(BaseModel):
     role: OrganizationMemberRole = Field(default=OrganizationMemberRole.MEMBER)
 
 
-class OrganizationMemberCreate(OrganizationMemberBase):
+class OrganizationMemberCreate(BaseModel):
     """Schema for adding a member to organization."""
-    user_id: int
-    organization_id: int
+    user_email: EmailStr
+    role: OrganizationMemberRole = Field(default=OrganizationMemberRole.MEMBER)
 
 
 class OrganizationMemberUpdate(BaseModel):
     """Schema for updating organization member."""
-    role: Optional[OrganizationMemberRole] = None
-    is_active: Optional[bool] = None
+    role: OrganizationMemberRole
 
 
 class OrganizationMemberRead(OrganizationMemberBase):
@@ -68,22 +51,33 @@ class OrganizationMemberRead(OrganizationMemberBase):
     id: int
     user_id: int
     organization_id: int
-    is_active: bool
     joined_at: datetime
+    
+    # Include user details (will be populated by the API)
+    # user: Optional[UserRead] = None
+
+
+class OrganizationRead(OrganizationBase):
+    """Schema for reading organization data."""
+    model_config = ConfigDict(from_attributes=True)
+    
+    id: int
+    plan: OrganizationPlan
+    is_active: bool
+    created_at: datetime
     updated_at: datetime
+    
+    # Include member list
+    # members: List[OrganizationMemberRead] = []
 
 
-class OrganizationInvite(BaseModel):
-    """Schema for inviting users to organization."""
-    email: str
-    role: OrganizationMemberRole = Field(default=OrganizationMemberRole.MEMBER)
-    message: Optional[str] = Field(None, max_length=500)
+class OrganizationList(BaseModel):
+    """Schema for paginated organization list."""
+    organizations: List[OrganizationRead]
+    total: int
+    skip: int
+    limit: int
 
 
-class OrganizationStats(BaseModel):
-    """Schema for organization statistics."""
-    total_members: int
-    active_members: int
-    total_projects: int
-    active_projects: int
-    completed_projects: int
+# Import after class definitions to avoid circular imports
+# from app.schemas.user import UserRead
