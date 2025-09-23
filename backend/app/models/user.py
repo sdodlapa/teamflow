@@ -68,6 +68,17 @@ class User(Base):
     project_memberships = relationship(
         "ProjectMember", back_populates="user", cascade="all, delete-orphan"
     )
+    
+    # Task relationships
+    assigned_tasks = relationship(
+        "Task", foreign_keys="Task.assignee_id", back_populates="assignee"
+    )
+    created_tasks = relationship(
+        "Task", foreign_keys="Task.created_by", back_populates="creator"
+    )
+    task_comments = relationship(
+        "TaskComment", back_populates="user", cascade="all, delete-orphan"
+    )
 
     @property
     def full_name(self) -> str:

@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from app.api.routes import auth, organizations, projects, users
+from app.api.routes import auth, organizations, projects, tasks, users
 
 # Create main API router
 api_router = APIRouter()
@@ -14,3 +14,4 @@ api_router.include_router(
     organizations.router, prefix="/organizations", tags=["organizations"]
 )
 api_router.include_router(projects.router, prefix="/projects", tags=["projects"])
+api_router.include_router(tasks.router, prefix="/tasks", tags=["tasks"])

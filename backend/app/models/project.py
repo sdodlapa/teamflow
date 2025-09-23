@@ -68,6 +68,9 @@ class Project(Base):
     members = relationship(
         "ProjectMember", back_populates="project", cascade="all, delete-orphan"
     )
+    tasks = relationship(
+        "Task", back_populates="project", cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         return f"<Project(id={self.id}, name='{self.name}', status='{self.status}')>"

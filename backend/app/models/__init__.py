@@ -8,6 +8,8 @@ from app.models.organization import (Organization, OrganizationMember,
                                      OrganizationStatus)
 from app.models.project import (Project, ProjectMember, ProjectMemberRole,
                                 ProjectPriority, ProjectStatus)
+from app.models.task import (Task, TaskComment, TaskDependency, TaskPriority, 
+                            TaskStatus)
 from app.models.user import User, UserRole, UserStatus
 
 __all__ = [
@@ -26,4 +28,9 @@ __all__ = [
     "ProjectStatus",
     "ProjectPriority",
     "ProjectMemberRole",
+    "Task",
+    "TaskComment",
+    "TaskDependency",
+    "TaskStatus",
+    "TaskPriority",
 ]
