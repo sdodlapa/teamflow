@@ -89,6 +89,15 @@ class Organization(Base):
     external_integrations = relationship(
         "ExternalIntegration", back_populates="organization", cascade="all, delete-orphan"
     )
+    
+    # Security and compliance relationships
+    audit_logs = relationship("AuditLog", back_populates="organization", cascade="all, delete-orphan")
+    security_alerts = relationship("SecurityAlert", back_populates="organization", cascade="all, delete-orphan")
+    api_keys = relationship("APIKey", back_populates="organization", cascade="all, delete-orphan")
+    gdpr_requests = relationship("GDPRRequest", back_populates="organization", cascade="all, delete-orphan")
+    consent_records = relationship("DataConsentRecord", back_populates="organization", cascade="all, delete-orphan")
+    security_configurations = relationship("SecurityConfiguration", back_populates="organization", cascade="all, delete-orphan")
+    login_attempts = relationship("LoginAttempt", back_populates="organization", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<Organization(id={self.id}, name='{self.name}')>"

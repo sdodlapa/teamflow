@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 from app.api import api_router
 from app.core.config import settings
 from app.core.database import create_tables
+from app.core.security_middleware import configure_security_middleware
 
 
 def create_application() -> FastAPI:
@@ -14,22 +15,16 @@ def create_application() -> FastAPI:
 
     app = FastAPI(
         title="TeamFlow API",
-        description="Enterprise task management and collaboration platform",
+        description="Enterprise task management and collaboration platform with advanced security",
         version="1.0.0",
         docs_url="/docs" if settings.ENVIRONMENT != "production" else None,
         redoc_url="/redoc" if settings.ENVIRONMENT != "production" else None,
     )
 
-    # CORS middleware
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.CORS_ORIGINS,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+    # Configure security middleware (must be done before other middleware)
+    app = configure_security_middleware(app)
 
-    # Request timing middleware
+    # Request timing middleware (already included in security middleware, but keeping for reference)
     @app.middleware("http")
     async def add_process_time_header(request: Request, call_next):
         start_time = time.time()
@@ -47,6 +42,7 @@ def create_application() -> FastAPI:
             "environment": settings.ENVIRONMENT,
             "version": "1.0.0",
             "timestamp": time.time(),
+            "security": "enhanced"
         }
 
     # Root endpoint
@@ -54,12 +50,23 @@ def create_application() -> FastAPI:
     async def root():
         """Root endpoint with API information."""
         return {
-            "message": "TeamFlow API",
+            "message": "TeamFlow API - Enterprise Security Edition",
             "version": "1.0.0",
             "docs": "/docs"
             if settings.ENVIRONMENT != "production"
             else "Docs disabled in production",
             "health": "/health",
+            "features": [
+                "Multi-tenant Architecture",
+                "Advanced Task Management", 
+                "Real-time Collaboration",
+                "File Management",
+                "Workflow Automation",
+                "Webhook Integrations",
+                "Security & Compliance",
+                "Audit Logging",
+                "GDPR Compliance"
+            ]
         }
 
     # Global exception handler

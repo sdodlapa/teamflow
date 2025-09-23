@@ -108,6 +108,14 @@ class User(Base):
         "TaskAssignmentHistory", foreign_keys="TaskAssignmentHistory.assigned_by",
         back_populates="assigner", cascade="all, delete-orphan"
     )
+    
+    # Security and compliance relationships
+    audit_logs = relationship("AuditLog", back_populates="user", cascade="all, delete-orphan")
+    security_alerts = relationship("SecurityAlert", foreign_keys="SecurityAlert.user_id", back_populates="user", cascade="all, delete-orphan")
+    api_keys = relationship("APIKey", back_populates="user", cascade="all, delete-orphan")
+    gdpr_requests = relationship("GDPRRequest", foreign_keys="GDPRRequest.user_id", back_populates="user", cascade="all, delete-orphan")
+    consent_records = relationship("DataConsentRecord", back_populates="user", cascade="all, delete-orphan")
+    login_attempts = relationship("LoginAttempt", back_populates="user", cascade="all, delete-orphan")
 
     @property
     def full_name(self) -> str:

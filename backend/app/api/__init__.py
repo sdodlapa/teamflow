@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from app.api.routes import auth, organizations, projects, tasks, users, advanced_features, websocket, files, search, workflow, webhooks
+from app.api.routes import auth, organizations, projects, tasks, users, advanced_features, websocket, files, search, workflow, webhooks, security
 
 # Create main API router
 api_router = APIRouter()
@@ -25,3 +25,4 @@ api_router.include_router(files.router, prefix="/files", tags=["file-management"
 api_router.include_router(search.router, prefix="/search", tags=["search"])
 api_router.include_router(workflow.router, tags=["workflow-automation"])
 api_router.include_router(webhooks.router, tags=["webhooks-integrations"])
+api_router.include_router(security.router, prefix="/security", tags=["security-compliance"])
