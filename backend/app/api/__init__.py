@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from app.api.routes import auth, organizations, projects, tasks, users, advanced_features, websocket, files
+from app.api.routes import auth, organizations, projects, tasks, users, advanced_features, websocket, files, search
 
 # Create main API router
 api_router = APIRouter()
@@ -22,3 +22,4 @@ api_router.include_router(
     websocket.router, prefix="/realtime", tags=["realtime-collaboration"]
 )
 api_router.include_router(files.router, prefix="/files", tags=["file-management"])
+api_router.include_router(search.router, prefix="/search", tags=["search"])
