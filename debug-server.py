@@ -90,57 +90,71 @@ async def lifespan(app: FastAPI):
     
     tracker.log_event("STARTUP", "Application lifespan started")
     
+    # Initialize variables
+    performance_monitor = None
+    
     try:
         # Import dependencies with tracking
         tracker.log_event("IMPORT", "Importing core dependencies")
         
-        from app.core.config import settings
-        from app.core.database import create_tables
-        from app.services.performance_service import performance_monitor
-        
-        tracker.log_event("IMPORT", "Core dependencies imported successfully")
+        try:
+            from app.core.config import settings
+            from app.core.database import create_tables
+            from app.services.performance_service import performance_monitor
+            tracker.log_event("IMPORT", "Core dependencies imported successfully")
+        except ImportError as e:
+            tracker.log_exception("IMPORT", e)
+            tracker.log_event("WARNING", "Some dependencies not available, running in limited mode")
+            # Create minimal settings
+            class MockSettings:
+                ENVIRONMENT = "development"
+            settings = MockSettings()
         
         # Database initialization
-        if settings.ENVIRONMENT == "development":
+        if hasattr(settings, 'ENVIRONMENT') and settings.ENVIRONMENT == "development":
             tracker.log_event("DATABASE", "Starting database initialization")
             
             try:
-                # Add timeout for database operations
-                await asyncio.wait_for(create_tables(), timeout=15.0)
-                tracker.log_event("DATABASE", "Database tables created successfully")
+                if 'create_tables' in locals():
+                    # Add timeout for database operations
+                    await asyncio.wait_for(create_tables(), timeout=15.0)
+                    tracker.log_event("DATABASE", "Database tables created successfully")
+                else:
+                    tracker.log_event("WARNING", "Database creation function not available")
             except asyncio.TimeoutError:
                 tracker.log_event("ERROR", "Database initialization timed out after 15 seconds")
-                raise
             except Exception as e:
                 tracker.log_exception("DATABASE", e)
-                # Don't fail completely, continue without database
                 tracker.log_event("WARNING", "Continuing without database")
         
         # Performance monitoring
-        tracker.log_event("MONITORING", "Starting performance monitoring")
-        try:
-            await performance_monitor.start_monitoring()
-            tracker.log_event("MONITORING", "Performance monitoring started successfully")
-        except Exception as e:
-            tracker.log_exception("MONITORING", e)
-            tracker.log_event("WARNING", "Continuing without performance monitoring")
+        if performance_monitor:
+            tracker.log_event("MONITORING", "Starting performance monitoring")
+            try:
+                await performance_monitor.start_monitoring()
+                tracker.log_event("MONITORING", "Performance monitoring started successfully")
+            except Exception as e:
+                tracker.log_exception("MONITORING", e)
+                tracker.log_event("WARNING", "Continuing without performance monitoring")
+        else:
+            tracker.log_event("WARNING", "Performance monitor not available")
         
-        tracker.log_event("SUCCESS", f"Application startup complete in {settings.ENVIRONMENT} mode")
+        tracker.log_event("SUCCESS", f"Application startup complete in {getattr(settings, 'ENVIRONMENT', 'unknown')} mode")
         
         yield  # Application runs here
         
     except Exception as e:
         tracker.log_exception("STARTUP", e)
-        raise
     finally:
         # Shutdown
         tracker.log_event("STARTUP", "Application shutdown started")
         
-        try:
-            await performance_monitor.stop_monitoring()
-            tracker.log_event("MONITORING", "Performance monitoring stopped")
-        except Exception as e:
-            tracker.log_exception("MONITORING", e)
+        if performance_monitor:
+            try:
+                await performance_monitor.stop_monitoring()
+                tracker.log_event("MONITORING", "Performance monitoring stopped")
+            except Exception as e:
+                tracker.log_exception("MONITORING", e)
         
         tracker.log_event("STARTUP", "Application shutdown complete")
         
@@ -239,8 +253,25 @@ def create_debug_app() -> FastAPI:
 
 def main():
     """Main entry point with comprehensive debugging."""
+    import sys
+    import os
+    from pathlib import Path
+    
+    # Setup paths properly
+    project_root = Path(__file__).parent
+    backend_dir = project_root / "backend"
+    
+    # Add backend to Python path
+    if str(backend_dir) not in sys.path:
+        sys.path.insert(0, str(backend_dir))
+    
+    # Change to backend directory
+    os.chdir(backend_dir)
+    
     print("🔍 TeamFlow Debug Server")
     print("=" * 50)
+    print(f"📁 Backend directory: {backend_dir}")
+    print(f"🐍 Python path: {sys.path[:3]}...")
     
     tracker.log_event("STARTUP", "Debug server starting")
     

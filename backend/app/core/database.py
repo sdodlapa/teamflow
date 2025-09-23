@@ -8,17 +8,26 @@ from sqlalchemy.ext.declarative import declarative_base
 
 from app.core.config import settings
 
-# Create async SQLAlchemy engine
+# Create async SQLAlchemy engine with proper configuration
 async_engine = create_async_engine(
     settings.DATABASE_URL,
+    echo=settings.DEBUG,  # Log SQL queries in debug mode
     pool_pre_ping=True,
     pool_recycle=300,
-    echo=settings.DEBUG,  # Log SQL queries in debug mode
+    connect_args={
+        "check_same_thread": False,
+        "timeout": 5,  # 5 second timeout for SQLite
+    } if "sqlite" in settings.DATABASE_URL else {},
+    future=True,  # Use SQLAlchemy 2.0 style
 )
 
 # Create async SessionLocal class
 AsyncSessionLocal = async_sessionmaker(
-    async_engine, class_=AsyncSession, expire_on_commit=False
+    bind=async_engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+    autoflush=False,  # Prevent automatic flushing
+    autocommit=False,
 )
 
 # Create Base class for models
@@ -35,6 +44,10 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSessionLocal() as session:
         try:
             yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
         finally:
             await session.close()
 
