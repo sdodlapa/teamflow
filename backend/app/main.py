@@ -9,6 +9,7 @@ from app.core.config import settings
 from app.core.database import create_tables
 from app.core.security_middleware import configure_security_middleware
 from app.middleware.performance import PerformanceMiddlewareConfig
+from app.middleware.compression import add_compression_middleware
 from app.services.performance_service import performance_monitor
 
 
@@ -28,6 +29,9 @@ def create_application() -> FastAPI:
 
     # Configure performance middleware
     app = PerformanceMiddlewareConfig.configure_app_middleware(app)
+    
+    # Add compression middleware 
+    app = add_compression_middleware(app, compression_type="smart")
 
     # Request timing middleware (already included in security middleware, but keeping for reference)
     @app.middleware("http")
