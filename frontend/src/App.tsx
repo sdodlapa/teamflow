@@ -1,87 +1,96 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
-import { Toaster } from 'react-hot-toast'
+import { useState } from 'react';
+import Dashboard from './components/Dashboard';
+import TaskManagement from './components/TaskManagement';
+import ProjectManagement from './components/ProjectManagement';
+import Login from './components/Login';
+import './App.css';
 
-// Import pages (will be created as we build them)
-// import HomePage from './pages/HomePage'
-// import LoginPage from './pages/LoginPage'
-// import DashboardPage from './pages/DashboardPage'
-
-// Create a query client
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      retry: 1,
-    },
-  },
-})
+interface User {
+  id: number;
+  name: string;
+  email: string;
+}
 
 function App() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <Router>
-        <div className="min-h-screen bg-gray-50">
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            {/* <Route path="/login" element={<LoginPage />} /> */}
-            {/* <Route path="/dashboard" element={<DashboardPage />} /> */}
-          </Routes>
-          
-          {/* Toast notifications */}
-          <Toaster 
-            position="top-right"
-            toastOptions={{
-              duration: 4000,
-              style: {
-                background: '#363636',
-                color: '#fff',
-              },
-            }}
-          />
-        </div>
-      </Router>
-      
-      {/* React Query DevTools (only in development) */}
-      {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
-    </QueryClientProvider>
-  )
-}
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentView, setCurrentView] = useState<'dashboard' | 'tasks' | 'projects'>('dashboard');
+  const [user, setUser] = useState<User | null>(null);
 
-// Temporary HomePage component until we create the proper one
-function HomePage() {
+  const handleLogin = (credentials: { email: string; password: string }) => {
+    // Mock authentication - in a real app, this would make an API call
+    console.log('Login attempt:', credentials);
+    
+    // Simulate successful login
+    setUser({
+      id: 1,
+      name: 'John Doe',
+      email: credentials.email
+    });
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    setIsAuthenticated(false);
+    setCurrentView('dashboard');
+  };
+
+  if (!isAuthenticated) {
+    return <Login onLogin={handleLogin} />;
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">
-          Welcome to TeamFlow
-        </h1>
-        <p className="text-xl text-gray-600 mb-8">
-          Enterprise task management and collaboration platform
-        </p>
-        <div className="space-y-4">
-          <div className="card p-6 max-w-md mx-auto">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">
-              Development Setup Complete
-            </h2>
-            <p className="text-gray-600 text-sm">
-              Frontend is running with React, TypeScript, and Tailwind CSS.
-              Backend API is available at http://localhost:8000
-            </p>
-          </div>
-          <div className="flex space-x-4 justify-center">
-            <button className="btn-primary px-6 py-2">
-              Get Started
-            </button>
-            <button className="btn-outline px-6 py-2">
-              View Docs
-            </button>
-          </div>
+    <div className="app">
+      <nav className="app-nav">
+        <div className="nav-brand">
+          <span className="nav-logo">🚀</span>
+          <span className="nav-title">TeamFlow</span>
         </div>
-      </div>
+        
+        <div className="nav-links">
+          <button
+            className={`nav-link ${currentView === 'dashboard' ? 'active' : ''}`}
+            onClick={() => setCurrentView('dashboard')}
+          >
+            📊 Dashboard
+          </button>
+          <button
+            className={`nav-link ${currentView === 'projects' ? 'active' : ''}`}
+            onClick={() => setCurrentView('projects')}
+          >
+            📁 Projects
+          </button>
+          <button
+            className={`nav-link ${currentView === 'tasks' ? 'active' : ''}`}
+            onClick={() => setCurrentView('tasks')}
+          >
+            📋 Tasks
+          </button>
+        </div>
+
+        <div className="nav-user">
+          <div className="user-info">
+            <div className="user-avatar">
+              {user?.name.charAt(0) || 'U'}
+            </div>
+            <div className="user-details">
+              <span className="user-name">{user?.name}</span>
+              <span className="user-email">{user?.email}</span>
+            </div>
+          </div>
+          <button className="logout-btn" onClick={handleLogout}>
+            🚪 Logout
+          </button>
+        </div>
+      </nav>
+
+      <main className="app-main">
+        {currentView === 'dashboard' && <Dashboard />}
+        {currentView === 'projects' && <ProjectManagement />}
+        {currentView === 'tasks' && <TaskManagement />}
+      </main>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
