@@ -30,6 +30,36 @@ class Settings(BaseSettings):
     REDIS_URL: str = Field(
         default="redis://localhost:6379", description="Redis connection URL"
     )
+    REDIS_HOST: str = Field(default="localhost", description="Redis host")
+    REDIS_PORT: int = Field(default=6379, description="Redis port")
+    REDIS_DB: int = Field(default=0, description="Redis database number")
+    REDIS_PASSWORD: Optional[str] = Field(default=None, description="Redis password")
+    
+    # Performance Settings
+    ENABLE_REDIS_CACHE: bool = Field(default=True, description="Enable Redis caching")
+    CACHE_TTL_DEFAULT: int = Field(default=3600, description="Default cache TTL in seconds")
+    CACHE_TTL_SHORT: int = Field(default=300, description="Short cache TTL in seconds")
+    CACHE_TTL_LONG: int = Field(default=86400, description="Long cache TTL in seconds")
+    
+    # Performance Monitoring
+    ENABLE_PERFORMANCE_MONITORING: bool = Field(default=True, description="Enable performance monitoring")
+    METRICS_COLLECTION_INTERVAL: int = Field(default=30, description="Metrics collection interval in seconds")
+    SLOW_QUERY_THRESHOLD_MS: float = Field(default=100, description="Slow query threshold in milliseconds")
+    
+    # Database Performance
+    DB_POOL_SIZE: int = Field(default=20, description="Database connection pool size")
+    DB_MAX_OVERFLOW: int = Field(default=30, description="Database connection pool max overflow")
+    DB_POOL_TIMEOUT: int = Field(default=30, description="Database connection pool timeout")
+    DB_POOL_RECYCLE: int = Field(default=3600, description="Database connection pool recycle time")
+    
+    # API Performance
+    ENABLE_RESPONSE_COMPRESSION: bool = Field(default=True, description="Enable response compression")
+    COMPRESSION_LEVEL: int = Field(default=6, description="Compression level (1-9)")
+    COMPRESSION_MIN_SIZE: int = Field(default=1000, description="Minimum size for compression")
+    
+    # Background Tasks
+    ENABLE_BACKGROUND_TASKS: bool = Field(default=True, description="Enable background task processing")
+    MAX_BACKGROUND_TASKS: int = Field(default=100, description="Maximum concurrent background tasks")
 
     # Security
     SECRET_KEY: str = Field(

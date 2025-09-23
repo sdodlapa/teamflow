@@ -8,6 +8,8 @@ from app.api import api_router
 from app.core.config import settings
 from app.core.database import create_tables
 from app.core.security_middleware import configure_security_middleware
+from app.middleware.performance import PerformanceMiddlewareConfig
+from app.services.performance_service import performance_monitor
 
 
 def create_application() -> FastAPI:
@@ -23,6 +25,9 @@ def create_application() -> FastAPI:
 
     # Configure security middleware (must be done before other middleware)
     app = configure_security_middleware(app)
+
+    # Configure performance middleware
+    app = PerformanceMiddlewareConfig.configure_app_middleware(app)
 
     # Request timing middleware (already included in security middleware, but keeping for reference)
     @app.middleware("http")
@@ -108,7 +113,11 @@ async def startup_event():
         if settings.ENVIRONMENT == "development":
             # Create tables if they don't exist (development only)
             await create_tables()
-        print(f"TeamFlow API starting up in {settings.ENVIRONMENT} mode with database")
+        
+        # Start performance monitoring
+        await performance_monitor.start_monitoring()
+        
+        print(f"TeamFlow API starting up in {settings.ENVIRONMENT} mode with database and performance monitoring")
     except Exception as e:
         print(
             f"TeamFlow API starting up in {settings.ENVIRONMENT} mode WITHOUT database (Error: {e})"
@@ -119,6 +128,8 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_event():
     """Application shutdown event."""
+    # Stop performance monitoring
+    await performance_monitor.stop_monitoring()
     print("TeamFlow API shutting down")
 
 
