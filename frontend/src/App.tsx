@@ -5,6 +5,7 @@ import ProjectManagement from './components/ProjectManagement';
 import Login from './components/Login';
 import { TemplateBuilderPage } from './pages/TemplateBuilderPage';
 import TemplateLibraryPage from './pages/TemplateLibraryPage';
+import TemplateMarketplacePage from './pages/TemplateMarketplacePage';
 import './App.css';
 
 interface User {
@@ -15,7 +16,7 @@ interface User {
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentView, setCurrentView] = useState<'dashboard' | 'tasks' | 'projects' | 'templates' | 'template-library'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'tasks' | 'projects' | 'templates' | 'template-library' | 'template-marketplace'>('dashboard');
   const [user, setUser] = useState<User | null>(null);
 
   const handleLogin = (credentials: { email: string; password: string }) => {
@@ -80,6 +81,12 @@ function App() {
           >
             📚 Template Library
           </button>
+          <button
+            className={`nav-link ${currentView === 'template-marketplace' ? 'active' : ''}`}
+            onClick={() => setCurrentView('template-marketplace')}
+          >
+            🏪 Marketplace
+          </button>
         </div>
 
         <div className="nav-user">
@@ -104,6 +111,7 @@ function App() {
         {currentView === 'tasks' && <TaskManagement />}
         {currentView === 'templates' && <TemplateBuilderPage />}
         {currentView === 'template-library' && <TemplateLibraryPage />}
+        {currentView === 'template-marketplace' && <TemplateMarketplacePage />}
       </main>
     </div>
   );

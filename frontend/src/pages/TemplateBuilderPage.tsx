@@ -5,6 +5,7 @@ import RelationshipDesigner from '../components/templates/RelationshipDesigner';
 import ConfigurationPreview from '../components/template-builder/ConfigurationPreview';
 import TemplateManager from '../components/template-builder/TemplateManager';
 import CodeGenerationDashboard from '../components/template-builder/CodeGenerationDashboard';
+import TemplateMarketplace from '../components/template-builder/TemplateMarketplace';
 import { Entity, Field, Relationship } from '../types/template';
 
 interface DomainConfig {
@@ -32,6 +33,9 @@ export const TemplateBuilderPage: React.FC = () => {
   
   // Code generation dashboard state
   const [showCodeGenDashboard, setShowCodeGenDashboard] = useState(false);
+  
+  // Template marketplace state
+  const [showMarketplace, setShowMarketplace] = useState(false);
 
   const handleConfigChange = (config: DomainConfig) => {
     setCurrentConfig(config);
@@ -108,6 +112,21 @@ export const TemplateBuilderPage: React.FC = () => {
               <p className="text-gray-600">
                 Step 1 of 5: Configure your domain template
               </p>
+              
+              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-medium text-blue-900">Need inspiration?</h3>
+                    <p className="text-sm text-blue-700">Browse our marketplace of professional templates</p>
+                  </div>
+                  <button
+                    onClick={() => setShowMarketplace(true)}
+                    className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors text-sm"
+                  >
+                    🏪 Browse Marketplace
+                  </button>
+                </div>
+              </div>
             </div>
             
             <SimpleDomainConfigForm
@@ -361,6 +380,19 @@ export const TemplateBuilderPage: React.FC = () => {
           entities={entities}
           relationships={relationships}
           onClose={() => setShowCodeGenDashboard(false)}
+        />
+      )}
+
+      {/* Template Marketplace Modal */}
+      {showMarketplace && (
+        <TemplateMarketplace
+          onImportTemplate={(template) => {
+            console.log('Importing template from marketplace:', template);
+            // This would populate the form with the imported template data
+            alert(`Template "${template.title}" imported! This would populate the form with template data.`);
+            setShowMarketplace(false);
+          }}
+          onClose={() => setShowMarketplace(false)}
         />
       )}
     </div>
