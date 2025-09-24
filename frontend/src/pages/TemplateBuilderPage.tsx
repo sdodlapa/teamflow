@@ -3,6 +3,7 @@ import { SimpleDomainConfigForm } from '../components/TemplateBuilder/SimpleDoma
 import EntityManager from '../components/templates/EntityManager';
 import RelationshipDesigner from '../components/templates/RelationshipDesigner';
 import ConfigurationPreview from '../components/template-builder/ConfigurationPreview';
+import TemplateManager from '../components/template-builder/TemplateManager';
 import { Entity, Field, Relationship } from '../types/template';
 
 interface DomainConfig {
@@ -24,6 +25,9 @@ export const TemplateBuilderPage: React.FC = () => {
   // Entity management state
   const [entities, setEntities] = useState<Entity[]>([]);
   const [relationships, setRelationships] = useState<Relationship[]>([]);
+  
+  // Template manager state
+  const [showTemplateManager, setShowTemplateManager] = useState(false);
 
   const handleConfigChange = (config: DomainConfig) => {
     setCurrentConfig(config);
@@ -71,6 +75,18 @@ export const TemplateBuilderPage: React.FC = () => {
     console.log('Generating code for config:', currentConfig);
     // TODO: Call the actual code generation service
     alert('Code generation would start here! Check the console for the configuration.');
+  };
+
+  const handleSaveTemplate = async (templateData: any) => {
+    console.log('Saving template:', templateData);
+    // TODO: Implement actual template saving to backend
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    alert('Template saved successfully!');
+  };
+
+  const handleOpenTemplateManager = () => {
+    setShowTemplateManager(true);
   };
 
   const renderStepContent = () => {
@@ -214,15 +230,27 @@ export const TemplateBuilderPage: React.FC = () => {
               </div>
             )}
             
-            <div className="text-center">
-              <button
-                onClick={handleGenerateCode}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-semibold transition-colors"
-              >
-                🚀 Generate Template Code
-              </button>
-              <p className="text-sm text-gray-500 mt-2">
-                This will create a complete application based on your configuration
+            <div className="text-center space-y-4">
+              <div className="flex justify-center space-x-4">
+                <button
+                  onClick={handleOpenTemplateManager}
+                  className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center space-x-2"
+                >
+                  <span>💾</span>
+                  <span>Save Template</span>
+                </button>
+                
+                <button
+                  onClick={handleGenerateCode}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center space-x-2"
+                >
+                  <span>🚀</span>
+                  <span>Generate Code</span>
+                </button>
+              </div>
+              
+              <p className="text-sm text-gray-500">
+                Save your template for reuse or generate the complete application code
               </p>
             </div>
           </div>
@@ -306,6 +334,18 @@ export const TemplateBuilderPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Template Manager Modal */}
+      {currentConfig && (
+        <TemplateManager
+          domainConfig={currentConfig}
+          entities={entities}
+          relationships={relationships}
+          isVisible={showTemplateManager}
+          onClose={() => setShowTemplateManager(false)}
+          onSave={handleSaveTemplate}
+        />
+      )}
     </div>
   );
 };

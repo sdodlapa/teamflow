@@ -3,6 +3,8 @@ import Dashboard from './components/Dashboard';
 import TaskManagement from './components/TaskManagement';
 import ProjectManagement from './components/ProjectManagement';
 import Login from './components/Login';
+import { TemplateBuilderPage } from './pages/TemplateBuilderPage';
+import TemplateLibraryPage from './pages/TemplateLibraryPage';
 import './App.css';
 
 interface User {
@@ -13,7 +15,7 @@ interface User {
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentView, setCurrentView] = useState<'dashboard' | 'tasks' | 'projects'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'tasks' | 'projects' | 'templates' | 'template-library'>('dashboard');
   const [user, setUser] = useState<User | null>(null);
 
   const handleLogin = (credentials: { email: string; password: string }) => {
@@ -66,6 +68,18 @@ function App() {
           >
             📋 Tasks
           </button>
+          <button
+            className={`nav-link ${currentView === 'templates' ? 'active' : ''}`}
+            onClick={() => setCurrentView('templates')}
+          >
+            🛠️ Template Builder
+          </button>
+          <button
+            className={`nav-link ${currentView === 'template-library' ? 'active' : ''}`}
+            onClick={() => setCurrentView('template-library')}
+          >
+            📚 Template Library
+          </button>
         </div>
 
         <div className="nav-user">
@@ -88,6 +102,8 @@ function App() {
         {currentView === 'dashboard' && <Dashboard />}
         {currentView === 'projects' && <ProjectManagement />}
         {currentView === 'tasks' && <TaskManagement />}
+        {currentView === 'templates' && <TemplateBuilderPage />}
+        {currentView === 'template-library' && <TemplateLibraryPage />}
       </main>
     </div>
   );
