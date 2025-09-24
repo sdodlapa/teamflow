@@ -12,6 +12,7 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_active_user
 from app.models.project import Project, ProjectMember
 from app.models.task import Task, TaskComment, TaskDependency, TaskPriority, TaskStatus
+from app.models.time_tracking import TaskTimeLog, TaskTemplate
 from app.models.user import User
 from app.schemas.task import (
     TaskBulkAssignmentUpdate,
@@ -481,3 +482,366 @@ async def create_task_comment(
         comment_read.user_name = comment_with_user.user.full_name
     
     return comment_read
+
+
+# ===== TIME TRACKING ENDPOINTS =====
+
+@router.post("/{task_id}/time/start")
+async def start_time_tracking(
+    task_id: int,
+    description: Optional[str] = None,
+    is_billable: bool = True,
+    current_user: UserRead = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    """Start time tracking for a task."""
+    
+    # Verify task access
+    task = await get_task_or_404(db, task_id, current_user.id)
+    
+    # Check if user already has active time log for this task
+    result = await db.execute(
+        select(TaskTimeLog).where(
+            and_(
+                TaskTimeLog.task_id == task_id,
+                TaskTimeLog.user_id == current_user.id,
+                TaskTimeLog.end_time.is_(None),
+                TaskTimeLog.is_active == True
+            )
+        )
+    )
+    
+    active_log = result.scalar_one_or_none()
+    if active_log:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Time tracking already active for this task"
+        )
+    
+    # Create new time log entry
+    from datetime import datetime
+    time_log = TaskTimeLog(
+        task_id=task_id,
+        user_id=current_user.id,
+        start_time=datetime.utcnow(),
+        description=description,
+        is_billable=is_billable
+    )
+    
+    db.add(time_log)
+    await db.commit()
+    await db.refresh(time_log)
+    
+    return {
+        "message": "Time tracking started",
+        "time_log_id": time_log.id,
+        "start_time": time_log.start_time,
+        "task_title": task.title,
+        "is_billable": time_log.is_billable
+    }
+
+
+@router.post("/{task_id}/time/stop")
+async def stop_time_tracking(
+    task_id: int,
+    current_user: UserRead = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    """Stop time tracking for a task."""
+    
+    # Verify task access
+    await get_task_or_404(db, task_id, current_user.id)
+    
+    # Find active time log
+    result = await db.execute(
+        select(TaskTimeLog).where(
+            and_(
+                TaskTimeLog.task_id == task_id,
+                TaskTimeLog.user_id == current_user.id,
+                TaskTimeLog.end_time.is_(None),
+                TaskTimeLog.is_active == True
+            )
+        )
+    )
+    
+    time_log = result.scalar_one_or_none()
+    if not time_log:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No active time tracking found for this task"
+        )
+    
+    # Stop the timer
+    duration_minutes = time_log.stop_timer()
+    
+    await db.commit()
+    await db.refresh(time_log)
+    
+    return {
+        "message": "Time tracking stopped",
+        "time_log_id": time_log.id,
+        "duration_minutes": duration_minutes,
+        "duration_hours": round(duration_minutes / 60, 2),
+        "is_billable": time_log.is_billable,
+        "total_time_tracked": f"{duration_minutes // 60}h {duration_minutes % 60}m"
+    }
+
+
+@router.get("/{task_id}/time-logs")
+async def get_task_time_logs(
+    task_id: int,
+    current_user: UserRead = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    """Get time logs for a task."""
+    
+    # Verify task access
+    task = await get_task_or_404(db, task_id, current_user.id)
+    
+    # Get time logs with user information
+    result = await db.execute(
+        select(TaskTimeLog)
+        .options(selectinload(TaskTimeLog.user))
+        .where(
+            and_(
+                TaskTimeLog.task_id == task_id,
+                TaskTimeLog.is_active == True
+            )
+        )
+        .order_by(TaskTimeLog.start_time.desc())
+    )
+    
+    time_logs = result.scalars().all()
+    
+    # Calculate totals
+    total_minutes = sum(log.duration_minutes or 0 for log in time_logs if log.duration_minutes)
+    billable_minutes = sum(
+        log.duration_minutes or 0 for log in time_logs 
+        if log.duration_minutes and log.is_billable
+    )
+    
+    return {
+        "task_id": task_id,
+        "task_title": task.title,
+        "time_logs": [
+            {
+                "id": log.id,
+                "user_id": log.user_id,
+                "user_name": log.user.full_name if log.user else "Unknown",
+                "start_time": log.start_time,
+                "end_time": log.end_time,
+                "duration_minutes": log.duration_minutes,
+                "duration_hours": round(log.duration_minutes / 60, 2) if log.duration_minutes else None,
+                "description": log.description,
+                "is_billable": log.is_billable,
+                "is_running": log.is_running,
+                "created_at": log.created_at
+            }
+            for log in time_logs
+        ],
+        "summary": {
+            "total_time_minutes": total_minutes,
+            "total_time_hours": round(total_minutes / 60, 2),
+            "billable_time_minutes": billable_minutes,
+            "billable_time_hours": round(billable_minutes / 60, 2),
+            "total_entries": len(time_logs),
+            "active_entries": len([log for log in time_logs if log.is_running])
+        }
+    }
+
+
+@router.get("/time-logs/active")
+async def get_active_time_logs(
+    current_user: UserRead = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    """Get all active time logs for current user."""
+    
+    # Get active time logs across all accessible tasks
+    result = await db.execute(
+        select(TaskTimeLog)
+        .join(Task, TaskTimeLog.task_id == Task.id)
+        .join(Project, Task.project_id == Project.id)
+        .join(ProjectMember, ProjectMember.project_id == Project.id)
+        .options(
+            selectinload(TaskTimeLog.task).selectinload(Task.project),
+            selectinload(TaskTimeLog.user)
+        )
+        .where(
+            and_(
+                ProjectMember.user_id == current_user.id,
+                TaskTimeLog.user_id == current_user.id,
+                TaskTimeLog.end_time.is_(None),
+                TaskTimeLog.is_active == True
+            )
+        )
+        .order_by(TaskTimeLog.start_time.desc())
+    )
+    
+    active_logs = result.scalars().all()
+    
+    return {
+        "active_time_logs": [
+            {
+                "id": log.id,
+                "task_id": log.task_id,
+                "task_title": log.task.title if log.task else "Unknown",
+                "project_name": log.task.project.name if log.task and log.task.project else "Unknown",
+                "start_time": log.start_time,
+                "description": log.description,
+                "is_billable": log.is_billable,
+                "duration_so_far_minutes": log.calculate_duration() or 0,
+            }
+            for log in active_logs
+        ],
+        "total_active_logs": len(active_logs)
+    }
+
+
+# ===== TASK TEMPLATE ENDPOINTS =====
+
+@router.get("/templates")
+async def list_task_templates(
+    category: Optional[str] = Query(None, description="Filter by template category"),
+    current_user: UserRead = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    """List available task templates for the user's organization."""
+    
+    # Get user's organization (assuming user has organization_id)
+    # This would need to be adjusted based on your user-organization relationship
+    query = select(TaskTemplate).where(
+        and_(
+            TaskTemplate.is_active == True
+        )
+    )
+    
+    if category:
+        query = query.where(TaskTemplate.category == category)
+    
+    result = await db.execute(
+        query.order_by(TaskTemplate.usage_count.desc(), TaskTemplate.name)
+    )
+    templates = result.scalars().all()
+    
+    return {
+        "templates": [
+            {
+                "id": t.id,
+                "name": t.name,
+                "description": t.description,
+                "category": t.category,
+                "estimated_hours": t.estimated_hours,
+                "priority": t.priority,
+                "usage_count": t.usage_count,
+                "created_by": t.created_by,
+                "created_at": t.created_at
+            }
+            for t in templates
+        ]
+    }
+
+
+@router.post("/templates")
+async def create_task_template(
+    name: str,
+    description: Optional[str] = None,
+    category: Optional[str] = None,
+    estimated_hours: Optional[int] = None,
+    priority: Optional[str] = None,
+    tags: Optional[str] = None,
+    current_user: UserRead = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    """Create a new task template."""
+    
+    # Note: This assumes user has an organization_id
+    # You may need to adjust this based on your user-organization relationship
+    template = TaskTemplate(
+        name=name,
+        description=description,
+        category=category,
+        estimated_hours=estimated_hours,
+        priority=priority,
+        tags=tags,
+        organization_id=1,  # This needs to be properly set based on user's org
+        created_by=current_user.id
+    )
+    
+    db.add(template)
+    await db.commit()
+    await db.refresh(template)
+    
+    return {
+        "message": "Template created successfully",
+        "template_id": template.id,
+        "name": template.name
+    }
+
+
+@router.post("/templates/{template_id}/apply")
+async def apply_task_template(
+    template_id: int,
+    project_id: int,
+    title_override: Optional[str] = None,
+    current_user: UserRead = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    """Apply a template to create a new task."""
+    
+    # Get template
+    template = await db.get(TaskTemplate, template_id)
+    if not template or not template.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Template not found"
+        )
+    
+    # Verify project access
+    await check_project_access(db, project_id, current_user.id)
+    
+    # Create task from template
+    task = Task(
+        title=title_override or f"{template.name} Task",
+        description=template.description,
+        project_id=project_id,
+        created_by=current_user.id,
+        estimated_hours=template.estimated_hours,
+        priority=getattr(TaskPriority, template.priority.upper()) if template.priority else TaskPriority.MEDIUM
+    )
+    
+    # Handle tags if present
+    if template.tags:
+        try:
+            import json
+            tags_list = json.loads(template.tags)
+            task.tags_list = tags_list
+        except:
+            pass
+    
+    db.add(task)
+    
+    # Update template usage count
+    template.increment_usage()
+    
+    await db.commit()
+    await db.refresh(task)
+    
+    # Load relationships for response
+    result = await db.execute(
+        select(Task)
+        .options(
+            selectinload(Task.project),
+            selectinload(Task.assignee),
+            selectinload(Task.creator),
+        )
+        .where(Task.id == task.id)
+    )
+    task_with_relations = result.scalar_one()
+    
+    return {
+        "message": "Task created from template",
+        "task": build_task_read(task_with_relations),
+        "template_name": template.name,
+        "template_usage_count": template.usage_count
+    }
