@@ -117,6 +117,9 @@ class User(Base):
     consent_records = relationship("DataConsentRecord", back_populates="user", cascade="all, delete-orphan")
     login_attempts = relationship("LoginAttempt", back_populates="user", cascade="all, delete-orphan")
     
+    # File management relationships
+    uploaded_files = relationship("FileUpload", back_populates="uploader", cascade="all, delete-orphan")
+    
     # Enhanced comment system relationships
     enhanced_comments = relationship("TaskCommentEnhanced", foreign_keys="TaskCommentEnhanced.user_id", back_populates="user", cascade="all, delete-orphan")
     received_comment_mentions = relationship("CommentMention", foreign_keys="CommentMention.mentioned_user_id", back_populates="mentioned_user", cascade="all, delete-orphan")

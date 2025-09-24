@@ -121,7 +121,13 @@ class FileUpload(Base):
     versions = relationship("FileVersion", back_populates="file", cascade="all, delete-orphan")
     
     # Analytics and tracking
-    download_logs = relationship("FileDownloadLog", back_populates="file", cascade="all, delete-orphan")
+    downloads = relationship("FileDownload", back_populates="file", cascade="all, delete-orphan")
+    
+    # Thumbnails and previews
+    thumbnails = relationship("FileThumbnail", back_populates="file", cascade="all, delete-orphan")
+    
+    # Access permissions
+    access_permissions = relationship("FileAccessPermission", back_populates="file", cascade="all, delete-orphan")
     
     # Enhanced comment attachments
     comment_attachments = relationship("CommentAttachment", back_populates="file", cascade="all, delete-orphan")
@@ -265,7 +271,7 @@ class FileDownload(Base):
     file_size_at_download = Column(BigInteger, nullable=True)
     
     # Relationships
-    file = relationship("FileUpload")
+    file = relationship("FileUpload", back_populates="downloads")
     user = relationship("User")
     
     def __repr__(self):

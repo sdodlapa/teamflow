@@ -63,15 +63,16 @@ class TaskCommentEnhanced(Base):
     resolver = relationship("User", foreign_keys=[resolved_by])
     
     # Threading relationships
-    parent_comment = relationship("TaskCommentEnhanced", remote_side=[id], back_populates="replies")
-    replies = relationship("TaskCommentEnhanced", back_populates="parent_comment", cascade="all, delete-orphan")
-    thread_root = relationship("TaskCommentEnhanced", remote_side=[id])
+    parent_comment = relationship("TaskCommentEnhanced", remote_side=[id], foreign_keys=[parent_comment_id], back_populates="replies")
+    replies = relationship("TaskCommentEnhanced", foreign_keys=[parent_comment_id], back_populates="parent_comment", cascade="all, delete-orphan")
+    thread_root = relationship("TaskCommentEnhanced", remote_side=[id], foreign_keys=[thread_root_id])
     
     # Enhanced feature relationships
     mentions = relationship("CommentMention", back_populates="comment", cascade="all, delete-orphan")
     attachments = relationship("CommentAttachment", back_populates="comment", cascade="all, delete-orphan")
     likes = relationship("CommentLike", back_populates="comment", cascade="all, delete-orphan")
     reactions = relationship("CommentReaction", back_populates="comment", cascade="all, delete-orphan")
+    activities = relationship("CommentActivity", back_populates="comment", cascade="all, delete-orphan")
 
     def extract_mentions(self) -> List[str]:
         """Extract @username mentions from comment content."""
@@ -200,7 +201,7 @@ class CommentAttachment(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     comment_id = Column(Integer, ForeignKey("task_comments_enhanced.id"), nullable=False, index=True)
-    file_id = Column(Integer, ForeignKey("files.id"), nullable=False, index=True)
+    file_id = Column(Integer, ForeignKey("file_uploads.id"), nullable=False, index=True)
     
     # Attachment metadata
     display_name = Column(String(255), nullable=True)  # Custom name for display

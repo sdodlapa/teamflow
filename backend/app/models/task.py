@@ -4,7 +4,8 @@ import enum
 from datetime import datetime
 from typing import List, Optional
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON as JSONField
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.orm import relationship
 
@@ -50,8 +51,23 @@ class Task(Base):
     priority = Column(SQLEnum(TaskPriority), default=TaskPriority.MEDIUM, nullable=False)
     
     # Time tracking
-    estimated_hours = Column(Integer, nullable=True)
-    actual_hours = Column(Integer, nullable=True)
+    estimated_hours = Column(Float, nullable=True)  # Changed to Float for precision
+    actual_hours = Column(Float, nullable=True)
+    
+    # Advanced analytics fields (Day 3)
+    complexity_score = Column(Integer, nullable=True)  # 1-10 AI-generated complexity
+    skill_requirements = Column(JSONField, nullable=True)  # ["python", "react", "design"]
+    productivity_score = Column(Float, nullable=True)  # Performance metric
+    quality_score = Column(Float, nullable=True)  # Based on reviews/feedback
+    
+    # Workflow integration (Day 3)
+    workflow_execution_id = Column(Integer, ForeignKey("workflow_executions.id"), nullable=True)
+    automation_rules = Column(JSONField, nullable=True)  # Workflow automation rules
+    
+    # Performance tracking (Day 3)
+    revision_count = Column(Integer, default=0)  # Times reopened/changed
+    blocked_hours = Column(Float, default=0.0)  # Time spent blocked
+    review_cycles = Column(Integer, default=0)  # Number of review iterations
     
     # Dates
     due_date = Column(DateTime, nullable=True)
@@ -92,6 +108,12 @@ class Task(Base):
     activities = relationship("TaskActivity", back_populates="task", cascade="all, delete-orphan")
     mentions = relationship("TaskMention", back_populates="task", cascade="all, delete-orphan")
     assignment_history = relationship("TaskAssignmentHistory", back_populates="task", cascade="all, delete-orphan")
+    files = relationship("FileUpload", back_populates="task", cascade="all, delete-orphan")
+    
+    # Day 3: Analytics and workflow relationships
+    workflow_execution = relationship("WorkflowExecution", backref="related_task")
+    complexity_estimations = relationship("TaskComplexityEstimation", back_populates="task", cascade="all, delete-orphan")
+    assignment_logs = relationship("SmartAssignmentLog", back_populates="task", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<Task(id={self.id}, title='{self.title}', status='{self.status}')>"

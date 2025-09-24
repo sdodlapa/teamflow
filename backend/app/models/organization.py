@@ -82,6 +82,9 @@ class Organization(Base):
         "WorkflowDefinition", back_populates="organization", cascade="all, delete-orphan"
     )
     
+    # File management relationships
+    files = relationship("FileUpload", back_populates="organization", cascade="all, delete-orphan")
+    
     # Webhook and integration relationships
     webhook_endpoints = relationship(
         "WebhookEndpoint", back_populates="organization", cascade="all, delete-orphan"

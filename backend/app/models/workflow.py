@@ -193,7 +193,8 @@ class WorkflowExecution(Base):
     execution_uuid = Column(String(36), default=lambda: str(uuid.uuid4()), unique=True, index=True)
     
     # Execution details
-    workflow_id = Column(Integer, ForeignKey("workflow_definitions.id"), nullable=False, index=True)
+    workflow_id = Column(Integer, ForeignKey("workflow_definitions.id"), nullable=True, index=True)  # Legacy workflows
+    workflow_template_id = Column(Integer, ForeignKey("workflow_templates.id"), nullable=True, index=True)  # Template-based workflows
     trigger_data = Column(JSON, nullable=False, default={})  # Data that triggered the workflow
     
     # Execution results
@@ -214,6 +215,7 @@ class WorkflowExecution(Base):
     
     # Relationships
     workflow = relationship("WorkflowDefinition", back_populates="executions")
+    workflow_template = relationship("WorkflowTemplate", back_populates="executions")
     triggered_by_user = relationship("User", foreign_keys=[triggered_by_user_id])
     
     __table_args__ = (
@@ -311,6 +313,8 @@ class WorkflowTemplate(Base):
     # Relationships
     organization = relationship("Organization", foreign_keys=[organization_id])
     creator = relationship("User", foreign_keys=[created_by])
+    executions = relationship("WorkflowExecution", back_populates="workflow_template", cascade="all, delete-orphan")
+    analytics_executions = relationship("WorkflowExecutionAnalytics", back_populates="workflow_template", cascade="all, delete-orphan")
     
     __table_args__ = (
         Index("ix_workflow_templates_category_public", "category", "is_public"),

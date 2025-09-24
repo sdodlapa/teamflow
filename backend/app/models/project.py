@@ -71,6 +71,7 @@ class Project(Base):
     tasks = relationship(
         "Task", back_populates="project", cascade="all, delete-orphan"
     )
+    files = relationship("FileUpload", back_populates="project", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<Project(id={self.id}, name='{self.name}', status='{self.status}')>"

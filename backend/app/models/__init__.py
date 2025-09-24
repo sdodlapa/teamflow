@@ -36,6 +36,15 @@ from app.models.security import (
     AuditLog, SecurityAlert, APIKey, GDPRRequest, DataConsentRecord,
     SecurityConfiguration, LoginAttempt
 )
+from app.models.task_analytics import (
+    TaskProductivityMetrics, TeamPerformanceMetrics, WorkflowExecutionAnalytics,
+    WorkflowStepLogAnalytics, BottleneckAnalysis, ProjectHealthMetrics,
+    TaskComplexityEstimation, SmartAssignmentLog
+)
+from app.models.enhanced_comments import (
+    TaskCommentEnhanced, CommentMention, CommentAttachment, CommentLike,
+    CommentReaction, CommentActivity
+)
 
 __all__ = [
     "Base",
@@ -98,4 +107,18 @@ __all__ = [
     "DataConsentRecord",
     "SecurityConfiguration",
     "LoginAttempt",
+    "TaskProductivityMetrics",
+    "TeamPerformanceMetrics", 
+    "WorkflowExecutionAnalytics",
+    "WorkflowStepLogAnalytics",
+    "BottleneckAnalysis",
+    "ProjectHealthMetrics",
+    "TaskComplexityEstimation",
+    "SmartAssignmentLog",
+    "TaskCommentEnhanced",
+    "CommentMention",
+    "CommentAttachment",
+    "CommentLike",
+    "CommentReaction",
+    "CommentActivity",
 ]
