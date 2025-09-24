@@ -1,176 +1,348 @@
-# TeamFlow# TeamFlow - Enterprise Task Management Platform
+# TeamFlow - Enterprise Task Management Platform# TeamFlow# TeamFlow - Enterprise Task Management Platform
 
 
 
-**Enterprise Task Management Platform**TeamFlow is an enterprise-grade task management and collaboration platform designed to demonstrate advanced full-stack development skills, focusing on readable, testable, maintainable, and scalable code architecture.
+**Modern, full-stack enterprise task management platform built with FastAPI and React**
 
 
 
-TeamFlow is a modern, full-stack enterprise task management platform built with FastAPI and React. It provides comprehensive project and task management capabilities with real-time collaboration, advanced analytics, and enterprise-grade security.## 🚀 Quick Start
+TeamFlow provides comprehensive project and task management capabilities with real-time collaboration, advanced analytics, and enterprise-grade security.**Enterprise Task Management Platform**TeamFlow is an enterprise-grade task management and collaboration platform designed to demonstrate advanced full-stack development skills, focusing on readable, testable, maintainable, and scalable code architecture.
 
 
 
-## 🌟 Features### Prerequisites
+## 🌟 Features
 
-- Docker and Docker Compose
 
-### Core Functionality- Node.js 18+ (for local development)
 
-- **Multi-tenant Architecture**: Organizations, projects, and tasks hierarchy- Python 3.11+ (for local development)
+- **Multi-tenant Architecture**: Organizations, projects, and tasks hierarchyTeamFlow is a modern, full-stack enterprise task management platform built with FastAPI and React. It provides comprehensive project and task management capabilities with real-time collaboration, advanced analytics, and enterprise-grade security.## 🚀 Quick Start
 
-- **Advanced Task Management**: Kanban boards, priority levels, assignments, time tracking
+- **Advanced Task Management**: Priority levels, assignments, time tracking, dependencies
 
-- **Real-time Collaboration**: Live updates and notifications via WebSockets### Development Setup
+- **Real-time Collaboration**: Live updates and notifications via WebSockets  
 
 - **File Management**: Document uploads, version control, and thumbnail generation
 
-- **Advanced Search**: Full-text search with faceted filtering1. **Clone the repository**
+- **Advanced Search**: Full-text search with faceted filtering## 🌟 Features### Prerequisites
+
+- **Business Intelligence**: Analytics dashboard, performance metrics, and insights
+
+- **Workflow Automation**: Rule-based task automation and notifications- Docker and Docker Compose
+
+- **Security & Compliance**: JWT authentication, RBAC, audit logging, data protection
+
+### Core Functionality- Node.js 18+ (for local development)
+
+## 🚀 Quick Start
+
+- **Multi-tenant Architecture**: Organizations, projects, and tasks hierarchy- Python 3.11+ (for local development)
+
+### Prerequisites
+
+- Python 3.11+- **Advanced Task Management**: Kanban boards, priority levels, assignments, time tracking
+
+- Node.js 18+
+
+- Docker and Docker Compose (recommended)- **Real-time Collaboration**: Live updates and notifications via WebSockets### Development Setup
+
+
+
+### Development Setup- **File Management**: Document uploads, version control, and thumbnail generation
+
+
+
+1. **Clone the repository**- **Advanced Search**: Full-text search with faceted filtering1. **Clone the repository**
 
    ```bash
 
-### Business Intelligence   git clone <repository-url>
+   git clone https://github.com/sdodlapa/teamflow.git   ```bash
 
-- **Analytics Dashboard**: Project progress, performance metrics, and insights   cd teamflow
+   cd teamflow
 
-- **Time Tracking**: Detailed time logs and productivity reporting   ```
+   ```### Business Intelligence   git clone <repository-url>
 
-- **Workflow Automation**: Rule-based task automation and notifications
 
-- **Webhook Integration**: External system integrations and notifications2. **Set up environment variables**
+
+2. **Backend Setup**- **Analytics Dashboard**: Project progress, performance metrics, and insights   cd teamflow
 
    ```bash
 
-### Security & Compliance   cp .env.example .env
+   cd backend- **Time Tracking**: Detailed time logs and productivity reporting   ```
 
-- **JWT Authentication**: Secure token-based authentication with refresh tokens   cp backend/.env.example backend/.env
+   python -m venv venv
 
-- **Role-Based Access Control**: Granular permissions and organizational roles   cp frontend/.env.example frontend/.env
+   source venv/bin/activate  # On Windows: venv\Scripts\activate- **Workflow Automation**: Rule-based task automation and notifications
 
-- **Audit Logging**: Comprehensive activity tracking and compliance reporting   ```
+   pip install -r requirements.txt
 
-- **Data Protection**: Encrypted storage and secure API endpoints
+   - **Webhook Integration**: External system integrations and notifications2. **Set up environment variables**
+
+   # Run database migrations
+
+   alembic upgrade head   ```bash
+
+   
+
+   # Start the server### Security & Compliance   cp .env.example .env
+
+   python -m uvicorn app.main:app --reload
+
+   ```- **JWT Authentication**: Secure token-based authentication with refresh tokens   cp backend/.env.example backend/.env
+
+
+
+3. **Frontend Setup**- **Role-Based Access Control**: Granular permissions and organizational roles   cp frontend/.env.example frontend/.env
+
+   ```bash
+
+   cd frontend- **Audit Logging**: Comprehensive activity tracking and compliance reporting   ```
+
+   npm install
+
+   npm run dev- **Data Protection**: Encrypted storage and secure API endpoints
+
+   ```
 
 3. **Start the development environment**
 
-## 🚀 Quick Start   ```bash
+4. **Access the applications**
 
-   docker-compose up -d
-
-### Prerequisites   ```
-
-- Python 3.11+
-
-- Node.js 18+4. **Access the applications**
-
-- PostgreSQL 14+   - Frontend: http://localhost:3000
-
-- Redis 6+ (optional, for caching)   - Backend API: http://localhost:8000
+   - Backend API: http://localhost:8000## 🚀 Quick Start   ```bash
 
    - API Documentation: http://localhost:8000/docs
 
-### Backend Setup   - MailHog (Email testing): http://localhost:8025
-
-```bash   - pgAdmin (Database admin): http://localhost:5050
-
-cd backend
-
-python -m venv venv## 📁 Project Structure
-
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-pip install -r requirements.txt```
-
-teamflow/
-
-# Set environment variables├── backend/              # FastAPI backend
-
-export DATABASE_URL="postgresql://user:password@localhost/teamflow"│   ├── app/
-
-export SECRET_KEY="your-secret-key"│   │   ├── core/         # Core configuration and utilities
-
-│   │   ├── models/       # Database models
-
-# Run migrations│   │   ├── schemas/      # Pydantic schemas
-
-alembic upgrade head│   │   ├── api/          # API endpoints
-
-│   │   └── services/     # Business logic
-
-# Start the server│   ├── tests/            # Backend tests
-
-python -m uvicorn app.main:app --reload│   └── alembic/          # Database migrations
-
-```├── frontend/             # React TypeScript frontend
-
-│   ├── src/
-
-### Frontend Setup│   │   ├── components/   # Reusable components
-
-```bash│   │   ├── pages/        # Page components
-
-cd frontend│   │   ├── hooks/        # Custom React hooks
-
-npm install│   │   ├── utils/        # Utility functions
-
-npm run dev│   │   └── types/        # TypeScript type definitions
-
-```│   └── __tests__/        # Frontend tests
-
-├── shared/               # Shared types and utilities
-
-The application will be available at:├── docs/                 # Project documentation
-
-- Backend API: http://localhost:8000├── scripts/              # Development and deployment scripts
-
-- Frontend: http://localhost:3000└── .github/workflows/    # CI/CD workflows
-
-- API Documentation: http://localhost:8000/docs```
+   - Frontend: http://localhost:3000   docker-compose up -d
 
 
 
-## 🐳 Docker Deployment## 🛠️ Technology Stack
+### Docker Deployment### Prerequisites   ```
 
 
 
-### Development### Backend
+```bash- Python 3.11+
 
-```bash- **FastAPI** - Modern, fast web framework for Python
+# Development
 
-docker-compose up -d- **PostgreSQL** - Advanced open source relational database
+docker-compose up -d- Node.js 18+4. **Access the applications**
 
-```- **Redis** - In-memory data structure store for caching
 
-- **SQLAlchemy** - Python SQL toolkit and ORM
 
-### Production- **Alembic** - Database migration tool
-
-```bash- **Pydantic** - Data validation using Python type annotations
+# Production- PostgreSQL 14+   - Frontend: http://localhost:3000
 
 docker-compose -f docker-compose.prod.yml up -d
 
-```### Frontend
+```- Redis 6+ (optional, for caching)   - Backend API: http://localhost:8000
 
-- **React 18** - A JavaScript library for building user interfaces
 
-## 📚 Documentation- **TypeScript** - Typed superset of JavaScript
 
-- **Vite** - Fast build tool and development server
+## 🛠️ Technology Stack   - API Documentation: http://localhost:8000/docs
 
-- **[API Documentation](docs/05-api-documentation.md)**: Complete REST API reference- **Tailwind CSS** - Utility-first CSS framework
 
-- **[Development Guide](docs/04-development-guide.md)**: Setup and contribution guidelines- **React Query** - Data fetching and state management
 
-- **[Deployment Guide](docs/06-deployment-guide.md)**: Production deployment instructions- **React Router** - Declarative routing for React
+### Backend### Backend Setup   - MailHog (Email testing): http://localhost:8025
 
-- **[Architecture Overview](docs/ARCHITECTURE.md)**: Technical architecture and design patterns
+- **FastAPI** - Modern, fast web framework for Python
+
+- **PostgreSQL** - Advanced open source relational database```bash   - pgAdmin (Database admin): http://localhost:5050
+
+- **SQLAlchemy** - Python SQL toolkit and ORM with async support
+
+- **Redis** - In-memory data structure store for cachingcd backend
+
+- **Alembic** - Database migration tool
+
+python -m venv venv## 📁 Project Structure
+
+### Frontend
+
+- **React 18** - Modern component-based UI librarysource venv/bin/activate  # On Windows: venv\Scripts\activate
+
+- **TypeScript** - Type-safe JavaScript development
+
+- **Vite** - Fast build tool and development serverpip install -r requirements.txt```
+
+- **Tailwind CSS** - Utility-first CSS framework
+
+teamflow/
 
 ### DevOps
 
-## 🧪 Testing- **Docker** - Containerization platform
+- **Docker** - Containerization platform# Set environment variables├── backend/              # FastAPI backend
 
 - **GitHub Actions** - CI/CD workflows
 
-### Backend Tests- **PostgreSQL** - Production database
+- **PostgreSQL** - Production databaseexport DATABASE_URL="postgresql://user:password@localhost/teamflow"│   ├── app/
+
+- **Redis** - Caching and session management
+
+export SECRET_KEY="your-secret-key"│   │   ├── core/         # Core configuration and utilities
+
+## 📁 Project Structure
+
+│   │   ├── models/       # Database models
+
+```
+
+teamflow/# Run migrations│   │   ├── schemas/      # Pydantic schemas
+
+├── backend/              # FastAPI backend
+
+│   ├── app/alembic upgrade head│   │   ├── api/          # API endpoints
+
+│   │   ├── core/         # Core configuration and utilities
+
+│   │   ├── models/       # Database models│   │   └── services/     # Business logic
+
+│   │   ├── schemas/      # Pydantic schemas
+
+│   │   ├── api/          # API endpoints# Start the server│   ├── tests/            # Backend tests
+
+│   │   └── services/     # Business logic
+
+│   ├── tests/            # Backend testspython -m uvicorn app.main:app --reload│   └── alembic/          # Database migrations
+
+│   └── alembic/          # Database migrations
+
+├── frontend/             # React TypeScript frontend```├── frontend/             # React TypeScript frontend
+
+│   ├── src/
+
+│   │   ├── components/   # Reusable components│   ├── src/
+
+│   │   ├── pages/        # Page components
+
+│   │   ├── hooks/        # Custom React hooks### Frontend Setup│   │   ├── components/   # Reusable components
+
+│   │   └── types/        # TypeScript type definitions
+
+│   └── __tests__/        # Frontend tests```bash│   │   ├── pages/        # Page components
+
+├── docs/                 # Project documentation
+
+└── scripts/              # Development and deployment scriptscd frontend│   │   ├── hooks/        # Custom React hooks
+
+```
+
+npm install│   │   ├── utils/        # Utility functions
+
+## 🧪 Testing
+
+npm run dev│   │   └── types/        # TypeScript type definitions
+
+```bash
+
+# Backend tests```│   └── __tests__/        # Frontend tests
+
+cd backend
+
+pytest├── shared/               # Shared types and utilities
+
+
+
+# Frontend testsThe application will be available at:├── docs/                 # Project documentation
+
+cd frontend
+
+npm test- Backend API: http://localhost:8000├── scripts/              # Development and deployment scripts
+
+
+
+# Code quality- Frontend: http://localhost:3000└── .github/workflows/    # CI/CD workflows
+
+cd backend
+
+black .- API Documentation: http://localhost:8000/docs```
+
+isort .
+
+flake8
+
+```
+
+## 🐳 Docker Deployment## 🛠️ Technology Stack
+
+## 📚 Documentation
+
+
+
+- **[API Documentation](docs/05-api-documentation.md)**: Complete REST API reference
+
+- **[Development Guide](docs/04-development-guide.md)**: Setup and contribution guidelines### Development### Backend
+
+- **[Architecture Overview](docs/ARCHITECTURE.md)**: Technical architecture and design patterns
+
+```bash- **FastAPI** - Modern, fast web framework for Python
+
+## 🔒 Security
+
+docker-compose up -d- **PostgreSQL** - Advanced open source relational database
+
+- **Authentication**: JWT tokens with automatic refresh
+
+- **Authorization**: Role-based access control (RBAC)```- **Redis** - In-memory data structure store for caching
+
+- **Data Protection**: Encrypted storage and transmission
+
+- **API Security**: Rate limiting and request validation- **SQLAlchemy** - Python SQL toolkit and ORM
+
+- **Audit Logging**: Comprehensive security event tracking
+
+### Production- **Alembic** - Database migration tool
+
+## 📈 Performance
+
+```bash- **Pydantic** - Data validation using Python type annotations
+
+- **Sub-100ms API Response Times**: Optimized database queries and caching
+
+- **Async Architecture**: Non-blocking I/O for high concurrencydocker-compose -f docker-compose.prod.yml up -d
+
+- **Database Optimization**: Connection pooling and query optimization
+
+- **Frontend Performance**: Optimized React components and lazy loading```### Frontend
+
+
+
+## 🤝 Contributing- **React 18** - A JavaScript library for building user interfaces
+
+
+
+1. Fork the repository## 📚 Documentation- **TypeScript** - Typed superset of JavaScript
+
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+
+3. Commit your changes (`git commit -m 'Add amazing feature'`)- **Vite** - Fast build tool and development server
+
+4. Push to the branch (`git push origin feature/amazing-feature`)
+
+5. Open a Pull Request- **[API Documentation](docs/05-api-documentation.md)**: Complete REST API reference- **Tailwind CSS** - Utility-first CSS framework
+
+
+
+## 📝 License- **[Development Guide](docs/04-development-guide.md)**: Setup and contribution guidelines- **React Query** - Data fetching and state management
+
+
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.- **[Deployment Guide](docs/06-deployment-guide.md)**: Production deployment instructions- **React Router** - Declarative routing for React
+
+
+
+## 🆘 Support- **[Architecture Overview](docs/ARCHITECTURE.md)**: Technical architecture and design patterns
+
+
+
+- **Documentation**: Check the `/docs` directory for comprehensive guides### DevOps
+
+- **Issues**: Report bugs and request features via GitHub Issues
+
+- **API Reference**: Interactive API documentation at `/docs` endpoint## 🧪 Testing- **Docker** - Containerization platform
+
+
+
+---- **GitHub Actions** - CI/CD workflows
+
+
+
+**TeamFlow** - Building the future of enterprise task management, one commit at a time. 🚀### Backend Tests- **PostgreSQL** - Production database
 
 ```bash- **Redis** - Caching and session management
 
