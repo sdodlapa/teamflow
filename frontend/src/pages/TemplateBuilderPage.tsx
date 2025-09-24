@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Settings, Users, BarChart3 } from 'lucide-react';
 import { SimpleDomainConfigForm } from '../components/TemplateBuilder/SimpleDomainConfigForm';
 import EntityManager from '../components/templates/EntityManager';
@@ -10,7 +10,11 @@ import AdvancedTemplateFeatures from '../components/template-builder/AdvancedTem
 import CollaborationTools from '../components/template-builder/CollaborationTools';
 import TemplateAnalytics from '../components/template-builder/TemplateAnalytics';
 import TemplateMarketplace from '../components/template-builder/TemplateMarketplace';
+import RealTimeCollaborationPanel from '../components/RealTimeCollaborationPanel';
+import RealTimeStatus from '../components/RealTimeStatus';
 import { Entity, Field, Relationship } from '../types/template';
+import { CollaborativeUser } from '../hooks/useRealTimeCollaboration';
+import { useRealTimeCollaboration } from '../hooks/useRealTimeCollaboration';
 
 interface DomainConfig {
   name: string;
@@ -24,6 +28,7 @@ interface DomainConfig {
 }
 
 export const TemplateBuilderPage: React.FC = () => {
+  const collaboration = useRealTimeCollaboration();
   const [currentConfig, setCurrentConfig] = useState<DomainConfig | null>(null);
   const [isValid, setIsValid] = useState(false);
   const [step, setStep] = useState(1);
@@ -49,6 +54,29 @@ export const TemplateBuilderPage: React.FC = () => {
   
   // Template analytics state
   const [showTemplateAnalytics, setShowTemplateAnalytics] = useState(false);
+  
+    // State management
+  
+  // Handle collaborative user changes
+  const handleUserPresenceChange = useCallback((users: CollaborativeUser[]) => {
+    console.log('User presence changed:', users);
+    // Update local state with collaboration.collaborativeUsers if needed
+  }, []);
+
+  // Handle real-time template updates
+  const handleTemplateUpdate = useCallback((templateId: string, data: any) => {
+    console.log('Template updated in real-time:', templateId, data);
+    // Apply the updates to local state
+    if (data.entities) {
+      setEntities(data.entities);
+    }
+    if (data.relationships) {
+      setRelationships(data.relationships);
+    }
+    if (data.config) {
+      setCurrentConfig(data.config);
+    }
+  }, []);
 
   const handleConfigChange = (config: DomainConfig) => {
     setCurrentConfig(config);
@@ -466,6 +494,21 @@ export const TemplateBuilderPage: React.FC = () => {
           onClose={() => setShowTemplateAnalytics(false)}
         />
       )}
+
+      
+      {/* Real-time Collaboration Components */}
+      <RealTimeCollaborationPanel
+        templateId={currentConfig ? 'current-template' : undefined}
+        onUserPresenceChange={handleUserPresenceChange}
+        onTemplateUpdate={handleTemplateUpdate}
+      />
+      <RealTimeStatus
+        isConnected={collaboration.isConnected}
+        connectionState={collaboration.connectionState}
+        activeUsersCount={collaboration.activeUsersCount}
+        lastSyncTime={Date.now()}
+        isSyncing={false}
+      />
     </div>
   );
 };
