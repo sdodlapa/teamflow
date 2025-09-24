@@ -116,6 +116,14 @@ class User(Base):
     gdpr_requests = relationship("GDPRRequest", foreign_keys="GDPRRequest.user_id", back_populates="user", cascade="all, delete-orphan")
     consent_records = relationship("DataConsentRecord", back_populates="user", cascade="all, delete-orphan")
     login_attempts = relationship("LoginAttempt", back_populates="user", cascade="all, delete-orphan")
+    
+    # Enhanced comment system relationships
+    enhanced_comments = relationship("TaskCommentEnhanced", foreign_keys="TaskCommentEnhanced.user_id", back_populates="user", cascade="all, delete-orphan")
+    received_comment_mentions = relationship("CommentMention", foreign_keys="CommentMention.mentioned_user_id", back_populates="mentioned_user", cascade="all, delete-orphan")
+    created_comment_mentions = relationship("CommentMention", foreign_keys="CommentMention.mentioning_user_id", back_populates="mentioning_user", cascade="all, delete-orphan")
+    comment_likes = relationship("CommentLike", back_populates="user", cascade="all, delete-orphan")
+    comment_reactions = relationship("CommentReaction", back_populates="user", cascade="all, delete-orphan")
+    comment_activities = relationship("CommentActivity", back_populates="user", cascade="all, delete-orphan")
 
     @property
     def full_name(self) -> str:

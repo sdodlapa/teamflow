@@ -73,6 +73,7 @@ class Task(Base):
     assignee = relationship("User", foreign_keys=[assignee_id], back_populates="assigned_tasks")
     creator = relationship("User", foreign_keys=[created_by], back_populates="created_tasks")
     comments = relationship("TaskComment", back_populates="task", cascade="all, delete-orphan")
+    enhanced_comments = relationship("TaskCommentEnhanced", back_populates="task", cascade="all, delete-orphan")
     dependencies = relationship(
         "TaskDependency", 
         foreign_keys="TaskDependency.task_id",

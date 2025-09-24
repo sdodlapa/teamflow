@@ -112,15 +112,19 @@ class FileUpload(Base):
     expires_at = Column(DateTime, nullable=True)
     
     # Relationships
-    uploader = relationship("User", foreign_keys=[uploaded_by])
-    organization = relationship("Organization")
-    project = relationship("Project")
-    task = relationship("Task")
+    uploader = relationship("User", back_populates="uploaded_files")
+    organization = relationship("Organization", back_populates="files")
+    project = relationship("Project", back_populates="files")
+    task = relationship("Task", back_populates="files")
     
-    # File versions and thumbnails
+    # Version control
     versions = relationship("FileVersion", back_populates="file", cascade="all, delete-orphan")
-    thumbnails = relationship("FileThumbnail", back_populates="file", cascade="all, delete-orphan")
-    access_permissions = relationship("FileAccessPermission", back_populates="file", cascade="all, delete-orphan")
+    
+    # Analytics and tracking
+    download_logs = relationship("FileDownloadLog", back_populates="file", cascade="all, delete-orphan")
+    
+    # Enhanced comment attachments
+    comment_attachments = relationship("CommentAttachment", back_populates="file", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<FileUpload(id={self.id}, filename='{self.filename}', size={self.file_size})>"

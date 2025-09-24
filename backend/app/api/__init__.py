@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from app.api.routes import auth, organizations, projects, tasks, users, advanced_features, websocket, files, search, workflow, webhooks, security, performance, performance_optimization, admin, config
+from app.api.routes import auth, organizations, projects, tasks, users, advanced_features, websocket, files, search, workflow, webhooks, security, performance, performance_optimization, admin, config, enhanced_comments, comment_attachments
 from app.api import template
 
 # Create main API router
@@ -31,6 +31,10 @@ api_router.include_router(performance.router, tags=["performance-optimization"])
 api_router.include_router(performance_optimization.router, prefix="/optimization", tags=["advanced-optimization"])
 api_router.include_router(admin.router, prefix="/admin", tags=["admin-dashboard"])
 api_router.include_router(config.router, prefix="/config", tags=["system-configuration"])
+
+# Enhanced comment system routes (Day 2)
+api_router.include_router(enhanced_comments.router, prefix="/tasks", tags=["enhanced-comments"])
+api_router.include_router(comment_attachments.router, prefix="/comments", tags=["comment-attachments"])
 
 # Template system routes
 api_router.include_router(template.router, prefix="/template", tags=["template-system"])
