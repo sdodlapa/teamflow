@@ -4,6 +4,7 @@ Security utilities for authentication and authorization.
 from datetime import datetime, timedelta, timezone
 from typing import Any, Union
 
+from fastapi import Depends, HTTPException, status
 from jose import jwt
 from passlib.context import CryptContext
 
@@ -55,3 +56,16 @@ def verify_token(token: str) -> Union[str, None]:
         return payload.get("sub")
     except jwt.JWTError:
         return None
+
+
+# Import dependencies functions for easier access
+def get_current_user():
+    """Import get_current_user from dependencies."""
+    from app.core.dependencies import get_current_user as _get_current_user
+    return _get_current_user
+
+
+def require_admin():
+    """Import admin requirement from dependencies.""" 
+    from app.core.dependencies import get_current_admin_user
+    return get_current_admin_user

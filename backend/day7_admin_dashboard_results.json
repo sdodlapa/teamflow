@@ -1,0 +1,178 @@
+{
+  "timestamp": "2025-09-24T17:18:16.640147",
+  "day": "Day 7: Admin Dashboard & Analytics",
+  "total_tests": 10,
+  "passed_tests": 10,
+  "failed_tests": 0,
+  "test_details": {
+    "Admin Analytics Service": {
+      "success": true,
+      "service_initialized": true,
+      "classes_available": [
+        "AdminAnalyticsService",
+        "DashboardSummary",
+        "UserAnalytics",
+        "ProjectAnalytics",
+        "TaskAnalytics",
+        "WorkflowAnalytics"
+      ],
+      "timeframe_filter_works": true
+    },
+    "Admin API Endpoints": {
+      "success": true,
+      "endpoints_found": [
+        "/dashboard/summary",
+        "/analytics/users",
+        "/analytics/projects",
+        "/analytics/tasks",
+        "/analytics/workflows",
+        "/analytics/metrics",
+        "/analytics/report",
+        "/dashboard/health",
+        "/dashboard/alerts"
+      ],
+      "endpoints_count": 9,
+      "response_models": [
+        "DashboardSummaryResponse",
+        "UserAnalyticsResponse",
+        "ProjectAnalyticsResponse",
+        "TaskAnalyticsResponse",
+        "WorkflowAnalyticsResponse",
+        "AnalyticsMetricResponse",
+        "AnalyticsReportResponse"
+      ],
+      "models_count": 7,
+      "admin_authentication": true
+    },
+    "Dashboard Summary": {
+      "success": true,
+      "fields_present": [
+        "total_users",
+        "total_organizations",
+        "total_projects",
+        "total_tasks",
+        "active_users_today",
+        "tasks_completed_today",
+        "system_health_score",
+        "performance_score"
+      ],
+      "summary_data": {
+        "total_users": 4,
+        "total_projects": 3,
+        "system_health_score": 0.0
+      },
+      "cache_available": true
+    },
+    "User Analytics": {
+      "success": true,
+      "fields_present": [
+        "total_users",
+        "active_users",
+        "new_users",
+        "user_engagement",
+        "top_organizations",
+        "user_activity_trends"
+      ],
+      "engagement_metrics": [
+        "daily_active_rate",
+        "weekly_active_rate",
+        "monthly_active_rate"
+      ],
+      "has_activity_trends": true,
+      "active_users_data": {
+        "24h": 0,
+        "7d": 0,
+        "30d": 0,
+        "90d": 0,
+        "1y": 0,
+        "all": 4
+      }
+    },
+    "Project Analytics": {
+      "success": true,
+      "fields_present": [
+        "total_projects",
+        "active_projects",
+        "completed_projects",
+        "project_completion_rate",
+        "average_project_duration",
+        "projects_by_status",
+        "top_performing_projects"
+      ],
+      "completion_rate": 0.0,
+      "has_status_breakdown": true,
+      "has_top_performers": true
+    },
+    "Task Analytics": {
+      "success": true,
+      "fields_present": [
+        "total_tasks",
+        "completed_tasks",
+        "pending_tasks",
+        "overdue_tasks",
+        "task_completion_rate",
+        "tasks_by_priority",
+        "tasks_by_status",
+        "productivity_trends"
+      ],
+      "has_priority_distribution": true,
+      "has_status_distribution": true,
+      "has_productivity_trends": true,
+      "overdue_tracking": true
+    },
+    "Workflow Analytics": {
+      "success": true,
+      "fields_present": [
+        "total_workflows",
+        "active_workflows",
+        "workflow_executions",
+        "success_rate",
+        "failed_executions",
+        "average_execution_time",
+        "most_used_workflows",
+        "workflow_performance"
+      ],
+      "success_rate": 92.5,
+      "has_performance_data": true,
+      "tracks_executions": true,
+      "tracks_failures": true
+    },
+    "Custom Metrics": {
+      "success": true,
+      "metrics_generated": 3,
+      "valid_metrics": [
+        "User Growth Rate",
+        "Task Velocity",
+        "System Uptime"
+      ],
+      "has_trends": true,
+      "has_change_percent": true
+    },
+    "Analytics Reports": {
+      "success": true,
+      "sections_present": [
+        "report_metadata",
+        "dashboard_summary",
+        "user_analytics",
+        "project_analytics",
+        "task_analytics",
+        "workflow_analytics"
+      ],
+      "has_metadata": true,
+      "report_size": 2815,
+      "timeframe_included": "30d",
+      "comprehensive": true
+    },
+    "Admin Authentication": {
+      "success": true,
+      "admin_auth_usage": 10,
+      "admin_required_count": 9,
+      "admin_docs_count": 9,
+      "has_admin_dependency": true,
+      "properly_secured": true
+    }
+  },
+  "performance_metrics": {},
+  "system_health": {},
+  "success_rate": 100.0
+}

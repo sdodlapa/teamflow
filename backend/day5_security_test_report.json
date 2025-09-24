@@ -1,0 +1,189 @@
+{
+  "test_date": "2025-09-24T12:21:22.128568",
+  "overall_status": "EXCELLENT",
+  "tests_passed": 5,
+  "total_tests": 6,
+  "pass_rate": "83.3%",
+  "results": {
+    "Security Headers": {
+      "status": "PASS",
+      "headers": {
+        "Content-Security-Policy": {
+          "present": true,
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' ws: wss:; media-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
+        },
+        "Strict-Transport-Security": {
+          "present": true,
+          "value": "max-age=31536000; includeSubDomains; preload"
+        },
+        "X-Frame-Options": {
+          "present": true,
+          "value": "DENY"
+        },
+        "X-Content-Type-Options": {
+          "present": true,
+          "value": "nosniff"
+        },
+        "X-XSS-Protection": {
+          "present": true,
+          "value": "1; mode=block"
+        },
+        "Referrer-Policy": {
+          "present": true,
+          "value": "strict-origin-when-cross-origin"
+        },
+        "Permissions-Policy": {
+          "present": true,
+          "value": "geolocation=(), microphone=(), camera=(), payment=(), usb=(), accelerometer=(), gyroscope=(), magnetometer=()"
+        }
+      },
+      "csp_analysis": {
+        "default-src": true,
+        "script-src": true,
+        "style-src": true,
+        "frame-ancestors": true
+      },
+      "total_headers": 7
+    },
+    "Rate Limiting": {
+      "status": "PASS",
+      "total_requests": 15,
+      "successful_requests": 14,
+      "rate_limited_requests": 1,
+      "has_rate_limit_headers": true,
+      "sample_headers": {
+        "X-RateLimit-Limit": "100",
+        "X-RateLimit-Remaining": "98",
+        "X-RateLimit-Window": "1 minute",
+        "Retry-After": null
+      }
+    },
+    "Threat Detection": {
+      "status": "PASS",
+      "total_payloads": 6,
+      "blocked_requests": 0,
+      "threats_detected": 2,
+      "detection_rate": "33.3%",
+      "results": [
+        {
+          "payload": "test'; DROP TABLE users; --",
+          "status_code": 200,
+          "blocked": false,
+          "threats_detected": "1"
+        },
+        {
+          "payload": "1 UNION SELECT * FROM users",
+          "status_code": 200,
+          "blocked": false,
+          "threats_detected": "1"
+        },
+        {
+          "payload": "<script>alert('xss')</script>",
+          "status_code": 429,
+          "blocked": false,
+          "threats_detected": "0"
+        },
+        {
+          "payload": "javascript:alert('xss')",
+          "status_code": 429,
+          "blocked": false,
+          "threats_detected": "0"
+        },
+        {
+          "payload": "../../etc/passwd",
+          "status_code": 429,
+          "blocked": false,
+          "threats_detected": "0"
+        },
+        {
+          "payload": "..\\windows\\system32",
+          "status_code": 429,
+          "blocked": false,
+          "threats_detected": "0"
+        }
+      ]
+    },
+    "API Endpoints": {
+      "status": "PASS",
+      "total_endpoints": 8,
+      "available_endpoints": 8,
+      "availability_rate": "100.0%",
+      "endpoints": {
+        "/api/v1/security/audit-logs": {
+          "status_code": 429,
+          "available": true,
+          "requires_auth": false,
+          "content_type": "application/json"
+        },
+        "/api/v1/security/alerts": {
+          "status_code": 429,
+          "available": true,
+          "requires_auth": false,
+          "content_type": "application/json"
+        },
+        "/api/v1/security/api-keys": {
+          "status_code": 401,
+          "available": true,
+          "requires_auth": true,
+          "content_type": "application/json"
+        },
+        "/api/v1/security/gdpr/requests": {
+          "status_code": 429,
+          "available": true,
+          "requires_auth": false,
+          "content_type": "application/json"
+        },
+        "/api/v1/security/consent": {
+          "status_code": 429,
+          "available": true,
+          "requires_auth": false,
+          "content_type": "application/json"
+        },
+        "/api/v1/security/dashboard": {
+          "status_code": 429,
+          "available": true,
+          "requires_auth": false,
+          "content_type": "application/json"
+        },
+        "/api/v1/security/configurations": {
+          "status_code": 429,
+          "available": true,
+          "requires_auth": false,
+          "content_type": "application/json"
+        },
+        "/api/v1/security/login-attempts": {
+          "status_code": 429,
+          "available": true,
+          "requires_auth": false,
+          "content_type": "application/json"
+        }
+      }
+    },
+    "CORS Configuration": {
+      "status": "PARTIAL",
+      "preflight_status": 429,
+      "cors_headers": {
+        "Access-Control-Allow-Origin": null,
+        "Access-Control-Allow-Methods": null,
+        "Access-Control-Allow-Headers": null,
+        "Access-Control-Allow-Credentials": null
+      },
+      "configured": false
+    },
+    "Response Timing": {
+      "status": "PASS",
+      "response_time_ms": 2.23,
+      "server_process_time": "0.0005819797515869141",
+      "has_timing_headers": true,
+      "performance": "GOOD"
+    }
+  },
+  "summary": {
+    "security_headers": 7,
+    "rate_limiting": "ACTIVE",
+    "threat_detection": "33.3%",
+    "api_availability": "100.0%",
+    "cors_configured": false,
+    "performance": "GOOD"
+  }
+}

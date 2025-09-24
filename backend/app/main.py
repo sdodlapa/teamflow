@@ -1,8 +1,9 @@
 """
-TeamFlow main.py with improved database handling - no hanging
+TeamFlow main.py with Day 6 Performance Optimization & Scaling
 """
 import asyncio
 import time
+import logging
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,6 +12,11 @@ from fastapi.responses import JSONResponse
 from app.api import api_router
 from app.core.config import settings
 from app.core.database import ensure_database_ready, close_database
+from app.middleware.security import security_middleware, audit_middleware
+from app.middleware.performance import PerformanceMiddlewareConfig
+from app.services.performance_service import performance_monitor, metrics_collector
+
+logger = logging.getLogger(__name__)
 
 
 def create_application() -> FastAPI:
@@ -32,6 +38,13 @@ def create_application() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # Add security middleware
+    app.middleware("http")(security_middleware)
+    app.middleware("http")(audit_middleware)
+
+    # Day 6: Add performance optimization middleware
+    PerformanceMiddlewareConfig.configure_app_middleware(app)
 
     # Request timing middleware
     @app.middleware("http")
@@ -78,8 +91,17 @@ def create_application() -> FastAPI:
                 "Workflow Automation",
                 "Webhook Integrations",
                 "Security & Compliance",
+                "Advanced Security Headers",
+                "Rate Limiting & DDoS Protection",
+                "Threat Detection",
+                "CSRF Protection",
                 "Audit Logging",
-                "GDPR Compliance"
+                "GDPR Compliance",
+                "Performance Optimization",
+                "Redis Caching",
+                "Response Compression",
+                "Database Query Optimization",
+                "Real-time Performance Monitoring"
             ]
         }
 
@@ -138,24 +160,54 @@ app = create_application()
 
 @app.on_event("startup")
 async def startup_event():
-    """Application startup event - no hanging database operations."""
+    """Application startup event with Day 6 Performance Optimization."""
     try:
-        print("🚀 TeamFlow API v2.0 starting up...")
+        print("🚀 TeamFlow API v2.0 starting up with Performance Optimization...")
         print(f"✅ Environment: {settings.ENVIRONMENT}")
-        print("📋 Database: Lazy-loaded (use /test-db to check or run setup_database.py)")
+        
+        # Day 6: Initialize performance monitoring
+        print("� Initializing performance monitoring...")
+        await performance_monitor.start_monitoring()
+        
+        # Initialize Redis connection for metrics collector
+        print("💾 Initializing Redis connection for caching...")
+        redis_connected = await metrics_collector.initialize_redis_connection()
+        if redis_connected:
+            print("✅ Redis connection established for enhanced caching")
+        else:
+            print("⚠️ Redis unavailable - using local caching only")
+        
+        print("�📋 Database: Lazy-loaded (use /test-db to check or run setup_database.py)")
         print("🎯 No hanging - server ready instantly!")
-        print(f"✅ TeamFlow API startup complete in {settings.ENVIRONMENT} mode")
+        print("📈 Performance monitoring active")
+        print("🔧 Performance middleware configured")
+        print(f"✅ TeamFlow API v2.0 startup complete in {settings.ENVIRONMENT} mode")
+        
     except Exception as e:
         print(f"TeamFlow API starting up in {settings.ENVIRONMENT} mode with startup warning: {e}")
+        logger.error(f"Startup error: {e}")
 
 
-@app.on_event("shutdown")
+@app.on_event("shutdown") 
 async def shutdown_event():
-    """Application shutdown event."""
+    """Application shutdown event with performance monitoring cleanup."""
     print("👋 TeamFlow API shutting down...")
     try:
+        # Stop performance monitoring
+        print("📊 Stopping performance monitoring...")
+        await performance_monitor.stop_monitoring()
+        
+        # Close Redis connection
+        if metrics_collector.redis_client:
+            print("💾 Closing Redis connection...")
+            await metrics_collector.redis_client.close()
+        
+        # Close database connections
         await close_database()
         print("✅ Database connections closed cleanly")
+        
     except Exception as e:
         print(f"⚠️ Error during shutdown: {e}")
+        logger.error(f"Shutdown error: {e}")
+        
     print("✅ TeamFlow API shutdown complete")
