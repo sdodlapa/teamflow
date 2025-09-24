@@ -3,6 +3,7 @@
 from fastapi import APIRouter
 
 from app.api.routes import auth, organizations, projects, tasks, users, advanced_features, websocket, files, search, workflow, webhooks, security, performance, performance_optimization, admin, config
+from app.api import template
 
 # Create main API router
 api_router = APIRouter()
@@ -30,3 +31,6 @@ api_router.include_router(performance.router, tags=["performance-optimization"])
 api_router.include_router(performance_optimization.router, prefix="/optimization", tags=["advanced-optimization"])
 api_router.include_router(admin.router, prefix="/admin", tags=["admin-dashboard"])
 api_router.include_router(config.router, prefix="/config", tags=["system-configuration"])
+
+# Template system routes
+api_router.include_router(template.router, prefix="/template", tags=["template-system"])

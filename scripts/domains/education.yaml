@@ -1,0 +1,94 @@
+api_endpoints:
+- description: Manage courses
+  methods:
+  - GET
+  - POST
+  path: /courses
+  permissions:
+  - instructor
+  - admin
+- description: Manage enrollments
+  methods:
+  - GET
+  - POST
+  path: /enrollments
+  permissions:
+  - student
+  - instructor
+  - admin
+domain:
+  description: Complete LMS platform
+  name: Learning Management System
+  version: 1.0.0
+entities:
+- description: Educational courses
+  fields:
+    description:
+      type: text
+    duration:
+      type: integer
+    instructor_id:
+      references: users.id
+      type: foreign_key
+    price:
+      description: Price in cents
+      type: integer
+    title:
+      indexed: true
+      nullable: false
+      type: string
+  name: Course
+  table: courses
+- description: Student course enrollments
+  fields:
+    completed:
+      default: false
+      type: boolean
+    course_id:
+      nullable: false
+      references: courses.id
+      type: foreign_key
+    enrollment_date:
+      nullable: false
+      type: datetime
+    progress:
+      default: 0
+      type: integer
+    student_id:
+      nullable: false
+      references: users.id
+      type: foreign_key
+  name: Enrollment
+  table: enrollments
+ui_components:
+- name: CourseCatalog
+  props:
+    columns: 3
+    pagination: true
+  type: grid
+- name: StudentDashboard
+  props:
+    widgets:
+    - enrolled_courses
+    - progress_chart
+    - assignments
+  type: dashboard
+workflows:
+- description: Handle course completion
+  name: Course Completion
+  permissions:
+  - system
+  steps:
+  - config:
+      template: completion_cert
+    name: generate_certificate
+    type: action
+  - config:
+      recipients:
+      - student
+      - instructor
+    name: send_notification
+    type: notification
+  trigger: event
+  trigger_config:
+    event: progress_100_percent

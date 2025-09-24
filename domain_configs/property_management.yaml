@@ -1,0 +1,197 @@
+# Property Management Domain Configuration
+# Template demonstration: Real estate property management system
+
+domain:
+  name: "property_management"
+  title: "PropertyFlow"
+  description: "Complete property management platform for real estate"
+  type: "property_management"
+  version: "1.0.0"
+  logo: "🏠"
+  color_scheme: "green"
+  theme: "default"
+
+entities:
+  - name: "Property"
+    table_name: "properties"
+    description: "Real estate properties under management"
+    fields:
+      - name: "address"
+        type: "string"
+        nullable: false
+        max_length: 500
+        indexed: true
+        description: "Property address"
+      - name: "property_type"
+        type: "enum"
+        nullable: false
+        choices: ["house", "apartment", "condo", "townhouse", "commercial"]
+        default: "apartment"
+        indexed: true
+      - name: "bedrooms"
+        type: "integer"
+        nullable: true
+        description: "Number of bedrooms"
+      - name: "bathrooms"
+        type: "integer"
+        nullable: true
+        description: "Number of bathrooms"
+      - name: "square_feet"
+        type: "integer"
+        nullable: true
+        description: "Property size in square feet"
+      - name: "rent_amount"
+        type: "integer"
+        nullable: true
+        description: "Monthly rent in cents"
+      - name: "status"
+        type: "enum"
+        nullable: false
+        choices: ["available", "occupied", "maintenance", "off_market"]
+        default: "available"
+        indexed: true
+    relationships:
+      - name: "tenants"
+        target_entity: "Tenant"
+        relationship_type: "one_to_many"
+        back_populates: "property"
+      - name: "maintenance_requests"
+        target_entity: "MaintenanceRequest"
+        relationship_type: "one_to_many"
+        back_populates: "property"
+
+  - name: "Tenant"
+    table_name: "tenants"
+    description: "Property tenants and renters"
+    fields:
+      - name: "first_name"
+        type: "string"
+        nullable: false
+        max_length: 100
+      - name: "last_name"
+        type: "string"
+        nullable: false
+        max_length: 100
+      - name: "email"
+        type: "string"
+        nullable: false
+        max_length: 255
+        unique: true
+        indexed: true
+      - name: "phone"
+        type: "string"
+        nullable: true
+        max_length: 20
+      - name: "lease_start"
+        type: "date"
+        nullable: true
+      - name: "lease_end"
+        type: "date"
+        nullable: true
+      - name: "monthly_rent"
+        type: "integer"
+        nullable: false
+        description: "Monthly rent in cents"
+      - name: "security_deposit"
+        type: "integer"
+        nullable: true
+        description: "Security deposit in cents"
+    relationships:
+      - name: "property"
+        target_entity: "Property"
+        relationship_type: "many_to_one"
+        foreign_key: "property_id"
+
+  - name: "MaintenanceRequest"
+    table_name: "maintenance_requests"
+    description: "Property maintenance and repair requests"
+    fields:
+      - name: "title"
+        type: "string"
+        nullable: false
+        max_length: 255
+        description: "Issue summary"
+      - name: "description"
+        type: "text"
+        nullable: true
+        description: "Detailed issue description"
+      - name: "priority"
+        type: "enum"
+        nullable: false
+        choices: ["low", "medium", "high", "emergency"]
+        default: "medium"
+        indexed: true
+      - name: "status"
+        type: "enum"
+        nullable: false
+        choices: ["submitted", "in_progress", "completed", "cancelled"]
+        default: "submitted"
+        indexed: true
+      - name: "estimated_cost"
+        type: "integer"
+        nullable: true
+        description: "Estimated repair cost in cents"
+      - name: "actual_cost"
+        type: "integer"
+        nullable: true
+        description: "Actual repair cost in cents"
+      - name: "scheduled_date"
+        type: "datetime"
+        nullable: true
+      - name: "completed_date"
+        type: "datetime"
+        nullable: true
+    relationships:
+      - name: "property"
+        target_entity: "Property"
+        relationship_type: "many_to_one"
+        foreign_key: "property_id"
+      - name: "tenant"
+        target_entity: "Tenant"
+        relationship_type: "many_to_one"
+        foreign_key: "tenant_id"
+
+navigation:
+  - key: "dashboard"
+    label: "Dashboard"
+    icon: "📊"
+    route: "/dashboard"
+    order: 1
+    permissions: ["user"]
+  - key: "properties"
+    label: "Properties"
+    icon: "🏠"
+    route: "/properties"
+    order: 2
+    permissions: ["user"]
+  - key: "tenants"
+    label: "Tenants"
+    icon: "👥"
+    route: "/tenants"
+    order: 3
+    permissions: ["user"]
+  - key: "maintenance"
+    label: "Maintenance"
+    icon: "🔧"
+    route: "/maintenance"
+    order: 4
+    permissions: ["user"]
+
+features:
+  file_management: true
+  real_time_notifications: true
+  advanced_search: true
+  reporting_analytics: true
+  multi_tenant: true
+  payment_tracking: true
+  lease_management: true
+  vendor_management: false
+
+custom_config:
+  default_lease_term: 12  # months
+  late_fee_percentage: 5
+  security_deposit_months: 1
+  rent_due_day: 1  # day of month
+  grace_period_days: 5
+  currency: "USD"
+  timezone: "America/New_York"

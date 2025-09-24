@@ -1,0 +1,732 @@
+# Stock Portfolio Management System Configuration
+# This demonstrates how to create a complete domain through configuration
+
+domain:
+  name: "Stock Portfolio Management"
+  description: "Complete investment portfolio tracking and analysis platform"
+  version: "1.0.0"
+
+# Database Entities
+entities:
+  - name: Portfolio
+    table: portfolios
+    description: "Investment portfolio container"
+    fields:
+      name:
+        type: string
+        nullable: false
+        indexed: true
+        max_length: 255
+        description: "Portfolio name"
+      
+      description:
+        type: text
+        description: "Portfolio description and strategy"
+      
+      total_value:
+        type: decimal
+        default: 0.00
+        description: "Current total portfolio value"
+      
+      cash_balance:
+        type: decimal
+        default: 0.00
+        description: "Available cash balance"
+      
+      risk_tolerance:
+        type: enum
+        values: [conservative, moderate, aggressive]
+        default: moderate
+        indexed: true
+        description: "Risk tolerance level"
+      
+      auto_rebalance:
+        type: boolean
+        default: false
+        description: "Enable automatic rebalancing"
+      
+      rebalance_threshold:
+        type: decimal
+        default: 5.0
+        description: "Rebalancing threshold percentage"
+      
+      target_allocation:
+        type: json
+        description: "Target asset allocation percentages"
+      
+      created_at:
+        type: datetime
+        nullable: false
+      
+      updated_at:
+        type: datetime
+        nullable: false
+
+  - name: Stock
+    table: stocks
+    description: "Stock/security information"
+    fields:
+      symbol:
+        type: string
+        max_length: 10
+        nullable: false
+        unique: true
+        indexed: true
+        description: "Stock ticker symbol"
+      
+      company_name:
+        type: string
+        max_length: 255
+        nullable: false
+        indexed: true
+        description: "Company name"
+      
+      sector:
+        type: string
+        max_length: 100
+        indexed: true
+        description: "Industry sector"
+      
+      market_cap:
+        type: integer
+        description: "Market capitalization"
+      
+      current_price:
+        type: decimal
+        description: "Current stock price"
+      
+      previous_close:
+        type: decimal
+        description: "Previous trading day close price"
+      
+      day_change:
+        type: decimal
+        description: "Day price change"
+      
+      day_change_percent:
+        type: decimal
+        description: "Day price change percentage"
+      
+      fifty_two_week_high:
+        type: decimal
+        description: "52-week high price"
+      
+      fifty_two_week_low:
+        type: decimal
+        description: "52-week low price"
+      
+      dividend_yield:
+        type: decimal
+        description: "Annual dividend yield percentage"
+      
+      pe_ratio:
+        type: decimal
+        description: "Price-to-earnings ratio"
+      
+      beta:
+        type: decimal
+        description: "Stock volatility vs market"
+      
+      last_updated:
+        type: datetime
+        description: "Last price update timestamp"
+
+  - name: Holding
+    table: holdings
+    description: "Individual stock holdings in portfolios"
+    fields:
+      portfolio_id:
+        type: foreign_key
+        references: portfolios.id
+        nullable: false
+        indexed: true
+        description: "Portfolio reference"
+      
+      stock_id:
+        type: foreign_key
+        references: stocks.id
+        nullable: false
+        indexed: true
+        description: "Stock reference"
+      
+      shares:
+        type: decimal
+        nullable: false
+        description: "Number of shares owned"
+      
+      average_cost:
+        type: decimal
+        nullable: false
+        description: "Average cost per share"
+      
+      current_value:
+        type: decimal
+        description: "Current market value of holding"
+      
+      unrealized_gain_loss:
+        type: decimal
+        description: "Unrealized gain/loss amount"
+      
+      unrealized_gain_loss_percent:
+        type: decimal
+        description: "Unrealized gain/loss percentage"
+      
+      target_allocation:
+        type: decimal
+        description: "Target allocation percentage for this holding"
+      
+      last_purchase_date:
+        type: datetime
+        description: "Date of last purchase"
+      
+      notes:
+        type: text
+        description: "Investment notes and strategy"
+
+  - name: Transaction
+    table: transactions
+    description: "Buy/sell transactions history"
+    fields:
+      portfolio_id:
+        type: foreign_key
+        references: portfolios.id
+        nullable: false
+        indexed: true
+      
+      stock_id:
+        type: foreign_key
+        references: stocks.id
+        nullable: false
+        indexed: true
+      
+      transaction_type:
+        type: enum
+        values: [buy, sell, dividend, split, transfer]
+        nullable: false
+        indexed: true
+        description: "Type of transaction"
+      
+      shares:
+        type: decimal
+        nullable: false
+        description: "Number of shares transacted"
+      
+      price_per_share:
+        type: decimal
+        nullable: false
+        description: "Price per share for transaction"
+      
+      total_amount:
+        type: decimal
+        nullable: false
+        description: "Total transaction amount"
+      
+      fees:
+        type: decimal
+        default: 0.00
+        description: "Transaction fees"
+      
+      transaction_date:
+        type: datetime
+        nullable: false
+        indexed: true
+        description: "Transaction execution date"
+      
+      order_id:
+        type: string
+        description: "Broker order ID"
+      
+      notes:
+        type: text
+        description: "Transaction notes"
+
+  - name: PriceAlert
+    table: price_alerts
+    description: "Stock price alerts"
+    fields:
+      portfolio_id:
+        type: foreign_key
+        references: portfolios.id
+        nullable: false
+        indexed: true
+      
+      stock_id:
+        type: foreign_key
+        references: stocks.id
+        nullable: false
+        indexed: true
+      
+      alert_type:
+        type: enum
+        values: [above, below, percent_change]
+        nullable: false
+        description: "Type of price alert"
+      
+      target_price:
+        type: decimal
+        description: "Target price for alert"
+      
+      percent_change:
+        type: decimal
+        description: "Percent change threshold for alert"
+      
+      is_active:
+        type: boolean
+        default: true
+        indexed: true
+        description: "Whether alert is active"
+      
+      triggered_at:
+        type: datetime
+        description: "When alert was last triggered"
+      
+      notification_methods:
+        type: json
+        description: "Notification methods (email, sms, push)"
+      
+      created_at:
+        type: datetime
+        nullable: false
+
+# Automated Workflows
+workflows:
+  - name: "Portfolio Rebalancing"
+    description: "Automated portfolio rebalancing based on target allocations"
+    trigger: scheduled
+    schedule: "0 9 * * 1"  # Every Monday at 9 AM
+    permissions: [portfolio_manager, admin]
+    steps:
+      - name: analyze_allocations
+        type: condition
+        config:
+          check_deviation: true
+          threshold_percent: 5.0
+        next_steps: [generate_rebalance_trades]
+      
+      - name: generate_rebalance_trades
+        type: action
+        config:
+          calculate_trades: true
+          min_trade_amount: 100
+          consider_fees: true
+        next_steps: [send_rebalance_notification]
+      
+      - name: send_rebalance_notification
+        type: notification
+        config:
+          template: "rebalancing_recommendation"
+          recipients: [portfolio_owner]
+          include_trade_details: true
+
+  - name: "Price Alert System"
+    description: "Monitor stock prices and send alerts"
+    trigger: event
+    event: "stock_price_update"
+    permissions: [system]
+    steps:
+      - name: check_price_alerts
+        type: condition
+        config:
+          compare_current_vs_target: true
+          include_percent_changes: true
+        next_steps: [trigger_matching_alerts]
+      
+      - name: trigger_matching_alerts
+        type: notification
+        config:
+          send_immediately: true
+          update_alert_status: true
+          methods: ["email", "push", "sms"]
+
+  - name: "Daily Portfolio Update"
+    description: "Update portfolio values and performance metrics"
+    trigger: scheduled
+    schedule: "0 17 * * 1-5"  # Weekdays at 5 PM
+    permissions: [system]
+    steps:
+      - name: fetch_latest_prices
+        type: integration
+        config:
+          data_source: "alpha_vantage"
+          symbols: "all_holdings"
+        next_steps: [calculate_portfolio_values]
+      
+      - name: calculate_portfolio_values
+        type: action
+        config:
+          update_holding_values: true
+          calculate_unrealized_gains: true
+          update_portfolio_totals: true
+        next_steps: [generate_daily_summary]
+      
+      - name: generate_daily_summary
+        type: action
+        config:
+          create_performance_snapshot: true
+          calculate_day_change: true
+          update_metrics: true
+
+  - name: "Dividend Processing"
+    description: "Process dividend payments and reinvestment"
+    trigger: event
+    event: "dividend_received"
+    permissions: [system]
+    steps:
+      - name: record_dividend
+        type: action
+        config:
+          create_transaction_record: true
+          update_cash_balance: true
+        next_steps: [check_reinvestment_setting]
+      
+      - name: check_reinvestment_setting
+        type: condition
+        config:
+          check_auto_reinvest: true
+        next_steps: [reinvest_dividend, notify_dividend_received]
+      
+      - name: reinvest_dividend
+        type: action
+        config:
+          calculate_shares_to_buy: true
+          place_buy_order: true
+        next_steps: [notify_dividend_received]
+      
+      - name: notify_dividend_received
+        type: notification
+        config:
+          template: "dividend_notification"
+          include_reinvestment_details: true
+
+# API Endpoints
+api_endpoints:
+  - path: /portfolios
+    methods: [GET, POST]
+    description: "List and create portfolios"
+    permissions: [portfolio_owner, admin]
+    parameters:
+      - name: include_performance
+        type: boolean
+        description: "Include performance metrics"
+      - name: date_range
+        type: string
+        description: "Performance date range"
+
+  - path: /portfolios/{id}
+    methods: [GET, PUT, DELETE]
+    description: "Manage individual portfolio"
+    permissions: [portfolio_owner, admin]
+
+  - path: /portfolios/{id}/holdings
+    methods: [GET, POST, PUT]
+    description: "Manage portfolio holdings"
+    permissions: [portfolio_owner, admin]
+
+  - path: /portfolios/{id}/transactions
+    methods: [GET, POST]
+    description: "Portfolio transaction history"
+    permissions: [portfolio_owner, admin]
+
+  - path: /portfolios/{id}/performance
+    methods: [GET]
+    description: "Portfolio performance analytics"
+    permissions: [portfolio_viewer, portfolio_owner, admin]
+    parameters:
+      - name: period
+        type: string
+        description: "Performance period (1d, 1w, 1m, 3m, 6m, 1y, all)"
+      - name: benchmark
+        type: string
+        description: "Benchmark symbol for comparison"
+
+  - path: /portfolios/{id}/rebalance
+    methods: [POST]
+    description: "Generate rebalancing recommendations"
+    permissions: [portfolio_owner, admin]
+
+  - path: /stocks
+    methods: [GET]
+    description: "List and search stocks"
+    permissions: [public]
+    parameters:
+      - name: search
+        type: string
+        description: "Search by symbol or company name"
+      - name: sector
+        type: string
+        description: "Filter by sector"
+      - name: market_cap_min
+        type: integer
+        description: "Minimum market cap filter"
+
+  - path: /stocks/{symbol}
+    methods: [GET]
+    description: "Get detailed stock information"
+    permissions: [public]
+
+  - path: /stocks/{symbol}/chart
+    methods: [GET]
+    description: "Get stock price chart data"
+    permissions: [public]
+    parameters:
+      - name: period
+        type: string
+        description: "Chart period (1d, 5d, 1m, 3m, 6m, 1y, 2y, 5y, 10y, max)"
+      - name: interval
+        type: string
+        description: "Data interval (1m, 2m, 5m, 15m, 30m, 60m, 90m, 1h, 1d, 5d, 1wk, 1mo, 3mo)"
+
+  - path: /alerts
+    methods: [GET, POST]
+    description: "Manage price alerts"
+    permissions: [portfolio_owner, admin]
+
+  - path: /analytics/performance
+    methods: [GET]
+    description: "Advanced performance analytics"
+    permissions: [portfolio_owner, admin]
+    parameters:
+      - name: portfolio_ids
+        type: array
+        description: "Portfolio IDs to analyze"
+      - name: benchmarks
+        type: array
+        description: "Benchmark symbols for comparison"
+
+# UI Components
+ui_components:
+  - name: PortfolioDashboard
+    type: dashboard
+    description: "Main portfolio overview dashboard"
+    props:
+      widgets:
+        - portfolio_summary
+        - allocation_pie_chart
+        - performance_line_chart
+        - top_gainers_losers
+        - recent_transactions
+      refresh_interval: 30000
+      customizable: true
+
+  - name: StockSearchWidget
+    type: autocomplete
+    description: "Stock search and selection component"
+    props:
+      placeholder: "Search stocks by symbol or name..."
+      min_chars: 1
+      max_results: 20
+      show_price: true
+      show_change: true
+
+  - name: HoldingsTable
+    type: data_table
+    description: "Portfolio holdings data table"
+    props:
+      columns:
+        - symbol
+        - company_name
+        - shares
+        - current_price
+        - market_value
+        - day_change
+        - total_return
+        - allocation_percent
+      sortable: true
+      filterable: true
+      exportable: true
+
+  - name: TransactionForm
+    type: form
+    description: "Buy/sell transaction form"
+    props:
+      fields:
+        - transaction_type
+        - stock_symbol
+        - shares
+        - price_type
+        - limit_price
+        - order_duration
+      validation: real_time
+      preview_calculation: true
+
+  - name: PerformanceChart
+    type: chart
+    description: "Portfolio performance visualization"
+    props:
+      chart_types: [line, area, candlestick]
+      time_periods: [1D, 1W, 1M, 3M, 6M, 1Y, ALL]
+      benchmarks_enabled: true
+      indicators: [moving_averages, bollinger_bands, rsi]
+
+  - name: AllocationPieChart
+    type: chart
+    description: "Portfolio allocation pie chart"
+    props:
+      show_percentages: true
+      show_values: true
+      interactive: true
+      drill_down: true
+
+  - name: AlertsManager
+    type: form
+    description: "Price alerts management interface"
+    props:
+      alert_types: [price_above, price_below, percent_change]
+      notification_methods: [email, sms, push]
+      bulk_actions: true
+
+  - name: RebalancingTool
+    type: wizard
+    description: "Portfolio rebalancing assistant"
+    props:
+      steps:
+        - current_allocation
+        - target_allocation
+        - trade_recommendations
+        - execution_confirmation
+      dry_run_mode: true
+
+# External Integrations
+integrations:
+  # Market Data Provider
+  alpha_vantage:
+    type: market_data
+    description: "Real-time and historical stock data"
+    config:
+      base_url: "https://www.alphavantage.co/query"
+      auth_type: "api_key"
+      rate_limit: "5_per_minute"
+      endpoints:
+        quote: "function=GLOBAL_QUOTE"
+        intraday: "function=TIME_SERIES_INTRADAY"
+        daily: "function=TIME_SERIES_DAILY"
+        search: "function=SYMBOL_SEARCH"
+
+  # Trading Platform
+  alpaca_trading:
+    type: broker_api
+    description: "Stock trading execution"
+    config:
+      base_url: "https://paper-api.alpaca.markets"  # Paper trading
+      auth_type: "bearer_token"
+      endpoints:
+        account: "/v2/account"
+        orders: "/v2/orders"
+        positions: "/v2/positions"
+        assets: "/v2/assets"
+
+  # Payment Processing
+  stripe_payments:
+    type: payment_processor
+    description: "Handle subscription and deposit payments"
+    config:
+      base_url: "https://api.stripe.com"
+      auth_type: "bearer_token"
+      webhooks_enabled: true
+
+  # Bank Account Linking
+  plaid_banking:
+    type: financial_data
+    description: "Link bank accounts for deposits/withdrawals"
+    config:
+      base_url: "https://production.plaid.com"
+      auth_type: "client_credentials"
+      products: ["auth", "transactions", "assets"]
+
+# Business Rules
+business_rules:
+  - name: "Maximum Position Size"
+    description: "Prevent any single stock from exceeding maximum allocation"
+    condition: "holding_percentage > max_position_size"
+    action: block_purchase
+    message: "Cannot exceed maximum position size of {max_position_size}% in single stock"
+    parameters:
+      max_position_size: 25.0
+
+  - name: "Minimum Cash Reserve"
+    description: "Maintain minimum cash balance in portfolio"
+    condition: "cash_percentage < min_cash_reserve"
+    action: require_approval
+    message: "Cash reserve below {min_cash_reserve}% requires manager approval"
+    parameters:
+      min_cash_reserve: 5.0
+
+  - name: "Risk Level Compliance"
+    description: "Ensure investments match risk tolerance"
+    condition: "stock_beta > risk_tolerance_beta_limit"
+    action: show_warning
+    message: "Stock volatility (β={stock_beta}) exceeds risk tolerance limit"
+    parameters:
+      conservative_beta_limit: 0.8
+      moderate_beta_limit: 1.2
+      aggressive_beta_limit: 2.0
+
+  - name: "Rebalancing Threshold"
+    description: "Trigger rebalancing when allocation drifts"
+    condition: "allocation_drift > rebalance_threshold"
+    action: trigger_workflow
+    workflow: "Portfolio Rebalancing"
+    parameters:
+      default_threshold: 5.0
+
+  - name: "Penny Stock Restriction"
+    description: "Restrict or warn about penny stock investments"
+    condition: "stock_price < penny_stock_limit"
+    action: require_approval
+    message: "Penny stock investment (${stock_price}) requires additional approval"
+    parameters:
+      penny_stock_limit: 5.00
+
+# Configuration Settings
+configuration:
+  features:
+    # Core Features
+    multi_portfolio: true
+    real_time_quotes: true
+    historical_data: true
+    performance_analytics: true
+    
+    # Trading Features  
+    paper_trading: true
+    live_trading: false  # Disabled by default for safety
+    fractional_shares: true
+    automatic_rebalancing: true
+    
+    # Advanced Features
+    options_trading: false
+    margin_trading: false
+    crypto_support: false
+    international_stocks: false
+    
+    # Notifications
+    price_alerts: true
+    email_notifications: true
+    push_notifications: true
+    sms_notifications: false
+    
+    # Reporting
+    tax_reporting: true
+    performance_reports: true
+    csv_export: true
+    pdf_reports: true
+
+  # Default Settings
+  defaults:
+    currency: "USD"
+    timezone: "America/New_York"
+    market_hours: "09:30-16:00"
+    default_order_type: "market"
+    default_duration: "day"
+    commission_per_trade: 0.00
+    min_trade_amount: 1.00
+    max_position_size: 25.0
+    min_cash_reserve: 5.0
+    rebalance_threshold: 5.0
+
+# Dependencies
+dependencies:
+  - authentication_service
+  - notification_service
+  - payment_processing
+  - file_storage
+  - task_scheduler

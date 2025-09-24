@@ -1,0 +1,139 @@
+# TeamFlow Original Domain Configuration
+# This represents the current TeamFlow task management system
+
+domain:
+  name: "teamflow_original"
+  title: "TeamFlow"
+  description: "Enterprise task management and collaboration platform"
+  type: "task_management"
+  version: "2.0.0"
+  logo: "🚀"
+  color_scheme: "blue"
+  theme: "default"
+
+entities:
+  - name: "Task"
+    table_name: "tasks"
+    description: "Individual work items and assignments"
+    fields:
+      - name: "title"
+        type: "string"
+        nullable: false
+        max_length: 255
+        description: "Task title or summary"
+      - name: "description"
+        type: "text"
+        nullable: true
+        description: "Detailed task description"
+      - name: "status"
+        type: "enum"
+        nullable: false
+        choices: ["todo", "in_progress", "completed", "cancelled"]
+        default: "todo"
+        indexed: true
+      - name: "priority"
+        type: "enum"
+        nullable: false
+        choices: ["low", "medium", "high", "urgent"]
+        default: "medium"
+        indexed: true
+      - name: "due_date"
+        type: "datetime"
+        nullable: true
+        description: "Task deadline"
+      - name: "estimated_hours"
+        type: "integer"
+        nullable: true
+        description: "Estimated effort in hours"
+      - name: "actual_hours"
+        type: "integer"
+        nullable: true
+        description: "Actual time spent in hours"
+    relationships:
+      - name: "project"
+        target_entity: "Project"
+        relationship_type: "many_to_one"
+        foreign_key: "project_id"
+      - name: "assignee"
+        target_entity: "User"
+        relationship_type: "many_to_one"
+        foreign_key: "assignee_id"
+
+  - name: "Project"
+    table_name: "projects"
+    description: "Collections of related tasks and work"
+    fields:
+      - name: "name"
+        type: "string"
+        nullable: false
+        max_length: 255
+        description: "Project name"
+      - name: "description"
+        type: "text"
+        nullable: true
+        description: "Project description and goals"
+      - name: "status"
+        type: "enum"
+        nullable: false
+        choices: ["planning", "active", "on_hold", "completed", "cancelled"]
+        default: "planning"
+        indexed: true
+      - name: "start_date"
+        type: "date"
+        nullable: true
+      - name: "end_date"
+        type: "date"
+        nullable: true
+      - name: "budget"
+        type: "decimal"
+        nullable: true
+        description: "Project budget"
+    relationships:
+      - name: "tasks"
+        target_entity: "Task"
+        relationship_type: "one_to_many"
+        back_populates: "project"
+      - name: "organization"
+        target_entity: "Organization"
+        relationship_type: "many_to_one"
+        foreign_key: "organization_id"
+
+navigation:
+  - key: "dashboard"
+    label: "Dashboard"
+    icon: "📊"
+    route: "/dashboard"
+    order: 1
+    permissions: ["user"]
+  - key: "projects"
+    label: "Projects"
+    icon: "📁"
+    route: "/projects"
+    order: 2
+    permissions: ["user"]
+  - key: "tasks"
+    label: "Tasks"
+    icon: "📋"
+    route: "/tasks"
+    order: 3
+    permissions: ["user"]
+
+features:
+  file_management: true
+  real_time_notifications: true
+  workflow_automation: true
+  advanced_search: true
+  reporting_analytics: true
+  webhook_integration: true
+  audit_logging: true
+  multi_tenant: true
+
+custom_config:
+  default_task_status: "todo"
+  default_project_status: "planning"
+  enable_time_tracking: true
+  enable_budget_tracking: true
+  notification_settings:
+    task_assigned: true
+    task_completed: true
+    project_milestone: true

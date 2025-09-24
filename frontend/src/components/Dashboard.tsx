@@ -1,15 +1,15 @@
 /**
- * Main Dashboard Component
- * Provides overview of tasks, projects, and team performance
+ * Universal Dashboard Component - Template System Ready
+ * Provides overview of any domain entities with real API integration
  */
 import React, { useState, useEffect } from 'react';
 import './Dashboard.css';
 
 interface DashboardStats {
-  totalTasks: number;
-  completedTasks: number;
-  inProgressTasks: number;
-  overdueTasks: number;
+  totalEntities: number;
+  completedEntities: number;
+  inProgressEntities: number;
+  overdueEntities: number;
   totalProjects: number;
   activeProjects: number;
   teamMembers: number;
@@ -18,7 +18,7 @@ interface DashboardStats {
 
 interface RecentActivity {
   id: number;
-  type: 'task_created' | 'task_completed' | 'project_created' | 'user_joined';
+  type: 'entity_created' | 'entity_completed' | 'project_created' | 'user_joined';
   title: string;
   description: string;
   timestamp: string;
@@ -29,18 +29,26 @@ interface ProjectProgress {
   id: number;
   name: string;
   progress: number;
-  tasksCompleted: number;
-  totalTasks: number;
+  entitiesCompleted: number;
+  totalEntities: number;
   dueDate: string;
   status: 'on_track' | 'at_risk' | 'overdue';
 }
 
+interface DomainConfig {
+  name: string;
+  title: string;
+  primaryEntity: string;
+  secondaryEntity: string;
+  logo: string;
+}
+
 const Dashboard: React.FC = () => {
   const [stats, setStats] = useState<DashboardStats>({
-    totalTasks: 0,
-    completedTasks: 0,
-    inProgressTasks: 0,
-    overdueTasks: 0,
+    totalEntities: 0,
+    completedEntities: 0,
+    inProgressEntities: 0,
+    overdueEntities: 0,
     totalProjects: 0,
     activeProjects: 0,
     teamMembers: 0,
@@ -49,103 +57,66 @@ const Dashboard: React.FC = () => {
   
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [projectProgress, setProjectProgress] = useState<ProjectProgress[]>([]);
+  const [domainConfig, setDomainConfig] = useState<DomainConfig>({
+    name: 'teamflow_original',
+    title: 'TeamFlow',
+    primaryEntity: 'Task',
+    secondaryEntity: 'Project', 
+    logo: '🚀'
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock data for development
+  // Load dashboard data from real API
   useEffect(() => {
-    const mockStats: DashboardStats = {
-      totalTasks: 127,
-      completedTasks: 89,
-      inProgressTasks: 24,
-      overdueTasks: 8,
-      totalProjects: 12,
-      activeProjects: 8,
-      teamMembers: 15,
-      completionRate: 70
-    };
-
-    const mockActivity: RecentActivity[] = [
-      {
-        id: 1,
-        type: 'task_completed',
-        title: 'User Authentication',
-        description: 'Completed JWT implementation',
-        timestamp: '2 hours ago',
-        user: 'John Doe'
-      },
-      {
-        id: 2,
-        type: 'project_created',
-        title: 'Mobile App Development',
-        description: 'New project created for iOS/Android app',
-        timestamp: '4 hours ago',
-        user: 'Jane Smith'
-      },
-      {
-        id: 3,
-        type: 'task_created',
-        title: 'Database Optimization',
-        description: 'New task for improving query performance',
-        timestamp: '6 hours ago',
-        user: 'Bob Johnson'
-      },
-      {
-        id: 4,
-        type: 'user_joined',
-        title: 'New Team Member',
-        description: 'Alice Wilson joined the development team',
-        timestamp: '1 day ago',
-        user: 'System'
-      }
-    ];
-
-    const mockProjects: ProjectProgress[] = [
-      {
-        id: 1,
-        name: 'TeamFlow Backend',
-        progress: 85,
-        tasksCompleted: 34,
-        totalTasks: 40,
-        dueDate: '2025-10-15',
-        status: 'on_track'
-      },
-      {
-        id: 2,
-        name: 'Frontend Dashboard',
-        progress: 60,
-        tasksCompleted: 18,
-        totalTasks: 30,
-        dueDate: '2025-10-20',
-        status: 'at_risk'
-      },
-      {
-        id: 3,
-        name: 'Mobile App',
-        progress: 25,
-        tasksCompleted: 5,
-        totalTasks: 20,
-        dueDate: '2025-09-30',
-        status: 'overdue'
-      },
-      {
-        id: 4,
-        name: 'API Documentation',
-        progress: 90,
-        tasksCompleted: 18,
-        totalTasks: 20,
-        dueDate: '2025-10-10',
-        status: 'on_track'
-      }
-    ];
-
-    setStats(mockStats);
-    setRecentActivity(mockActivity);
-    setProjectProgress(mockProjects);
+    loadDashboardData();
   }, []);
+
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Load domain configuration
+      const domainResponse = await fetch('/api/v1/template/domain-config');
+      if (domainResponse.ok) {
+        const domainData = await domainResponse.json();
+        setDomainConfig(domainData);
+      }
+
+      // Load dashboard statistics
+      const statsResponse = await fetch('/api/v1/analytics/dashboard');
+      if (statsResponse.ok) {
+        const statsData = await statsResponse.json();
+        setStats(statsData);
+      }
+
+      // Load recent activity
+      const activityResponse = await fetch('/api/v1/analytics/recent-activity?limit=10');
+      if (activityResponse.ok) {
+        const activityData = await activityResponse.json();
+        setRecentActivity(activityData);
+      }
+
+      // Load project progress
+      const progressResponse = await fetch('/api/v1/analytics/project-progress');
+      if (progressResponse.ok) {
+        const progressData = await progressResponse.json();
+        setProjectProgress(progressData);
+      }
+
+    } catch (err) {
+      setError('Failed to load dashboard data. Please try again.');
+      console.error('Dashboard data loading error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getActivityIcon = (type: string) => {
     switch (type) {
-      case 'task_completed': return '✅';
-      case 'task_created': return '📝';
+      case 'entity_completed': return '✅';
+      case 'entity_created': return '📝';
       case 'project_created': return '📁';
       case 'user_joined': return '👤';
       default: return '📌';
@@ -161,11 +132,37 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="dashboard">
+        <div className="dashboard-header">
+          <h1>Dashboard</h1>
+          <p>Loading dashboard data...</p>
+        </div>
+        <div className="loading-spinner">Loading...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="dashboard">
+        <div className="dashboard-header">
+          <h1>Dashboard</h1>
+          <p className="error-message">{error}</p>
+        </div>
+        <button onClick={loadDashboardData} className="retry-button">
+          Retry Loading
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="dashboard">
       <div className="dashboard-header">
-        <h1>Dashboard</h1>
-        <p>Welcome back! Here's what's happening with your projects.</p>
+        <h1>{domainConfig.logo} {domainConfig.title} Dashboard</h1>
+        <p>Welcome back! Here's what's happening with your {domainConfig.primaryEntity.toLowerCase()}s.</p>
       </div>
 
       {/* Stats Grid */}
@@ -173,15 +170,15 @@ const Dashboard: React.FC = () => {
         <div className="stat-card">
           <div className="stat-icon">📋</div>
           <div className="stat-content">
-            <h3>{stats.totalTasks}</h3>
-            <p>Total Tasks</p>
+            <h3>{stats.totalEntities}</h3>
+            <p>Total {domainConfig.primaryEntity}s</p>
           </div>
         </div>
         
         <div className="stat-card">
           <div className="stat-icon">✅</div>
           <div className="stat-content">
-            <h3>{stats.completedTasks}</h3>
+            <h3>{stats.completedEntities}</h3>
             <p>Completed</p>
           </div>
         </div>
@@ -189,7 +186,7 @@ const Dashboard: React.FC = () => {
         <div className="stat-card">
           <div className="stat-icon">🔄</div>
           <div className="stat-content">
-            <h3>{stats.inProgressTasks}</h3>
+            <h3>{stats.inProgressEntities}</h3>
             <p>In Progress</p>
           </div>
         </div>
@@ -197,7 +194,7 @@ const Dashboard: React.FC = () => {
         <div className="stat-card">
           <div className="stat-icon">⚠️</div>
           <div className="stat-content">
-            <h3>{stats.overdueTasks}</h3>
+            <h3>{stats.overdueEntities}</h3>
             <p>Overdue</p>
           </div>
         </div>
@@ -205,8 +202,8 @@ const Dashboard: React.FC = () => {
         <div className="stat-card">
           <div className="stat-icon">📁</div>
           <div className="stat-content">
-            <h3>{stats.activeProjects}</h3>
-            <p>Active Projects</p>
+            <h3>{stats.totalProjects}</h3>
+            <p>Total {domainConfig.secondaryEntity}s</p>
           </div>
         </div>
         
@@ -219,35 +216,36 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Content Grid */}
       <div className="dashboard-content">
         {/* Project Progress */}
         <div className="dashboard-section">
-          <h2>Project Progress</h2>
-          <div className="project-list">
-            {projectProgress.map(project => (
-              <div key={project.id} className="project-item">
-                <div className="project-header">
-                  <h4>{project.name}</h4>
-                  <span className={`status-badge ${getStatusColor(project.status)}`}>
-                    {project.status.replace('_', ' ')}
-                  </span>
-                </div>
-                <div className="project-progress">
+          <h2>{domainConfig.secondaryEntity} Progress</h2>
+          <div className="projects-list">
+            {projectProgress.length === 0 ? (
+              <p className="no-data">No {domainConfig.secondaryEntity.toLowerCase()}s found. <button onClick={loadDashboardData}>Refresh</button></p>
+            ) : (
+              projectProgress.map(project => (
+                <div key={project.id} className="project-card">
+                  <div className="project-header">
+                    <h3>{project.name}</h3>
+                    <span className={`project-status ${getStatusColor(project.status)}`}>
+                      {project.status.replace('_', ' ')}
+                    </span>
+                  </div>
                   <div className="progress-bar">
                     <div 
-                      className="progress-fill"
+                      className="progress-fill" 
                       style={{ width: `${project.progress}%` }}
-                    />
+                    ></div>
+                    <span className="progress-text">{project.progress}%</span>
                   </div>
-                  <span className="progress-text">{project.progress}%</span>
+                  <div className="project-details">
+                    <span>{project.entitiesCompleted}/{project.totalEntities} {domainConfig.primaryEntity.toLowerCase()}s</span>
+                    <span>Due: {new Date(project.dueDate).toLocaleDateString()}</span>
+                  </div>
                 </div>
-                <div className="project-details">
-                  <span>{project.tasksCompleted}/{project.totalTasks} tasks</span>
-                  <span>Due: {new Date(project.dueDate).toLocaleDateString()}</span>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
@@ -255,27 +253,31 @@ const Dashboard: React.FC = () => {
         <div className="dashboard-section">
           <h2>Recent Activity</h2>
           <div className="activity-list">
-            {recentActivity.map(activity => (
-              <div key={activity.id} className="activity-item">
-                <div className="activity-icon">
-                  {getActivityIcon(activity.type)}
-                </div>
-                <div className="activity-content">
-                  <h4>{activity.title}</h4>
-                  <p>{activity.description}</p>
-                  <div className="activity-meta">
-                    <span className="activity-user">{activity.user}</span>
-                    <span className="activity-time">{activity.timestamp}</span>
+            {recentActivity.length === 0 ? (
+              <p className="no-data">No recent activity. <button onClick={loadDashboardData}>Refresh</button></p>
+            ) : (
+              recentActivity.map(activity => (
+                <div key={activity.id} className="activity-item">
+                  <div className="activity-icon">
+                    {getActivityIcon(activity.type)}
+                  </div>
+                  <div className="activity-content">
+                    <h4>{activity.title}</h4>
+                    <p>{activity.description}</p>
+                    <div className="activity-meta">
+                      <span className="activity-user">{activity.user}</span>
+                      <span className="activity-time">{activity.timestamp}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
         {/* Performance Chart */}
         <div className="dashboard-section">
-          <h2>Team Performance</h2>
+          <h2>Performance Overview</h2>
           <div className="performance-chart">
             <div className="chart-container">
               <div className="completion-rate">
@@ -286,16 +288,16 @@ const Dashboard: React.FC = () => {
               </div>
               <div className="performance-stats">
                 <div className="perf-stat">
-                  <span className="perf-label">Tasks Completed This Week</span>
-                  <span className="perf-value">23</span>
+                  <span className="perf-label">{domainConfig.primaryEntity}s Completed This Week</span>
+                  <span className="perf-value">{stats.completedEntities}</span>
                 </div>
                 <div className="perf-stat">
-                  <span className="perf-label">Average Time per Task</span>
-                  <span className="perf-value">4.2h</span>
+                  <span className="perf-label">Active {domainConfig.secondaryEntity}s</span>
+                  <span className="perf-value">{stats.activeProjects}</span>
                 </div>
                 <div className="perf-stat">
-                  <span className="perf-label">Team Velocity</span>
-                  <span className="perf-value">+12%</span>
+                  <span className="perf-label">Team Members</span>
+                  <span className="perf-value">{stats.teamMembers}</span>
                 </div>
               </div>
             </div>
@@ -308,11 +310,11 @@ const Dashboard: React.FC = () => {
           <div className="quick-actions">
             <button className="action-btn">
               <span className="action-icon">➕</span>
-              Create Task
+              Create {domainConfig.primaryEntity}
             </button>
             <button className="action-btn">
               <span className="action-icon">📁</span>
-              New Project
+              New {domainConfig.secondaryEntity}
             </button>
             <button className="action-btn">
               <span className="action-icon">👥</span>
