@@ -4,6 +4,7 @@ import EntityManager from '../components/templates/EntityManager';
 import RelationshipDesigner from '../components/templates/RelationshipDesigner';
 import ConfigurationPreview from '../components/template-builder/ConfigurationPreview';
 import TemplateManager from '../components/template-builder/TemplateManager';
+import CodeGenerationDashboard from '../components/template-builder/CodeGenerationDashboard';
 import { Entity, Field, Relationship } from '../types/template';
 
 interface DomainConfig {
@@ -28,6 +29,9 @@ export const TemplateBuilderPage: React.FC = () => {
   
   // Template manager state
   const [showTemplateManager, setShowTemplateManager] = useState(false);
+  
+  // Code generation dashboard state
+  const [showCodeGenDashboard, setShowCodeGenDashboard] = useState(false);
 
   const handleConfigChange = (config: DomainConfig) => {
     setCurrentConfig(config);
@@ -73,8 +77,11 @@ export const TemplateBuilderPage: React.FC = () => {
     if (!currentConfig) return;
     
     console.log('Generating code for config:', currentConfig);
-    // TODO: Call the actual code generation service
-    alert('Code generation would start here! Check the console for the configuration.');
+    console.log('Entities:', entities);
+    console.log('Relationships:', relationships);
+    
+    // Open the Code Generation Dashboard
+    setShowCodeGenDashboard(true);
   };
 
   const handleSaveTemplate = async (templateData: any) => {
@@ -344,6 +351,16 @@ export const TemplateBuilderPage: React.FC = () => {
           isVisible={showTemplateManager}
           onClose={() => setShowTemplateManager(false)}
           onSave={handleSaveTemplate}
+        />
+      )}
+
+      {/* Code Generation Dashboard Modal */}
+      {currentConfig && showCodeGenDashboard && (
+        <CodeGenerationDashboard
+          domainConfig={currentConfig}
+          entities={entities}
+          relationships={relationships}
+          onClose={() => setShowCodeGenDashboard(false)}
         />
       )}
     </div>

@@ -45,3 +45,11 @@ api_router.include_router(enhanced_tasks.router, prefix="/api/v1", tags=["enhanc
 
 # Template system routes
 api_router.include_router(template.router, prefix="/template", tags=["template-system"])
+
+# Template Builder routes (new)
+try:
+    from app.api import template_builder
+    api_router.include_router(template_builder.router, prefix="/templates", tags=["template-builder"])
+except ImportError:
+    # Template builder not available yet
+    pass
