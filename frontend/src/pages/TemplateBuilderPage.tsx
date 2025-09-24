@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
+import { Settings, Users, BarChart3 } from 'lucide-react';
 import { SimpleDomainConfigForm } from '../components/TemplateBuilder/SimpleDomainConfigForm';
 import EntityManager from '../components/templates/EntityManager';
 import RelationshipDesigner from '../components/templates/RelationshipDesigner';
 import ConfigurationPreview from '../components/template-builder/ConfigurationPreview';
 import TemplateManager from '../components/template-builder/TemplateManager';
 import CodeGenerationDashboard from '../components/template-builder/CodeGenerationDashboard';
+import AdvancedTemplateFeatures from '../components/template-builder/AdvancedTemplateFeatures';
+import CollaborationTools from '../components/template-builder/CollaborationTools';
+import TemplateAnalytics from '../components/template-builder/TemplateAnalytics';
 import TemplateMarketplace from '../components/template-builder/TemplateMarketplace';
 import { Entity, Field, Relationship } from '../types/template';
 
@@ -36,6 +40,15 @@ export const TemplateBuilderPage: React.FC = () => {
   
   // Template marketplace state
   const [showMarketplace, setShowMarketplace] = useState(false);
+  
+  // Advanced template features state
+  const [showAdvancedFeatures, setShowAdvancedFeatures] = useState(false);
+  
+  // Collaboration tools state
+  const [showCollaborationTools, setShowCollaborationTools] = useState(false);
+  
+  // Template analytics state
+  const [showTemplateAnalytics, setShowTemplateAnalytics] = useState(false);
 
   const handleConfigChange = (config: DomainConfig) => {
     setCurrentConfig(config);
@@ -195,13 +208,41 @@ export const TemplateBuilderPage: React.FC = () => {
       case 4:
         return (
           <div className="max-w-6xl mx-auto">
-            <div className="mb-6">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                Configuration Preview
-              </h1>
-              <p className="text-gray-600">
-                Step 4 of 5: Review your template configuration before generating code
-              </p>
+            <div className="mb-6 flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                  Configuration Preview
+                </h1>
+                <p className="text-gray-600">
+                  Step 4 of 5: Review your template configuration before generating code
+                </p>
+              </div>
+              
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowAdvancedFeatures(true)}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2"
+                >
+                  <Settings className="h-4 w-4" />
+                  <span>Advanced Features</span>
+                </button>
+                
+                <button
+                  onClick={() => setShowCollaborationTools(true)}
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2"
+                >
+                  <Users className="h-4 w-4" />
+                  <span>Collaborate</span>
+                </button>
+                
+                <button
+                  onClick={() => setShowTemplateAnalytics(true)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2"
+                >
+                  <BarChart3 className="h-4 w-4" />
+                  <span>Analytics</span>
+                </button>
+              </div>
             </div>
             
             {currentConfig && (
@@ -393,6 +434,36 @@ export const TemplateBuilderPage: React.FC = () => {
             setShowMarketplace(false);
           }}
           onClose={() => setShowMarketplace(false)}
+        />
+      )}
+
+      {/* Advanced Template Features Modal */}
+      {showAdvancedFeatures && currentConfig && (
+        <AdvancedTemplateFeatures
+          domainConfig={currentConfig}
+          entities={entities}
+          relationships={relationships}
+          onClose={() => setShowAdvancedFeatures(false)}
+        />
+      )}
+
+      {/* Collaboration Tools Modal */}
+      {showCollaborationTools && currentConfig && (
+        <CollaborationTools
+          domainConfig={currentConfig}
+          entities={entities}
+          relationships={relationships}
+          onClose={() => setShowCollaborationTools(false)}
+        />
+      )}
+
+      {/* Template Analytics Modal */}
+      {showTemplateAnalytics && currentConfig && (
+        <TemplateAnalytics
+          domainConfig={currentConfig}
+          entities={entities}
+          relationships={relationships}
+          onClose={() => setShowTemplateAnalytics(false)}
         />
       )}
     </div>
