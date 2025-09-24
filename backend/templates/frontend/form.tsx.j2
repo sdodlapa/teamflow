@@ -1,0 +1,251 @@
+/**
+ * {{ entity.name }} Form Component
+ * Generated on: {{ today() }}
+ * Domain: {{ domain.name }}
+ */
+
+import React, { useState, useEffect } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from '@/components/ui/card';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { toast } from 'sonner';
+
+import {
+  {{ entity.name | camel_case }}Create,
+  {{ entity.name | camel_case }}Update,
+  {{ entity.name | camel_case }}Response,
+  {% if entity.enums %}
+  {% for enum_field in entity.enums %}
+  {{ enum_field.name | camel_case }}Enum,
+  {{ enum_field.name | camel_case }}EnumLabels,
+  {% endfor %}
+  {% endif %}
+} from '../types/{{ entity.name | snake_case }}.types';
+
+// Zod validation schema
+const {{ entity.name | snake_case }}Schema = z.object({
+  {% for field in entity.fields %}
+  {% if field.type == 'string' %}
+  {{ field.name }}: {% if field.required %}z.string().min(1, "{{ field.name | title }} is required"){% if field.max_length %}.max({{ field.max_length }}, "{{ field.name | title }} must be less than {{ field.max_length }} characters"){% endif %}{% else %}z.string().optional().nullable(){% endif %},
+  {% elif field.type == 'text' %}
+  {{ field.name }}: {% if field.required %}z.string().min(1, "{{ field.name | title }} is required"){% else %}z.string().optional().nullable(){% endif %},
+  {% elif field.type == 'integer' %}
+  {{ field.name }}: {% if field.required %}z.number().int("{{ field.name | title }} must be an integer"){% if field.validations %}{% for validation in field.validations %}{% if validation.type == 'range' %}{% if validation.min %}.min({{ validation.min }}, "{{ field.name | title }} must be at least {{ validation.min }}"){% endif %}{% if validation.max %}.max({{ validation.max }}, "{{ field.name | title }} must be at most {{ validation.max }}"){% endif %}{% endif %}{% endfor %}{% endif %}{% else %}z.number().int().optional().nullable(){% endif %},
+  {% elif field.type == 'decimal' %}
+  {{ field.name }}: {% if field.required %}z.number("{{ field.name | title }} must be a number"){% if field.validations %}{% for validation in field.validations %}{% if validation.type == 'range' %}{% if validation.min %}.min({{ validation.min }}, "{{ field.name | title }} must be at least {{ validation.min }}"){% endif %}{% if validation.max %}.max({{ validation.max }}, "{{ field.name | title }} must be at most {{ validation.max }}"){% endif %}{% endif %}{% endfor %}{% endif %}{% else %}z.number().optional().nullable(){% endif %},
+  {% elif field.type == 'boolean' %}
+  {{ field.name }}: z.boolean(){% if not field.required %}.optional().nullable(){% endif %},
+  {% elif field.type == 'date' %}
+  {{ field.name }}: {% if field.required %}z.string().min(1, "{{ field.name | title }} is required"){% else %}z.string().optional().nullable(){% endif %},
+  {% elif field.type == 'datetime' %}
+  {{ field.name }}: {% if field.required %}z.string().min(1, "{{ field.name | title }} is required"){% else %}z.string().optional().nullable(){% endif %},
+  {% elif field.type == 'email' %}
+  {{ field.name }}: {% if field.required %}z.string().email("Invalid email address"){% else %}z.string().email("Invalid email address").optional().nullable(){% endif %},
+  {% elif field.type == 'phone' %}
+  {{ field.name }}: {% if field.required %}z.string().min(1, "{{ field.name | title }} is required"){% else %}z.string().optional().nullable(){% endif %},
+  {% elif field.type == 'enum' %}
+  {{ field.name }}: {% if field.required %}z.nativeEnum({{ field.name | camel_case }}Enum){% else %}z.nativeEnum({{ field.name | camel_case }}Enum).optional().nullable(){% endif %},
+  {% else %}
+  {{ field.name }}: {% if field.required %}z.string().min(1, "{{ field.name | title }} is required"){% else %}z.string().optional().nullable(){% endif %},
+  {% endif %}
+  {% endfor %}
+});
+
+type {{ entity.name | camel_case }}FormData = z.infer<typeof {{ entity.name | snake_case }}Schema>;
+
+interface {{ entity.name | camel_case }}FormProps {
+  initialData?: {{ entity.name | camel_case }}Response;
+  onSubmit: (data: {{ entity.name | camel_case }}Create | {{ entity.name | camel_case }}Update) => Promise<void>;
+  onCancel?: () => void;
+  loading?: boolean;
+  mode: 'create' | 'edit';
+}
+
+export const {{ entity.name | camel_case }}Form: React.FC<{{ entity.name | camel_case }}FormProps> = ({
+  initialData,
+  onSubmit,
+  onCancel,
+  loading = false,
+  mode,
+}) => {
+  const form = useForm<{{ entity.name | camel_case }}FormData>({
+    resolver: zodResolver({{ entity.name | snake_case }}Schema),
+    defaultValues: {
+      {% for field in entity.fields %}
+      {% if field.default %}
+      {{ field.name }}: {% if field.type == 'enum' %}{{ field.name | camel_case }}Enum.{{ field.default | upper }}{% else %}{{ field.default }}{% endif %},
+      {% else %}
+      {{ field.name }}: {% if field.type == 'boolean' %}false{% else %}''{% endif %},
+      {% endif %}
+      {% endfor %}
+      ...initialData,
+    },
+  });
+
+  const handleSubmit = async (data: {{ entity.name | camel_case }}FormData) => {
+    try {
+      await onSubmit(data as {{ entity.name | camel_case }}Create | {{ entity.name | camel_case }}Update);
+      if (mode === 'create') {
+        toast.success('{{ entity.name | title }} created successfully');
+        form.reset();
+      } else {
+        toast.success('{{ entity.name | title }} updated successfully');
+      }
+    } catch (error) {
+      toast.error(`Failed to ${mode} {{ entity.name | snake_case }}`);
+      console.error(`Error ${mode}ing {{ entity.name | snake_case }}:`, error);
+    }
+  };
+
+  return (
+    <Card className="w-full max-w-2xl mx-auto">
+      <CardHeader>
+        <CardTitle>
+          {mode === 'create' ? 'Create {{ entity.name | title }}' : 'Edit {{ entity.name | title }}'}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+            {% for field in entity.fields %}
+            
+            {/* {{ field.name | title }} Field */}
+            <FormField
+              control={form.control}
+              name="{{ field.name }}"
+              render={({ field: formField }) => (
+                <FormItem>
+                  <FormLabel>
+                    {{ field.name | title }}{% if field.required %} *{% endif %}
+                  </FormLabel>
+                  <FormControl>
+                    {% if field.type == 'text' %}
+                    <Textarea
+                      placeholder="Enter {{ field.name | title | lower }}"
+                      {...formField}
+                      disabled={loading}
+                    />
+                    {% elif field.type == 'boolean' %}
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        checked={formField.value || false}
+                        onCheckedChange={formField.onChange}
+                        disabled={loading}
+                      />
+                      <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        {{ field.description or field.name | title }}
+                      </label>
+                    </div>
+                    {% elif field.type == 'enum' %}
+                    <Select
+                      value={formField.value || ''}
+                      onValueChange={formField.onChange}
+                      disabled={loading}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select {{ field.name | title | lower }}" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {% for option in field.options %}
+                        <SelectItem value="{{ option.value }}">
+                          {{ option.label or option.value | title }}
+                        </SelectItem>
+                        {% endfor %}
+                      </SelectContent>
+                    </Select>
+                    {% elif field.type == 'integer' or field.type == 'decimal' %}
+                    <Input
+                      type="number"
+                      placeholder="Enter {{ field.name | title | lower }}"
+                      {% if field.type == 'decimal' %}step="0.01"{% endif %}
+                      {...formField}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        formField.onChange(value ? {% if field.type == 'integer' %}parseInt(value, 10){% else %}parseFloat(value){% endif %} : '');
+                      }}
+                      disabled={loading}
+                    />
+                    {% elif field.type == 'date' %}
+                    <Input
+                      type="date"
+                      {...formField}
+                      disabled={loading}
+                    />
+                    {% elif field.type == 'datetime' %}
+                    <Input
+                      type="datetime-local"
+                      {...formField}
+                      disabled={loading}
+                    />
+                    {% else %}
+                    <Input
+                      type="{% if field.type == 'email' %}email{% elif field.type == 'phone' %}tel{% else %}text{% endif %}"
+                      placeholder="Enter {{ field.name | title | lower }}"
+                      {% if field.max_length %}maxLength={{ field.max_length }}{% endif %}
+                      {...formField}
+                      disabled={loading}
+                    />
+                    {% endif %}
+                  </FormControl>
+                  {% if field.description %}
+                  <FormDescription>
+                    {{ field.description }}
+                  </FormDescription>
+                  {% endif %}
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            {% endfor %}
+
+            <div className="flex justify-end space-x-4">
+              {onCancel && (
+                <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
+                  Cancel
+                </Button>
+              )}
+              <Button type="submit" disabled={loading}>
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                    {mode === 'create' ? 'Creating...' : 'Updating...'}
+                  </>
+                ) : (
+                  mode === 'create' ? 'Create {{ entity.name | title }}' : 'Update {{ entity.name | title }}'
+                )}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
+  );
+};
+
+export default {{ entity.name | camel_case }}Form;

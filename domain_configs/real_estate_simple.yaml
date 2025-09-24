@@ -1,0 +1,144 @@
+domain:
+  name: real_estate_simple
+  display_name: PropertyFlow Basic
+  description: Simple real estate property management system
+  version: 1.0.0
+  domain_type: real_estate
+  author: TeamFlow Templates
+
+entities:
+  user:
+    name: user
+    display_name: User
+    description: System users including property owners and managers
+    fields:
+      - name: username
+        type: string
+        display_name: Username
+        required: true
+        unique: true
+        ui_component: input
+      - name: email
+        type: email
+        display_name: Email
+        required: true
+        unique: true
+        ui_component: input
+        validations:
+          - rule: email_format
+            message: Please enter a valid email address
+      - name: first_name
+        type: string
+        display_name: First Name
+        required: true
+        ui_component: input
+      - name: last_name
+        type: string
+        display_name: Last Name
+        required: true
+        ui_component: input
+    list_display: [username, email, first_name, last_name]
+    search_fields: [username, email, first_name, last_name]
+    default_sort_field: username
+
+  property:
+    name: property
+    display_name: Property
+    description: Real estate properties managed by the system
+    fields:
+      - name: address
+        type: string
+        display_name: Address
+        required: true
+        searchable: true
+        ui_component: textarea
+      - name: property_type
+        type: string
+        display_name: Property Type
+        required: true
+        ui_component: select
+        options:
+          - value: apartment
+            label: Apartment
+          - value: house
+            label: House
+          - value: condo
+            label: Condominium
+          - value: commercial
+            label: Commercial
+      - name: bedrooms
+        type: integer
+        display_name: Bedrooms
+        ui_component: number_input
+        validations:
+          - rule: min_value
+            value: 0
+            message: Bedrooms must be 0 or more
+      - name: bathrooms
+        type: decimal
+        display_name: Bathrooms
+        ui_component: number_input
+        validations:
+          - rule: min_value
+            value: 0
+            message: Bathrooms must be 0 or more
+      - name: rent_amount
+        type: decimal
+        display_name: Monthly Rent
+        required: true
+        ui_component: number_input
+        validations:
+          - rule: positive
+            message: Rent amount must be positive
+    relationships:
+      - name: owner
+        target_entity: user
+        type: many_to_one
+        display_name: Property Owner
+        foreign_key: owner_id
+    list_display: [address, property_type, bedrooms, bathrooms, rent_amount]
+    search_fields: [address]
+    filter_fields: [property_type]
+    default_sort_field: address
+
+navigation:
+  dashboard:
+    key: dashboard
+    label: Dashboard
+    icon: dashboard
+    url: /dashboard
+  properties:
+    key: properties
+    label: Properties
+    icon: home
+    entity: property
+  users:
+    key: users
+    label: Users
+    icon: people
+    entity: user
+
+dashboard:
+  - key: property_count
+    type: count
+    title: Total Properties
+    entity: property
+    size: small
+  - key: user_count
+    type: count
+    title: Total Users
+    entity: user
+    size: small
+
+business_rules:
+  - name: positive_rent_validation
+    description: Rent amount must be positive
+    entity: property
+    condition: "rent_amount > 0"
+    action: "validate"
+
+features:
+  file_management:
+    enabled: true
+  real_time_notifications:
+    enabled: false

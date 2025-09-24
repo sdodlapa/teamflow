@@ -1,0 +1,190 @@
+/**
+ * {{ entity.name }} TypeScript Types
+ * Generated on: {{ today() }}
+ * Domain: {{ domain.name }}
+ */
+
+{% if entity.enums %}
+// Enum definitions
+{% for enum_field in entity.enums %}
+export enum {{ enum_field.name | camel_case }}Enum {
+  {% for option in enum_field.options %}
+  {{ option.value | upper }} = "{{ option.value }}",
+  {% endfor %}
+}
+
+export const {{ enum_field.name | camel_case }}EnumLabels: Record<{{ enum_field.name | camel_case }}Enum, string> = {
+  {% for option in enum_field.options %}
+  [{{ enum_field.name | camel_case }}Enum.{{ option.value | upper }}]: "{{ option.label or option.value | title }}",
+  {% endfor %}
+};
+
+{% endfor %}
+{% endif %}
+
+// Base interface (shared fields)
+export interface {{ entity.name | camel_case }}Base {
+  {% for field in entity.fields %}
+  {% if field.type == 'enum' %}
+  {{ field.name }}: {% if not field.required %}{{ field.name | camel_case }}Enum | null{% else %}{{ field.name | camel_case }}Enum{% endif %};
+  {% else %}
+  {{ field.name }}: {% if not field.required %}{{ field.type | typescript_type }} | null{% else %}{{ field.type | typescript_type }}{% endif %};
+  {% endif %}
+  {% if field.description %}
+  // {{ field.description }}
+  {% endif %}
+  {% endfor %}
+}
+
+// Interface for creating {{ entity.name | camel_case }}
+export interface {{ entity.name | camel_case }}Create extends {{ entity.name | camel_case }}Base {
+  {% if entity.required_on_create %}
+  // Override fields that are required on creation
+  {% for field_name in entity.required_on_create %}
+  {% set field = entity.fields | selectattr('name', 'equalto', field_name) | first %}
+  {% if field %}
+  {{ field.name }}: {{ field.type | typescript_type }};
+  {% endif %}
+  {% endfor %}
+  {% endif %}
+}
+
+// Interface for updating {{ entity.name | camel_case }}
+export interface {{ entity.name | camel_case }}Update {
+  {% for field in entity.fields %}
+  {% if field.updatable %}
+  {% if field.type == 'enum' %}
+  {{ field.name }}?: {{ field.name | camel_case }}Enum | null;
+  {% else %}
+  {{ field.name }}?: {{ field.type | typescript_type }} | null;
+  {% endif %}
+  {% endif %}
+  {% endfor %}
+}
+
+// Interface for {{ entity.name | camel_case }} response (includes ID and timestamps)
+export interface {{ entity.name | camel_case }}Response extends {{ entity.name | camel_case }}Base {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+  
+  {% if entity.relationships %}
+  // Optional relationship fields (for expansion)
+  {% for rel in entity.relationships %}
+  {% if rel.type == 'many_to_one' %}
+  {{ rel.name }}?: {{ rel.target | camel_case }}Response | null;
+  {% elif rel.type == 'one_to_many' %}
+  {{ rel.name }}?: {{ rel.target | camel_case }}Response[] | null;
+  {% elif rel.type == 'one_to_one' %}
+  {{ rel.name }}?: {{ rel.target | camel_case }}Response | null;
+  {% elif rel.type == 'many_to_many' %}
+  {{ rel.name }}?: {{ rel.target | camel_case }}Response[] | null;
+  {% endif %}
+  {% endfor %}
+  {% endif %}
+}
+
+// Interface for paginated list of {{ entity.name | camel_case | plural }}
+export interface {{ entity.name | camel_case }}List {
+  items: {{ entity.name | camel_case }}Response[];
+  total: number;
+  page: number;
+  size: number;
+  pages: number;
+}
+
+// Interface for {{ entity.name | camel_case }} filters
+export interface {{ entity.name | camel_case }}Filters {
+  {% if entity.filterable_fields %}
+  {% for field in entity.filterable_fields %}
+  {% if field.type == 'string' %}
+  {{ field.name }}?: string;
+  {% elif field.type == 'boolean' %}
+  {{ field.name }}?: boolean;
+  {% elif field.type == 'enum' %}
+  {{ field.name }}?: string;
+  {% endif %}
+  {% endfor %}
+  {% endif %}
+  search?: string;
+}
+
+// Interface for {{ entity.name | camel_case }} sort options
+export interface {{ entity.name | camel_case }}Sort {
+  field: keyof {{ entity.name | camel_case }}Base | 'createdAt' | 'updatedAt';
+  direction: 'asc' | 'desc';
+}
+
+{% if entity.validations %}
+// Validation error types
+export interface {{ entity.name | camel_case }}ValidationError {
+  field: string;
+  message: string;
+  code: string;
+}
+
+export interface {{ entity.name | camel_case }}ValidationErrors {
+  [key: string]: string[];
+}
+{% endif %}
+
+// API request/response types
+export interface {{ entity.name | camel_case }}ListRequest {
+  skip?: number;
+  limit?: number;
+  filters?: {{ entity.name | camel_case }}Filters;
+  sort?: {{ entity.name | camel_case }}Sort;
+}
+
+export interface {{ entity.name | camel_case }}CreateRequest {
+  data: {{ entity.name | camel_case }}Create;
+}
+
+export interface {{ entity.name | camel_case }}UpdateRequest {
+  id: string;
+  data: {{ entity.name | camel_case }}Update;
+}
+
+export interface {{ entity.name | camel_case }}DeleteRequest {
+  id: string;
+}
+
+// Form field types for UI components
+export interface {{ entity.name | camel_case }}FormField {
+  name: keyof {{ entity.name | camel_case }}Base;
+  label: string;
+  type: 'text' | 'number' | 'select' | 'checkbox' | 'date' | 'textarea';
+  required: boolean;
+  {% if entity.enums %}
+  options?: Array<{ value: string; label: string }>;
+  {% endif %}
+  validation?: {
+    pattern?: string;
+    min?: number;
+    max?: number;
+    minLength?: number;
+    maxLength?: number;
+  };
+}
+
+// Table column configuration
+export interface {{ entity.name | camel_case }}TableColumn {
+  key: keyof {{ entity.name | camel_case }}Response | 'actions';
+  label: string;
+  sortable?: boolean;
+  filterable?: boolean;
+  render?: (value: any, record: {{ entity.name | camel_case }}Response) => React.ReactNode;
+}
+
+// Export all types as a namespace
+export namespace {{ entity.name | camel_case }}Types {
+  export type Base = {{ entity.name | camel_case }}Base;
+  export type Create = {{ entity.name | camel_case }}Create;
+  export type Update = {{ entity.name | camel_case }}Update;
+  export type Response = {{ entity.name | camel_case }}Response;
+  export type List = {{ entity.name | camel_case }}List;
+  export type Filters = {{ entity.name | camel_case }}Filters;
+  export type Sort = {{ entity.name | camel_case }}Sort;
+  export type FormField = {{ entity.name | camel_case }}FormField;
+  export type TableColumn = {{ entity.name | camel_case }}TableColumn;
+}

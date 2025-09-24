@@ -26,6 +26,12 @@ class CacheManager:
     
     def _connect(self):
         """Connect to Redis with fallback handling"""
+        # Check if Redis caching is enabled
+        if not getattr(settings, 'ENABLE_REDIS_CACHE', True):
+            print("ℹ️  Redis caching disabled, using local cache only")
+            self.redis_client = None
+            return
+            
         try:
             self.redis_client = redis.Redis(
                 host=getattr(settings, 'REDIS_HOST', 'localhost'),

@@ -1,0 +1,1058 @@
+domain:
+  name: e_commerce
+  title: CommerceFlow
+  description: Complete e-commerce platform with inventory, orders, and customer management
+  version: 1.3.0
+  logo: 🛒
+  color_scheme: purple
+  theme: modern
+  domain_type: e_commerce
+  category: retail
+  tags:
+    - ecommerce
+    - retail
+    - inventory
+    - orders
+    - customers
+  author: TeamFlow Templates
+  license: MIT
+
+entities:
+  product:
+    name: product
+    display_name: Product
+    display_name_plural: Products
+    description: Product catalog management
+    table_name: products
+    icon: 📦
+    color: blue
+    
+    fields:
+      - name: name
+        type: string
+        display_name: Product Name
+        description: Name of the product
+        required: true
+        max_length: 255
+        searchable: true
+        
+      - name: sku
+        type: string
+        display_name: SKU
+        description: Stock Keeping Unit - unique product identifier
+        required: true
+        unique: true
+        max_length: 50
+        indexed: true
+        searchable: true
+        validations:
+          - rule: alphanumeric
+            message: SKU must contain only letters and numbers
+        
+      - name: description
+        type: text
+        display_name: Description
+        description: Detailed product description
+        max_length: 2000
+        searchable: true
+        ui_component: rich_text
+        
+      - name: short_description
+        type: string
+        display_name: Short Description
+        description: Brief product summary
+        max_length: 500
+        searchable: true
+        ui_component: textarea
+        
+      - name: price
+        type: decimal
+        display_name: Price
+        description: Product selling price
+        required: true
+        min_value: 0
+        validations:
+          - rule: positive
+            message: Price must be positive
+        ui_component: number_input
+        ui_config:
+          prefix: $
+          precision: 2
+          thousand_separator: true
+        
+      - name: cost_price
+        type: decimal
+        display_name: Cost Price
+        description: Product cost/wholesale price
+        min_value: 0
+        ui_component: number_input
+        ui_config:
+          prefix: $
+          precision: 2
+          thousand_separator: true
+        show_in_list: false
+        
+      - name: stock_quantity
+        type: integer
+        display_name: Stock Quantity
+        description: Current stock level
+        required: true
+        default: 0
+        min_value: 0
+        filterable: true
+        sortable: true
+        ui_component: number_input
+        
+      - name: low_stock_threshold
+        type: integer
+        display_name: Low Stock Threshold
+        description: Minimum stock level before alert
+        default: 10
+        min_value: 0
+        ui_component: number_input
+        
+      - name: weight
+        type: decimal
+        display_name: Weight (kg)
+        description: Product weight in kilograms
+        min_value: 0
+        ui_component: number_input
+        ui_config:
+          suffix: kg
+          step: 0.1
+        
+      - name: dimensions
+        type: json
+        display_name: Dimensions
+        description: Product dimensions (length, width, height)
+        ui_component: json
+        ui_config:
+          schema:
+            length: number
+            width: number
+            height: number
+            unit: string
+        show_in_list: false
+        
+      - name: category
+        type: enum
+        display_name: Category
+        required: true
+        choices:
+          - electronics
+          - clothing
+          - books
+          - home_garden
+          - sports
+          - toys
+          - jewelry
+          - automotive
+          - health_beauty
+          - food_beverages
+          - other
+        filterable: true
+        ui_component: select
+        
+      - name: status
+        type: enum
+        display_name: Status
+        required: true
+        choices:
+          - active
+          - inactive
+          - discontinued
+          - out_of_stock
+        default: active
+        filterable: true
+        ui_component: select
+        ui_config:
+          color_map:
+            active: green
+            inactive: gray
+            discontinued: red
+            out_of_stock: orange
+        
+      - name: featured
+        type: boolean
+        display_name: Featured Product
+        description: Whether product is featured on homepage
+        default: false
+        filterable: true
+        ui_component: checkbox
+        
+      - name: digital_product
+        type: boolean
+        display_name: Digital Product
+        description: Whether this is a digital/downloadable product
+        default: false
+        filterable: true
+        ui_component: checkbox
+        
+      - name: tags
+        type: json
+        display_name: Tags
+        description: Product tags for search and categorization
+        ui_component: multiselect
+        ui_config:
+          allow_custom: true
+        show_in_list: false
+        
+      - name: images
+        type: json
+        display_name: Product Images
+        description: Product image URLs
+        ui_component: image_gallery
+        show_in_list: false
+        
+      - name: meta_title
+        type: string
+        display_name: SEO Title
+        description: Meta title for SEO
+        max_length: 60
+        show_in_list: false
+        
+      - name: meta_description
+        type: string
+        display_name: SEO Description
+        description: Meta description for SEO
+        max_length: 160
+        ui_component: textarea
+        show_in_list: false
+    
+    relationships:
+      - name: order_items
+        target_entity: order_item
+        type: one_to_many
+        display_name: Order Items
+        back_populates: product
+        
+      - name: reviews
+        target_entity: product_review
+        type: one_to_many
+        display_name: Customer Reviews
+        back_populates: product
+        
+      - name: inventory_transactions
+        target_entity: inventory_transaction
+        type: one_to_many
+        display_name: Inventory Transactions
+        back_populates: product
+    
+    business_rules:
+      - name: low_stock_alert
+        description: Alert when stock falls below threshold
+        trigger: updated
+        condition: "stock_quantity <= low_stock_threshold"
+        action: send_low_stock_alert
+        parameters:
+          alert_type: stock_alert
+        enabled: true
+        priority: 90
+        
+      - name: out_of_stock_status
+        description: Auto-update status when out of stock
+        trigger: updated
+        condition: "stock_quantity == 0"
+        action: update_status
+        parameters:
+          new_status: out_of_stock
+        enabled: true
+        priority: 80
+    
+    default_sort_field: name
+    default_sort_order: asc
+    items_per_page: 24
+
+  customer:
+    name: customer
+    display_name: Customer
+    display_name_plural: Customers
+    description: Customer information and management
+    table_name: customers
+    inherits_from: user
+    icon: 👤
+    color: green
+    
+    fields:
+      - name: customer_type
+        type: enum
+        display_name: Customer Type
+        required: true
+        choices:
+          - individual
+          - business
+        default: individual
+        filterable: true
+        ui_component: radio
+        
+      - name: company_name
+        type: string
+        display_name: Company Name
+        description: Company name for business customers
+        max_length: 255
+        searchable: true
+        
+      - name: tax_id
+        type: string
+        display_name: Tax ID
+        description: Tax identification number
+        max_length: 50
+        
+      - name: date_of_birth
+        type: date
+        display_name: Date of Birth
+        description: Customer's date of birth
+        ui_component: date_picker
+        show_in_list: false
+        
+      - name: preferred_language
+        type: enum
+        display_name: Preferred Language
+        choices:
+          - en
+          - es
+          - fr
+          - de
+          - it
+          - pt
+        default: en
+        ui_component: select
+        
+      - name: marketing_consent
+        type: boolean
+        display_name: Marketing Consent
+        description: Customer consent to receive marketing emails
+        default: false
+        ui_component: checkbox
+        
+      - name: loyalty_points
+        type: integer
+        display_name: Loyalty Points
+        description: Accumulated loyalty points
+        default: 0
+        min_value: 0
+        ui_component: number_input
+        show_in_list: false
+        
+      - name: customer_since
+        type: date
+        display_name: Customer Since
+        description: Date when customer first registered
+        required: true
+        default: today
+        sortable: true
+        filterable: true
+        
+      - name: total_orders
+        type: integer
+        display_name: Total Orders
+        description: Total number of orders placed
+        default: 0
+        min_value: 0
+        sortable: true
+        
+      - name: total_spent
+        type: decimal
+        display_name: Total Spent
+        description: Total amount spent by customer
+        default: 0
+        min_value: 0
+        sortable: true
+        ui_component: number_input
+        ui_config:
+          prefix: $
+          thousand_separator: true
+        
+      - name: last_order_date
+        type: date
+        display_name: Last Order Date
+        description: Date of most recent order
+        sortable: true
+        filterable: true
+        
+      - name: notes
+        type: text
+        display_name: Customer Notes
+        description: Internal notes about the customer
+        max_length: 1000
+        ui_component: textarea
+        show_in_list: false
+    
+    relationships:
+      - name: orders
+        target_entity: order
+        type: one_to_many
+        display_name: Orders
+        back_populates: customer
+        
+      - name: addresses
+        target_entity: customer_address
+        type: one_to_many
+        display_name: Addresses
+        back_populates: customer
+        
+      - name: reviews
+        target_entity: product_review
+        type: one_to_many
+        display_name: Product Reviews
+        back_populates: customer
+    
+    default_sort_field: customer_since
+    default_sort_order: desc
+    items_per_page: 25
+
+  order:
+    name: order
+    display_name: Order
+    display_name_plural: Orders
+    description: Customer order management
+    table_name: orders
+    icon: 🛍️
+    color: orange
+    
+    fields:
+      - name: order_number
+        type: string
+        display_name: Order Number
+        description: Unique order identifier
+        required: true
+        unique: true
+        max_length: 50
+        indexed: true
+        searchable: true
+        
+      - name: order_date
+        type: datetime
+        display_name: Order Date
+        description: Date and time order was placed
+        required: true
+        default: now
+        sortable: true
+        filterable: true
+        
+      - name: status
+        type: enum
+        display_name: Order Status
+        required: true
+        choices:
+          - pending
+          - processing
+          - shipped
+          - delivered
+          - cancelled
+          - refunded
+        default: pending
+        filterable: true
+        ui_component: select
+        ui_config:
+          color_map:
+            pending: yellow
+            processing: blue
+            shipped: purple
+            delivered: green
+            cancelled: red
+            refunded: gray
+        
+      - name: subtotal
+        type: decimal
+        display_name: Subtotal
+        description: Order subtotal before taxes and shipping
+        required: true
+        min_value: 0
+        sortable: true
+        ui_component: number_input
+        ui_config:
+          prefix: $
+          thousand_separator: true
+        
+      - name: tax_amount
+        type: decimal
+        display_name: Tax Amount
+        description: Total tax amount
+        default: 0
+        min_value: 0
+        ui_component: number_input
+        ui_config:
+          prefix: $
+          precision: 2
+        
+      - name: shipping_amount
+        type: decimal
+        display_name: Shipping Amount
+        description: Shipping cost
+        default: 0
+        min_value: 0
+        ui_component: number_input
+        ui_config:
+          prefix: $
+          precision: 2
+        
+      - name: discount_amount
+        type: decimal
+        display_name: Discount Amount
+        description: Total discount applied
+        default: 0
+        min_value: 0
+        ui_component: number_input
+        ui_config:
+          prefix: $
+          precision: 2
+        
+      - name: total_amount
+        type: decimal
+        display_name: Total Amount
+        description: Final order total
+        required: true
+        min_value: 0
+        sortable: true
+        ui_component: number_input
+        ui_config:
+          prefix: $
+          thousand_separator: true
+        
+      - name: payment_method
+        type: enum
+        display_name: Payment Method
+        choices:
+          - credit_card
+          - debit_card
+          - paypal
+          - bank_transfer
+          - cash_on_delivery
+          - cryptocurrency
+        filterable: true
+        ui_component: select
+        
+      - name: payment_status
+        type: enum
+        display_name: Payment Status
+        required: true
+        choices:
+          - pending
+          - paid
+          - failed
+          - refunded
+          - partially_refunded
+        default: pending
+        filterable: true
+        ui_component: select
+        
+      - name: shipping_method
+        type: enum
+        display_name: Shipping Method
+        choices:
+          - standard
+          - express
+          - overnight
+          - pickup
+        ui_component: select
+        
+      - name: tracking_number
+        type: string
+        display_name: Tracking Number
+        description: Shipment tracking number
+        max_length: 100
+        searchable: true
+        
+      - name: shipped_date
+        type: datetime
+        display_name: Shipped Date
+        description: Date and time order was shipped
+        filterable: true
+        
+      - name: delivered_date
+        type: datetime
+        display_name: Delivered Date
+        description: Date and time order was delivered
+        filterable: true
+        
+      - name: notes
+        type: text
+        display_name: Order Notes
+        description: Special instructions or notes
+        max_length: 1000
+        ui_component: textarea
+        show_in_list: false
+    
+    relationships:
+      - name: customer
+        target_entity: customer
+        type: many_to_one
+        display_name: Customer
+        required: true
+        foreign_key: customer_id
+        back_populates: orders
+        
+      - name: order_items
+        target_entity: order_item
+        type: one_to_many
+        display_name: Order Items
+        back_populates: order
+        
+      - name: shipping_address
+        target_entity: customer_address
+        type: many_to_one
+        display_name: Shipping Address
+        foreign_key: shipping_address_id
+        
+      - name: billing_address
+        target_entity: customer_address
+        type: many_to_one
+        display_name: Billing Address
+        foreign_key: billing_address_id
+    
+    business_rules:
+      - name: total_calculation
+        description: Total must equal subtotal + tax + shipping - discount
+        condition: "total_amount == subtotal + tax_amount + shipping_amount - discount_amount"
+        error_message: Order total calculation is incorrect
+        enabled: true
+        priority: 100
+        
+      - name: shipped_status_validation
+        description: Cannot ship without tracking number
+        condition: "status != 'shipped' or tracking_number is not null"
+        error_message: Tracking number required when marking order as shipped
+        enabled: true
+        priority: 90
+    
+    default_sort_field: order_date
+    default_sort_order: desc
+    items_per_page: 25
+
+  order_item:
+    name: order_item
+    display_name: Order Item
+    display_name_plural: Order Items
+    description: Individual items within an order
+    table_name: order_items
+    icon: 📋
+    color: blue
+    
+    fields:
+      - name: quantity
+        type: integer
+        display_name: Quantity
+        description: Number of items ordered
+        required: true
+        min_value: 1
+        ui_component: number_input
+        
+      - name: unit_price
+        type: decimal
+        display_name: Unit Price
+        description: Price per item at time of order
+        required: true
+        min_value: 0
+        ui_component: number_input
+        ui_config:
+          prefix: $
+          precision: 2
+        
+      - name: total_price
+        type: decimal
+        display_name: Total Price
+        description: Total price for this line item
+        required: true
+        min_value: 0
+        ui_component: number_input
+        ui_config:
+          prefix: $
+          precision: 2
+        
+      - name: discount_amount
+        type: decimal
+        display_name: Discount Amount
+        description: Discount applied to this item
+        default: 0
+        min_value: 0
+        ui_component: number_input
+        ui_config:
+          prefix: $
+          precision: 2
+    
+    relationships:
+      - name: order
+        target_entity: order
+        type: many_to_one
+        display_name: Order
+        required: true
+        foreign_key: order_id
+        back_populates: order_items
+        
+      - name: product
+        target_entity: product
+        type: many_to_one
+        display_name: Product
+        required: true
+        foreign_key: product_id
+        back_populates: order_items
+    
+    business_rules:
+      - name: total_price_calculation
+        description: Total price must equal quantity * unit_price - discount
+        condition: "total_price == quantity * unit_price - discount_amount"
+        error_message: Item total calculation is incorrect
+        enabled: true
+        priority: 100
+    
+    default_sort_field: id
+    items_per_page: 50
+
+  customer_address:
+    name: customer_address
+    display_name: Customer Address
+    display_name_plural: Customer Addresses
+    description: Customer shipping and billing addresses
+    table_name: customer_addresses
+    icon: 📍
+    color: gray
+    
+    fields:
+      - name: address_type
+        type: enum
+        display_name: Address Type
+        required: true
+        choices:
+          - shipping
+          - billing
+          - both
+        ui_component: select
+        
+      - name: first_name
+        type: string
+        display_name: First Name
+        required: true
+        max_length: 100
+        
+      - name: last_name
+        type: string
+        display_name: Last Name
+        required: true
+        max_length: 100
+        
+      - name: company
+        type: string
+        display_name: Company
+        max_length: 100
+        
+      - name: address_line_1
+        type: string
+        display_name: Address Line 1
+        required: true
+        max_length: 255
+        
+      - name: address_line_2
+        type: string
+        display_name: Address Line 2
+        max_length: 255
+        
+      - name: city
+        type: string
+        display_name: City
+        required: true
+        max_length: 100
+        
+      - name: state_province
+        type: string
+        display_name: State/Province
+        required: true
+        max_length: 100
+        
+      - name: postal_code
+        type: string
+        display_name: Postal Code
+        required: true
+        max_length: 20
+        
+      - name: country
+        type: string
+        display_name: Country
+        required: true
+        max_length: 100
+        default: "United States"
+        
+      - name: phone
+        type: phone
+        display_name: Phone Number
+        validations:
+          - rule: phone_format
+            message: Please enter a valid phone number
+        
+      - name: is_default
+        type: boolean
+        display_name: Default Address
+        description: Whether this is the default address
+        default: false
+        ui_component: checkbox
+    
+    relationships:
+      - name: customer
+        target_entity: customer
+        type: many_to_one
+        display_name: Customer
+        required: true
+        foreign_key: customer_id
+        back_populates: addresses
+    
+    default_sort_field: is_default
+    default_sort_order: desc
+    items_per_page: 20
+
+navigation:
+  primary_menu:
+    - key: dashboard
+      label: Dashboard
+      icon: 📊
+      route: /dashboard
+      order: 1
+      permissions: [user, manager, admin]
+      
+    - key: products
+      label: Products
+      icon: 📦
+      route: /products
+      order: 2
+      permissions: [user, manager, admin]
+      
+    - key: orders
+      label: Orders
+      icon: 🛍️
+      route: /orders
+      order: 3
+      permissions: [user, manager, admin]
+      
+    - key: customers
+      label: Customers
+      icon: 👥
+      route: /customers
+      order: 4
+      permissions: [manager, admin]
+      
+    - key: inventory
+      label: Inventory
+      icon: 📋
+      route: /inventory
+      order: 5
+      permissions: [user, manager, admin]
+
+  secondary_menu:
+    - key: analytics
+      label: Analytics
+      icon: 📈
+      route: /analytics
+      order: 1
+      permissions: [manager, admin]
+      
+    - key: marketing
+      label: Marketing
+      icon: 📢
+      route: /marketing
+      order: 2
+      permissions: [manager, admin]
+      
+    - key: settings
+      label: Settings
+      icon: ⚙️
+      route: /settings
+      order: 3
+      permissions: [admin]
+
+dashboard:
+  title: E-commerce Dashboard
+  
+  metrics:
+    - name: total_products
+      label: Total Products
+      entity: product
+      calculation: count
+      condition: status = 'active'
+      icon: 📦
+      color: blue
+      
+    - name: low_stock_products
+      label: Low Stock Products
+      entity: product
+      calculation: count
+      condition: stock_quantity <= low_stock_threshold AND status = 'active'
+      icon: ⚠️
+      color: orange
+      
+    - name: pending_orders
+      label: Pending Orders
+      entity: order
+      calculation: count
+      condition: status IN ('pending', 'processing')
+      icon: 🛍️
+      color: yellow
+      
+    - name: daily_revenue
+      label: Today's Revenue
+      entity: order
+      calculation: sum
+      field: total_amount
+      condition: order_date >= today AND payment_status = 'paid'
+      period: today
+      icon: 💰
+      color: green
+      format_type: currency
+      
+    - name: total_customers
+      label: Total Customers
+      entity: customer
+      calculation: count
+      icon: 👥
+      color: purple
+      
+    - name: monthly_revenue
+      label: Monthly Revenue
+      entity: order
+      calculation: sum
+      field: total_amount
+      condition: order_date >= first_day_of_month AND payment_status = 'paid'
+      period: this_month
+      icon: 💰
+      color: green
+      format_type: currency
+
+  charts:
+    - name: daily_sales
+      title: Daily Sales (Last 30 Days)
+      type: line
+      entity: order
+      x_axis: order_date
+      y_axis: total_amount
+      calculation: sum
+      condition: payment_status = 'paid'
+      time_period: last_30_days
+      width: 8
+      height: 400
+      
+    - name: top_products
+      title: Top Selling Products
+      type: bar
+      entity: order_item
+      group_by: product.name
+      calculation: sum
+      y_axis: quantity
+      time_period: last_30_days
+      width: 4
+      height: 400
+      
+    - name: order_status_distribution
+      title: Order Status Distribution
+      type: pie
+      entity: order
+      group_by: status
+      calculation: count
+      time_period: last_30_days
+      width: 6
+      height: 300
+      
+    - name: customer_acquisition
+      title: New Customers (Monthly)
+      type: area
+      entity: customer
+      x_axis: customer_since
+      calculation: count
+      time_period: last_12_months
+      width: 6
+      height: 300
+
+features:
+  inventory_management:
+    name: inventory_management
+    enabled: true
+    description: Advanced inventory tracking and management
+    
+  multi_currency:
+    name: multi_currency
+    enabled: false
+    description: Support for multiple currencies
+    parameters:
+      default_currency: USD
+      supported_currencies: [USD, EUR, GBP, CAD]
+      
+  product_reviews:
+    name: product_reviews
+    enabled: true
+    description: Customer product reviews and ratings
+    
+  wishlist:
+    name: wishlist
+    enabled: true
+    description: Customer wishlist functionality
+    
+  loyalty_program:
+    name: loyalty_program
+    enabled: true
+    description: Customer loyalty points and rewards
+    parameters:
+      points_per_dollar: 1
+      redemption_rate: 0.01
+      
+  advanced_search:
+    name: advanced_search
+    enabled: true
+    description: Advanced product search with filters
+    
+  abandoned_cart_recovery:
+    name: abandoned_cart_recovery
+    enabled: false
+    description: Automated abandoned cart email recovery
+    parameters:
+      email_delay_hours: 24
+      
+  discount_coupons:
+    name: discount_coupons
+    enabled: true
+    description: Discount coupons and promotional codes
+
+api:
+  prefix: /api/v1
+  pagination:
+    default_size: 20
+    max_size: 100
+  rate_limiting:
+    enabled: true
+    requests_per_minute: 100
+  versioning:
+    enabled: true
+    current_version: "1.3"
+
+custom_config:
+  product_images:
+    max_images_per_product: 8
+    allowed_formats: [jpg, jpeg, png, webp]
+    max_image_size: 10485760  # 10MB
+    thumbnail_sizes:
+      small: [150, 150]
+      medium: [300, 300]
+      large: [800, 800]
+    
+  order_processing:
+    auto_order_confirmation: true
+    auto_inventory_deduction: true
+    order_number_prefix: "ORD"
+    order_number_length: 8
+    
+  shipping:
+    free_shipping_threshold: 50.00
+    default_shipping_cost: 5.99
+    expedited_shipping_cost: 12.99
+    
+  payment:
+    payment_gateways: [stripe, paypal, square]
+    default_gateway: stripe
+    payment_timeout_minutes: 30
+    
+  tax:
+    tax_calculation: automatic
+    tax_rate: 0.08
+    tax_inclusive_pricing: false
+    
+  email_notifications:
+    order_confirmation: true
+    shipping_notification: true
+    delivery_confirmation: true
+    low_stock_alerts: true

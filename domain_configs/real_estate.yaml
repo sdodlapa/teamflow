@@ -1,0 +1,827 @@
+domain:
+  name: real_estate
+  display_name: PropertyFlow
+  description: Comprehensive real estate property management system
+  version: 1.2.0
+  domain_type: real_estate
+  author: TeamFlow Templates
+
+entities:
+  property:
+    name: property
+    display_name: Property
+    display_name_plural: Properties
+    description: Real estate property information
+    table_name: properties
+    icon: 🏠
+    color: green
+    
+    fields:
+      - name: address
+        type: string
+        display_name: Street Address
+        description: Full street address of the property
+        required: true
+        max_length: 500
+        searchable: true
+        filterable: true
+        ui_component: textarea
+        
+      - name: city
+        type: string
+        display_name: City
+        required: true
+        max_length: 100
+        searchable: true
+        filterable: true
+        
+      - name: state
+        type: string
+        display_name: State/Province
+        required: true
+        max_length: 50
+        filterable: true
+        
+      - name: postal_code
+        type: string
+        display_name: Postal Code
+        required: true
+        max_length: 20
+        filterable: true
+        
+      - name: price
+        type: decimal
+        display_name: Listing Price
+        description: Property listing price in local currency
+        required: true
+        min_value: 0
+        validations:
+          - rule: positive
+            message: Property price must be positive
+        ui_component: number_input
+        ui_config:
+          prefix: $
+          thousand_separator: true
+        
+      - name: bedrooms
+        type: integer
+        display_name: Bedrooms
+        default: 1
+        min_value: 0
+        max_value: 20
+        filterable: true
+        ui_component: number_input
+        
+      - name: bathrooms
+        type: decimal
+        display_name: Bathrooms
+        default: 1.0
+        min_value: 0
+        max_value: 10
+        filterable: true
+        ui_component: number_input
+        ui_config:
+          step: 0.5
+        
+      - name: square_footage
+        type: integer
+        display_name: Square Footage
+        min_value: 0
+        filterable: true
+        sortable: true
+        ui_component: number_input
+        
+      - name: property_type
+        type: enum
+        display_name: Property Type
+        required: true
+        choices:
+          - house
+          - apartment
+          - condo
+          - townhouse
+          - commercial
+          - land
+        default: house
+        filterable: true
+        ui_component: select
+        
+      - name: status
+        type: enum
+        display_name: Property Status
+        required: true
+        choices:
+          - available
+          - rented
+          - maintenance
+          - sold
+          - off_market
+        default: available
+        filterable: true
+        ui_component: select
+        ui_config:
+          color_map:
+            available: green
+            rented: blue
+            maintenance: yellow
+            sold: gray
+            off_market: red
+        
+      - name: description
+        type: text
+        display_name: Description
+        description: Detailed property description
+        max_length: 2000
+        searchable: true
+        ui_component: rich_text
+        show_in_list: false
+        
+      - name: amenities
+        type: json
+        display_name: Amenities
+        description: Property amenities and features
+        ui_component: multiselect
+        ui_config:
+          options:
+            - Swimming Pool
+            - Gym
+            - Parking
+            - Balcony
+            - Garden
+            - Elevator
+            - Security System
+            - Air Conditioning
+            - Heating
+            - Internet
+        show_in_list: false
+        
+      - name: listing_date
+        type: date
+        display_name: Listing Date
+        description: Date when property was listed
+        required: true
+        default: today
+        sortable: true
+        filterable: true
+        ui_component: date_picker
+        
+      - name: availability_date
+        type: date
+        display_name: Available From
+        description: Date when property becomes available
+        filterable: true
+        ui_component: date_picker
+    
+    relationships:
+      - name: landlord
+        target_entity: user
+        type: many_to_one
+        display_name: Property Owner
+        description: Property owner/landlord
+        required: true
+        show_in_forms: true
+        
+      - name: tenants
+        target_entity: tenant
+        type: one_to_many
+        display_name: Current Tenants
+        description: Current tenants renting this property
+        back_populates: property
+        
+      - name: maintenance_requests
+        target_entity: maintenance_request
+        type: one_to_many
+        display_name: Maintenance Requests
+        description: Maintenance requests for this property
+        back_populates: property
+        
+      - name: rent_payments
+        target_entity: rent_payment
+        type: one_to_many
+        display_name: Rent Payments
+        description: Rent payment history for this property
+        back_populates: property
+    
+    business_rules:
+      - name: price_validation
+        description: Ensure property price is reasonable
+        condition: "price > 1000 and price < 10000000"
+        error_message: Property price must be between $1,000 and $10,000,000
+        enabled: true
+        priority: 100
+        
+      - name: availability_date_validation
+        description: Availability date cannot be in the past
+        condition: "availability_date >= today"
+        error_message: Availability date cannot be in the past
+        enabled: true
+        priority: 90
+    
+    default_sort_field: listing_date
+    default_sort_order: desc
+    items_per_page: 25
+    
+    permissions:
+      create: [user, manager, admin]
+      read: [user, manager, admin]
+      update: [manager, admin]
+      delete: [admin]
+
+  tenant:
+    name: tenant
+    display_name: Tenant
+    display_name_plural: Tenants
+    description: Property tenant information
+    table_name: tenants
+    inherits_from: user
+    icon: 👤
+    color: blue
+    
+    fields:
+      - name: lease_start_date
+        type: date
+        display_name: Lease Start Date
+        description: Date when lease begins
+        required: true
+        filterable: true
+        sortable: true
+        ui_component: date_picker
+        
+      - name: lease_end_date
+        type: date
+        display_name: Lease End Date
+        description: Date when lease ends
+        required: true
+        filterable: true
+        sortable: true
+        ui_component: date_picker
+        validations:
+          - rule: after_lease_start
+            message: Lease end date must be after start date
+        
+      - name: rent_amount
+        type: decimal
+        display_name: Monthly Rent
+        description: Monthly rent amount
+        required: true
+        min_value: 0
+        validations:
+          - rule: positive
+            message: Rent amount must be positive
+        ui_component: number_input
+        ui_config:
+          prefix: $
+          thousand_separator: true
+        
+      - name: deposit_amount
+        type: decimal
+        display_name: Security Deposit
+        description: Security deposit amount
+        min_value: 0
+        ui_component: number_input
+        ui_config:
+          prefix: $
+          thousand_separator: true
+        
+      - name: lease_status
+        type: enum
+        display_name: Lease Status
+        required: true
+        choices:
+          - active
+          - expired
+          - terminated
+          - pending
+        default: active
+        filterable: true
+        ui_component: select
+        
+      - name: emergency_contact_name
+        type: string
+        display_name: Emergency Contact Name
+        max_length: 200
+        
+      - name: emergency_contact_phone
+        type: phone
+        display_name: Emergency Contact Phone
+        validations:
+          - rule: phone_format
+            message: Please enter a valid phone number
+    
+    relationships:
+      - name: property
+        target_entity: property
+        type: many_to_one
+        display_name: Rented Property
+        description: Property being rented by this tenant
+        required: true
+        foreign_key: property_id
+        back_populates: tenants
+        
+      - name: rent_payments
+        target_entity: rent_payment
+        type: one_to_many
+        display_name: Rent Payments
+        description: Rent payments made by this tenant
+        back_populates: tenant
+    
+    business_rules:
+      - name: lease_date_validation
+        description: Lease end date must be after start date
+        condition: "lease_end_date > lease_start_date"
+        error_message: Lease end date must be after start date
+        enabled: true
+        priority: 100
+    
+    default_sort_field: lease_start_date
+    default_sort_order: desc
+    items_per_page: 20
+
+  maintenance_request:
+    name: maintenance_request
+    display_name: Maintenance Request
+    display_name_plural: Maintenance Requests
+    description: Property maintenance request tracking
+    table_name: maintenance_requests
+    icon: 🔧
+    color: orange
+    
+    fields:
+      - name: title
+        type: string
+        display_name: Request Title
+        description: Brief title describing the issue
+        required: true
+        max_length: 200
+        searchable: true
+        
+      - name: description
+        type: text
+        display_name: Description
+        description: Detailed description of the maintenance issue
+        required: true
+        max_length: 1000
+        searchable: true
+        ui_component: textarea
+        
+      - name: category
+        type: enum
+        display_name: Category
+        required: true
+        choices:
+          - plumbing
+          - electrical
+          - hvac
+          - appliance
+          - structural
+          - cosmetic
+          - emergency
+          - other
+        filterable: true
+        ui_component: select
+        
+      - name: priority
+        type: enum
+        display_name: Priority
+        required: true
+        choices:
+          - low
+          - medium
+          - high
+          - emergency
+        default: medium
+        filterable: true
+        ui_component: select
+        ui_config:
+          color_map:
+            low: green
+            medium: yellow
+            high: orange
+            emergency: red
+        
+      - name: status
+        type: enum
+        display_name: Status
+        required: true
+        choices:
+          - submitted
+          - in_progress
+          - completed
+          - cancelled
+        default: submitted
+        filterable: true
+        ui_component: select
+        
+      - name: requested_date
+        type: datetime
+        display_name: Requested Date
+        description: Date and time request was submitted
+        required: true
+        default: now
+        sortable: true
+        filterable: true
+        
+      - name: scheduled_date
+        type: datetime
+        display_name: Scheduled Date
+        description: Scheduled maintenance date and time
+        filterable: true
+        ui_component: date_picker
+        
+      - name: completed_date
+        type: datetime
+        display_name: Completed Date
+        description: Date and time maintenance was completed
+        filterable: true
+        
+      - name: estimated_cost
+        type: decimal
+        display_name: Estimated Cost
+        min_value: 0
+        ui_component: number_input
+        ui_config:
+          prefix: $
+          thousand_separator: true
+        
+      - name: actual_cost
+        type: decimal
+        display_name: Actual Cost
+        min_value: 0
+        ui_component: number_input
+        ui_config:
+          prefix: $
+          thousand_separator: true
+    
+    relationships:
+      - name: property
+        target_entity: property
+        type: many_to_one
+        display_name: Property
+        description: Property requiring maintenance
+        required: true
+        foreign_key: property_id
+        back_populates: maintenance_requests
+        
+      - name: assigned_to
+        target_entity: user
+        type: many_to_one
+        display_name: Assigned To
+        description: Staff member assigned to handle request
+        foreign_key: assigned_to_id
+    
+    business_rules:
+      - name: emergency_priority_validation
+        description: Emergency requests must have emergency priority
+        condition: "category != 'emergency' or priority == 'emergency'"
+        error_message: Emergency category requests must have emergency priority
+        enabled: true
+        priority: 100
+    
+    default_sort_field: requested_date
+    default_sort_order: desc
+    items_per_page: 20
+
+  rent_payment:
+    name: rent_payment
+    display_name: Rent Payment
+    display_name_plural: Rent Payments
+    description: Rent payment tracking
+    table_name: rent_payments
+    icon: 💰
+    color: green
+    
+    fields:
+      - name: amount
+        type: decimal
+        display_name: Payment Amount
+        description: Amount of rent payment
+        required: true
+        min_value: 0
+        validations:
+          - rule: positive
+            message: Payment amount must be positive
+        ui_component: number_input
+        ui_config:
+          prefix: $
+          thousand_separator: true
+        
+      - name: payment_date
+        type: date
+        display_name: Payment Date
+        description: Date payment was made
+        required: true
+        sortable: true
+        filterable: true
+        ui_component: date_picker
+        
+      - name: due_date
+        type: date
+        display_name: Due Date
+        description: Date payment was due
+        required: true
+        sortable: true
+        filterable: true
+        ui_component: date_picker
+        
+      - name: payment_method
+        type: enum
+        display_name: Payment Method
+        required: true
+        choices:
+          - cash
+          - check
+          - bank_transfer
+          - credit_card
+          - online
+        filterable: true
+        ui_component: select
+        
+      - name: payment_status
+        type: enum
+        display_name: Status
+        required: true
+        choices:
+          - pending
+          - paid
+          - late
+          - partial
+          - failed
+        default: pending
+        filterable: true
+        ui_component: select
+        
+      - name: notes
+        type: text
+        display_name: Notes
+        description: Additional payment notes
+        max_length: 500
+        ui_component: textarea
+        show_in_list: false
+    
+    relationships:
+      - name: property
+        target_entity: property
+        type: many_to_one
+        display_name: Property
+        required: true
+        foreign_key: property_id
+        back_populates: rent_payments
+        
+      - name: tenant
+        target_entity: tenant
+        type: many_to_one
+        display_name: Tenant
+        required: true
+        foreign_key: tenant_id
+        back_populates: rent_payments
+    
+    default_sort_field: payment_date
+    default_sort_order: desc
+    items_per_page: 25
+
+  # User entity for property ownership/management relationships
+  user:
+    name: user
+    display_name: User
+    description: System users including property owners, managers, and tenants
+    fields:
+      - name: username
+        type: string
+        display_name: Username
+        required: true
+        unique: true
+        ui_component: input
+      - name: email
+        type: email
+        display_name: Email
+        required: true
+        unique: true
+        ui_component: input
+        validations:
+          - rule: email_format
+            message: Please enter a valid email address
+      - name: first_name
+        type: string
+        display_name: First Name
+        required: true
+        ui_component: input
+      - name: last_name
+        type: string
+        display_name: Last Name
+        required: true
+        ui_component: input
+      - name: phone
+        type: phone
+        display_name: Phone Number
+        ui_component: input
+        validations:
+          - rule: phone_format
+            message: Please enter a valid phone number
+      - name: role
+        type: string
+        display_name: Role
+        required: true
+        ui_component: select
+        options:
+          - value: admin
+            label: Administrator
+          - value: manager
+            label: Property Manager
+          - value: owner
+            label: Property Owner
+          - value: tenant
+            label: Tenant
+    list_display: [username, email, first_name, last_name, role]
+    search_fields: [username, email, first_name, last_name]
+    filter_fields: [role]
+    default_sort_field: username
+
+navigation:
+  primary_menu:
+    - key: dashboard
+      label: Dashboard
+      icon: 📊
+      route: /dashboard
+      order: 1
+      permissions: [user, manager, admin]
+      
+    - key: properties
+      label: Properties
+      icon: 🏠
+      route: /properties
+      order: 2
+      permissions: [user, manager, admin]
+      
+    - key: tenants
+      label: Tenants
+      icon: 👥
+      route: /tenants
+      order: 3
+      permissions: [manager, admin]
+      
+    - key: maintenance
+      label: Maintenance
+      icon: 🔧
+      route: /maintenance
+      order: 4
+      permissions: [user, manager, admin]
+      
+    - key: payments
+      label: Payments
+      icon: 💰
+      route: /payments
+      order: 5
+      permissions: [manager, admin]
+
+  secondary_menu:
+    - key: reports
+      label: Reports
+      icon: 📈
+      route: /reports
+      order: 1
+      permissions: [manager, admin]
+      
+    - key: settings
+      label: Settings
+      icon: ⚙️
+      route: /settings
+      order: 2
+      permissions: [admin]
+
+dashboard:
+  title: Property Management Dashboard
+  
+  metrics:
+    - name: total_properties
+      label: Total Properties
+      description: Total number of properties in the system
+      entity: property
+      calculation: count
+      icon: 🏠
+      color: blue
+      
+    - name: occupied_properties
+      label: Occupied Properties
+      entity: property
+      calculation: count
+      condition: status = 'rented'
+      icon: ✅
+      color: green
+      
+    - name: available_properties
+      label: Available Properties
+      entity: property
+      calculation: count
+      condition: status = 'available'
+      icon: 🔄
+      color: orange
+      
+    - name: monthly_revenue
+      label: Monthly Revenue
+      entity: rent_payment
+      calculation: sum
+      field: amount
+      condition: payment_date >= first_day_of_month AND payment_status = 'paid'
+      period: this_month
+      icon: 💰
+      color: green
+      format_type: currency
+      
+    - name: pending_maintenance
+      label: Pending Maintenance
+      entity: maintenance_request
+      calculation: count
+      condition: status IN ('submitted', 'in_progress')
+      icon: 🔧
+      color: red
+      
+    - name: overdue_payments
+      label: Overdue Payments
+      entity: rent_payment
+      calculation: count
+      condition: due_date < today AND payment_status != 'paid'
+      icon: ⚠️
+      color: red
+
+  charts:
+    - name: occupancy_rate
+      title: Occupancy Rate
+      type: gauge
+      entity: property
+      calculation: count
+      condition: status = 'rented'
+      width: 6
+      height: 300
+      
+    - name: maintenance_by_category
+      title: Maintenance Requests by Category
+      type: pie
+      entity: maintenance_request
+      group_by: category
+      calculation: count
+      time_period: last_30_days
+      width: 6
+      height: 300
+      
+    - name: monthly_revenue_trend
+      title: Monthly Revenue Trend
+      type: line
+      entity: rent_payment
+      x_axis: payment_date
+      y_axis: amount
+      calculation: sum
+      condition: payment_status = 'paid'
+      time_period: last_12_months
+      width: 12
+      height: 400
+
+features:
+  multi_tenant:
+    name: multi_tenant
+    enabled: true
+    description: Multi-tenant support for property management companies
+    
+  automated_reminders:
+    name: automated_reminders
+    enabled: true
+    description: Automated rent and maintenance reminders
+    parameters:
+      rent_reminder_days: 5
+      maintenance_reminder_days: 3
+      
+  online_payments:
+    name: online_payments
+    enabled: false
+    description: Online payment processing integration
+    parameters:
+      payment_gateway: stripe
+      
+  document_management:
+    name: document_management
+    enabled: true
+    description: Document storage and management for leases and contracts
+
+api:
+  prefix: /api/v1
+  pagination:
+    default_size: 20
+    max_size: 100
+  rate_limiting:
+    enabled: true
+    requests_per_minute: 60
+
+custom_config:
+  property_images:
+    max_images_per_property: 10
+    allowed_formats: [jpg, jpeg, png, webp]
+    max_image_size: 5242880  # 5MB
+    
+  lease_defaults:
+    default_lease_term_months: 12
+    security_deposit_multiplier: 1.5
+    
+  maintenance_sla:
+    emergency_response_hours: 2
+    high_priority_response_hours: 24
+    medium_priority_response_days: 3
+    low_priority_response_days: 7

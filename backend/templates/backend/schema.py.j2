@@ -1,0 +1,175 @@
+"""
+{{ entity.name }} Pydantic Schemas
+Generated on: {{ today() }}
+Domain: {{ domain.name }}
+"""
+
+from datetime import datetime, date, time
+from typing import Optional, List, Dict, Any
+from decimal import Decimal
+import uuid
+{% if entity.enums %}
+from enum import Enum
+{% endif %}
+
+from pydantic import BaseModel, Field, ConfigDict, validator, field_validator
+from pydantic.types import UUID4
+
+
+{% if entity.enums %}
+# Enum definitions
+{% for enum_field in entity.enums %}
+class {{ enum_field.name | camel_case }}Enum(str, Enum):
+    """{{ enum_field.description or enum_field.name }} enumeration."""
+    {% for option in enum_field.options %}
+    {{ option.value | upper }} = "{{ option.value }}"
+    {% endfor %}
+
+
+{% endfor %}
+{% endif %}
+# Base schema (shared fields)
+class {{ entity.name | camel_case }}Base(BaseModel):
+    """Base schema for {{ entity.name | camel_case }} with common fields."""
+    
+    {% for field in entity.fields %}
+    {% if field.type == 'enum' %}
+    {{ field.name }}: {% if not field.required %}Optional[{% endif %}{{ field.name | camel_case }}Enum{% if not field.required %}]{% endif %}{% if field.default %} = {{ field.name | camel_case }}Enum.{{ field.default | upper }}{% elif not field.required %} = None{% endif %}
+    {% else %}
+    {{ field.name }}: {% if not field.required %}Optional[{% endif %}{{ field.type | python_type }}{% if not field.required %}]{% endif %}{% if field.default %} = {{ field.default }}{% elif not field.required %} = None{% endif %}
+    {% endif %}
+    {% if field.description %}
+    # {{ field.description }}
+    {% endif %}
+    {% endfor %}
+    
+    model_config = ConfigDict(
+        from_attributes=True,
+        validate_assignment=True,
+        arbitrary_types_allowed=True,
+        json_encoders={
+            datetime: lambda v: v.isoformat(),
+            date: lambda v: v.isoformat(),
+            time: lambda v: v.isoformat(),
+            Decimal: lambda v: float(v),
+        }
+    )
+    
+    {% if entity.validations %}
+    # Field validators
+    {% for validation in entity.validations %}
+    {% if validation.type == 'email' %}
+    @field_validator('{{ validation.field }}')
+    @classmethod
+    def validate_{{ validation.field }}(cls, v):
+        """Validate email format."""
+        if v and '@' not in v:
+            raise ValueError('Invalid email format')
+        return v
+    
+    {% elif validation.type == 'phone' %}
+    @field_validator('{{ validation.field }}')
+    @classmethod
+    def validate_{{ validation.field }}(cls, v):
+        """Validate phone number format."""
+        if v and not v.replace('+', '').replace('-', '').replace(' ', '').replace('(', '').replace(')', '').isdigit():
+            raise ValueError('Invalid phone number format')
+        return v
+    
+    {% elif validation.type == 'range' %}
+    @field_validator('{{ validation.field }}')
+    @classmethod
+    def validate_{{ validation.field }}_range(cls, v):
+        """Validate {{ validation.field }} is within range."""
+        if v is not None:
+            {% if validation.min %}
+            if v < {{ validation.min }}:
+                raise ValueError('{{ validation.field }} must be at least {{ validation.min }}')
+            {% endif %}
+            {% if validation.max %}
+            if v > {{ validation.max }}:
+                raise ValueError('{{ validation.field }} must be at most {{ validation.max }}')
+            {% endif %}
+        return v
+    
+    {% endif %}
+    {% endfor %}
+    {% endif %}
+
+
+# Schema for creating {{ entity.name | camel_case }}
+class {{ entity.name | camel_case }}Create({{ entity.name | camel_case }}Base):
+    """Schema for creating a new {{ entity.name | camel_case }}."""
+    
+    {% if entity.required_on_create %}
+    # Override fields that are required on creation
+    {% for field_name in entity.required_on_create %}
+    {{ field_name }}: {{ entity.fields | selectattr('name', 'equalto', field_name) | first | attr('type') | python_type }}
+    {% endfor %}
+    {% endif %}
+    pass
+
+
+# Schema for updating {{ entity.name | camel_case }}
+class {{ entity.name | camel_case }}Update(BaseModel):
+    """Schema for updating an existing {{ entity.name | camel_case }}."""
+    
+    {% for field in entity.fields %}
+    {% if field.updatable %}
+    {% if field.type == 'enum' %}
+    {{ field.name }}: Optional[{{ field.name | camel_case }}Enum] = None
+    {% else %}
+    {{ field.name }}: Optional[{{ field.type | python_type }}] = None
+    {% endif %}
+    {% endif %}
+    {% endfor %}
+    
+    model_config = ConfigDict(
+        from_attributes=True,
+        validate_assignment=True
+    )
+
+
+# Schema for {{ entity.name | camel_case }} response (includes ID and timestamps)
+class {{ entity.name | camel_case }}Response({{ entity.name | camel_case }}Base):
+    """Schema for {{ entity.name | camel_case }} response with ID and timestamps."""
+    
+    id: UUID4
+    created_at: datetime
+    updated_at: datetime
+    
+    {% if entity.relationships %}
+    # Optional relationship fields (for expansion)
+    {% for rel in entity.relationships %}
+    {% if rel.type == 'many_to_one' %}
+    {{ rel.name }}: Optional["{{ rel.target | camel_case }}Response"] = None
+    {% elif rel.type == 'one_to_many' %}
+    {{ rel.name }}: Optional[List["{{ rel.target | camel_case }}Response"]] = None
+    {% elif rel.type == 'one_to_one' %}
+    {{ rel.name }}: Optional["{{ rel.target | camel_case }}Response"] = None
+    {% elif rel.type == 'many_to_many' %}
+    {{ rel.name }}: Optional[List["{{ rel.target | camel_case }}Response"]] = None
+    {% endif %}
+    {% endfor %}
+    {% endif %}
+
+
+# Schema for listing {{ entity.name | camel_case | plural }}
+class {{ entity.name | camel_case }}List(BaseModel):
+    """Schema for paginated list of {{ entity.name | camel_case | plural }}."""
+    
+    items: List[{{ entity.name | camel_case }}Response]
+    total: int
+    page: int = 1
+    size: int = 20
+    pages: int
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
+{% if entity.relationships %}
+# Update forward references for relationships
+{% for rel in entity.relationships %}
+{{ rel.target | camel_case }}Response.model_rebuild()
+{% endfor %}
+{% endif %}

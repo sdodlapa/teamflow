@@ -1,0 +1,1004 @@
+domain:
+  name: healthcare
+  title: MedFlow
+  description: Healthcare management system for clinics and small hospitals
+  version: 1.1.0
+  logo: 🏥
+  color_scheme: teal
+  theme: medical
+  domain_type: healthcare
+  category: medical
+  tags:
+    - healthcare
+    - medical
+    - patients
+    - appointments
+    - clinic
+  author: TeamFlow Templates
+  license: HIPAA-Compliant
+
+entities:
+  patient:
+    name: patient
+    display_name: Patient
+    display_name_plural: Patients
+    description: Patient information and medical records
+    table_name: patients
+    icon: 👤
+    color: blue
+    
+    fields:
+      - name: medical_record_number
+        type: string
+        display_name: Medical Record Number
+        description: Unique patient identifier
+        required: true
+        unique: true
+        max_length: 20
+        indexed: true
+        searchable: true
+        
+      - name: first_name
+        type: string
+        display_name: First Name
+        required: true
+        max_length: 100
+        searchable: true
+        
+      - name: last_name
+        type: string
+        display_name: Last Name
+        required: true
+        max_length: 100
+        searchable: true
+        
+      - name: date_of_birth
+        type: date
+        display_name: Date of Birth
+        required: true
+        filterable: true
+        ui_component: date_picker
+        
+      - name: gender
+        type: enum
+        display_name: Gender
+        required: true
+        choices:
+          - male
+          - female
+          - other
+          - prefer_not_to_say
+        filterable: true
+        ui_component: select
+        
+      - name: phone
+        type: phone
+        display_name: Phone Number
+        required: true
+        validations:
+          - rule: phone_format
+            message: Please enter a valid phone number
+        
+      - name: email
+        type: email
+        display_name: Email Address
+        validations:
+          - rule: email_format
+            message: Please enter a valid email address
+        searchable: true
+        
+      - name: address
+        type: text
+        display_name: Home Address
+        required: true
+        max_length: 500
+        ui_component: textarea
+        
+      - name: emergency_contact_name
+        type: string
+        display_name: Emergency Contact Name
+        required: true
+        max_length: 200
+        
+      - name: emergency_contact_phone
+        type: phone
+        display_name: Emergency Contact Phone
+        required: true
+        validations:
+          - rule: phone_format
+            message: Please enter a valid phone number
+        
+      - name: emergency_contact_relationship
+        type: string
+        display_name: Emergency Contact Relationship
+        required: true
+        max_length: 100
+        
+      - name: insurance_provider
+        type: string
+        display_name: Insurance Provider
+        max_length: 200
+        
+      - name: insurance_policy_number
+        type: string
+        display_name: Insurance Policy Number
+        max_length: 100
+        
+      - name: blood_type
+        type: enum
+        display_name: Blood Type
+        choices:
+          - "A+"
+          - "A-"
+          - "B+"
+          - "B-"
+          - "AB+"
+          - "AB-"
+          - "O+"
+          - "O-"
+          - unknown
+        ui_component: select
+        
+      - name: allergies
+        type: text
+        display_name: Known Allergies
+        description: List of known allergies
+        max_length: 1000
+        ui_component: textarea
+        show_in_list: false
+        
+      - name: medical_conditions
+        type: text
+        display_name: Medical Conditions
+        description: Current medical conditions
+        max_length: 1000
+        ui_component: textarea
+        show_in_list: false
+        
+      - name: medications
+        type: text
+        display_name: Current Medications
+        description: List of current medications
+        max_length: 1000
+        ui_component: textarea
+        show_in_list: false
+        
+      - name: status
+        type: enum
+        display_name: Patient Status
+        required: true
+        choices:
+          - active
+          - inactive
+          - deceased
+        default: active
+        filterable: true
+        ui_component: select
+        
+      - name: registration_date
+        type: date
+        display_name: Registration Date
+        required: true
+        default: today
+        sortable: true
+        filterable: true
+    
+    relationships:
+      - name: appointments
+        target_entity: appointment
+        type: one_to_many
+        display_name: Appointments
+        back_populates: patient
+        
+      - name: medical_records
+        target_entity: medical_record
+        type: one_to_many
+        display_name: Medical Records
+        back_populates: patient
+        
+      - name: prescriptions
+        target_entity: prescription
+        type: one_to_many
+        display_name: Prescriptions
+        back_populates: patient
+    
+    business_rules:
+      - name: age_validation
+        description: Patient must be born before today
+        condition: "date_of_birth < today"
+        error_message: Date of birth cannot be in the future
+        enabled: true
+        priority: 100
+    
+    default_sort_field: last_name
+    default_sort_order: asc
+    items_per_page: 25
+    
+    permissions:
+      create: [manager, admin]
+      read: [user, manager, admin]
+      update: [manager, admin]
+      delete: [admin]
+
+  doctor:
+    name: doctor
+    display_name: Doctor
+    display_name_plural: Doctors
+    description: Medical doctor information
+    table_name: doctors
+    inherits_from: user
+    icon: 👨‍⚕️
+    color: green
+    
+    fields:
+      - name: license_number
+        type: string
+        display_name: Medical License Number
+        required: true
+        unique: true
+        max_length: 50
+        indexed: true
+        
+      - name: specialization
+        type: enum
+        display_name: Specialization
+        required: true
+        choices:
+          - general_medicine
+          - cardiology
+          - dermatology
+          - endocrinology
+          - gastroenterology
+          - neurology
+          - orthopedics
+          - pediatrics
+          - psychiatry
+          - radiology
+          - surgery
+          - other
+        filterable: true
+        ui_component: select
+        
+      - name: years_of_experience
+        type: integer
+        display_name: Years of Experience
+        min_value: 0
+        max_value: 60
+        sortable: true
+        ui_component: number_input
+        
+      - name: education
+        type: text
+        display_name: Education Background
+        max_length: 1000
+        ui_component: textarea
+        show_in_list: false
+        
+      - name: certifications
+        type: text
+        display_name: Certifications
+        max_length: 1000
+        ui_component: textarea
+        show_in_list: false
+        
+      - name: consultation_fee
+        type: decimal
+        display_name: Consultation Fee
+        min_value: 0
+        ui_component: number_input
+        ui_config:
+          prefix: $
+          thousand_separator: true
+        
+      - name: working_hours
+        type: json
+        display_name: Working Hours
+        description: Weekly working schedule
+        ui_component: json
+        show_in_list: false
+        
+      - name: is_available
+        type: boolean
+        display_name: Currently Available
+        default: true
+        filterable: true
+        ui_component: checkbox
+    
+    relationships:
+      - name: appointments
+        target_entity: appointment
+        type: one_to_many
+        display_name: Appointments
+        back_populates: doctor
+        
+      - name: medical_records
+        target_entity: medical_record
+        type: one_to_many
+        display_name: Medical Records
+        back_populates: doctor
+        
+      - name: prescriptions
+        target_entity: prescription
+        type: one_to_many
+        display_name: Prescriptions
+        back_populates: doctor
+    
+    default_sort_field: last_name
+    default_sort_order: asc
+    items_per_page: 20
+
+  appointment:
+    name: appointment
+    display_name: Appointment
+    display_name_plural: Appointments
+    description: Patient appointment scheduling
+    table_name: appointments
+    icon: 📅
+    color: purple
+    
+    fields:
+      - name: appointment_date
+        type: datetime
+        display_name: Appointment Date & Time
+        required: true
+        sortable: true
+        filterable: true
+        ui_component: date_picker
+        ui_config:
+          include_time: true
+        
+      - name: duration_minutes
+        type: integer
+        display_name: Duration (Minutes)
+        required: true
+        default: 30
+        min_value: 15
+        max_value: 240
+        ui_component: select
+        ui_config:
+          options: [15, 30, 45, 60, 90, 120]
+        
+      - name: appointment_type
+        type: enum
+        display_name: Appointment Type
+        required: true
+        choices:
+          - consultation
+          - follow_up
+          - check_up
+          - procedure
+          - emergency
+          - vaccination
+        filterable: true
+        ui_component: select
+        
+      - name: status
+        type: enum
+        display_name: Status
+        required: true
+        choices:
+          - scheduled
+          - confirmed
+          - in_progress
+          - completed
+          - cancelled
+          - no_show
+        default: scheduled
+        filterable: true
+        ui_component: select
+        ui_config:
+          color_map:
+            scheduled: blue
+            confirmed: green
+            in_progress: orange
+            completed: gray
+            cancelled: red
+            no_show: red
+        
+      - name: reason
+        type: string
+        display_name: Reason for Visit
+        required: true
+        max_length: 500
+        searchable: true
+        ui_component: textarea
+        
+      - name: symptoms
+        type: text
+        display_name: Symptoms
+        description: Patient-reported symptoms
+        max_length: 1000
+        ui_component: textarea
+        show_in_list: false
+        
+      - name: notes
+        type: text
+        display_name: Appointment Notes
+        max_length: 2000
+        ui_component: textarea
+        show_in_list: false
+        
+      - name: fee
+        type: decimal
+        display_name: Appointment Fee
+        min_value: 0
+        ui_component: number_input
+        ui_config:
+          prefix: $
+          precision: 2
+        
+      - name: payment_status
+        type: enum
+        display_name: Payment Status
+        required: true
+        choices:
+          - pending
+          - paid
+          - insurance_pending
+          - partially_paid
+          - waived
+        default: pending
+        filterable: true
+        ui_component: select
+        
+      - name: reminder_sent
+        type: boolean
+        display_name: Reminder Sent
+        description: Whether appointment reminder was sent
+        default: false
+        ui_component: checkbox
+    
+    relationships:
+      - name: patient
+        target_entity: patient
+        type: many_to_one
+        display_name: Patient
+        required: true
+        foreign_key: patient_id
+        back_populates: appointments
+        
+      - name: doctor
+        target_entity: doctor
+        type: many_to_one
+        display_name: Doctor
+        required: true
+        foreign_key: doctor_id
+        back_populates: appointments
+        
+      - name: medical_record
+        target_entity: medical_record
+        type: one_to_one
+        display_name: Medical Record
+        description: Medical record created from this appointment
+        back_populates: appointment
+    
+    business_rules:
+      - name: future_appointment
+        description: Appointment date must be in the future
+        condition: "appointment_date > now"
+        error_message: Appointment cannot be scheduled in the past
+        enabled: true
+        priority: 100
+        
+      - name: doctor_availability
+        description: Doctor must be available at appointment time
+        condition: "doctor.is_available == true"
+        error_message: Selected doctor is not available
+        enabled: true
+        priority: 90
+    
+    default_sort_field: appointment_date
+    default_sort_order: asc
+    items_per_page: 30
+
+  medical_record:
+    name: medical_record
+    display_name: Medical Record
+    display_name_plural: Medical Records
+    description: Patient medical record and visit notes
+    table_name: medical_records
+    icon: 📋
+    color: teal
+    
+    fields:
+      - name: visit_date
+        type: datetime
+        display_name: Visit Date
+        required: true
+        default: now
+        sortable: true
+        filterable: true
+        
+      - name: chief_complaint
+        type: string
+        display_name: Chief Complaint
+        required: true
+        max_length: 500
+        searchable: true
+        ui_component: textarea
+        
+      - name: history_of_present_illness
+        type: text
+        display_name: History of Present Illness
+        max_length: 2000
+        ui_component: textarea
+        
+      - name: physical_examination
+        type: text
+        display_name: Physical Examination
+        max_length: 2000
+        ui_component: textarea
+        
+      - name: vital_signs
+        type: json
+        display_name: Vital Signs
+        description: Blood pressure, temperature, pulse, etc.
+        ui_component: json
+        ui_config:
+          schema:
+            blood_pressure_systolic: number
+            blood_pressure_diastolic: number
+            heart_rate: number
+            temperature: number
+            respiratory_rate: number
+            oxygen_saturation: number
+            weight: number
+            height: number
+        
+      - name: diagnosis
+        type: text
+        display_name: Diagnosis
+        required: true
+        max_length: 1000
+        searchable: true
+        ui_component: textarea
+        
+      - name: icd_10_codes
+        type: string
+        display_name: ICD-10 Codes
+        description: International Classification of Diseases codes
+        max_length: 500
+        
+      - name: treatment_plan
+        type: text
+        display_name: Treatment Plan
+        max_length: 2000
+        ui_component: textarea
+        
+      - name: medications_prescribed
+        type: text
+        display_name: Medications Prescribed
+        max_length: 1000
+        ui_component: textarea
+        
+      - name: follow_up_instructions
+        type: text
+        display_name: Follow-up Instructions
+        max_length: 1000
+        ui_component: textarea
+        
+      - name: next_visit_date
+        type: date
+        display_name: Next Visit Date
+        filterable: true
+        ui_component: date_picker
+        
+      - name: record_status
+        type: enum
+        display_name: Record Status
+        required: true
+        choices:
+          - draft
+          - complete
+          - reviewed
+          - archived
+        default: draft
+        filterable: true
+        ui_component: select
+    
+    relationships:
+      - name: patient
+        target_entity: patient
+        type: many_to_one
+        display_name: Patient
+        required: true
+        foreign_key: patient_id
+        back_populates: medical_records
+        
+      - name: doctor
+        target_entity: doctor
+        type: many_to_one
+        display_name: Attending Doctor
+        required: true
+        foreign_key: doctor_id
+        back_populates: medical_records
+        
+      - name: appointment
+        target_entity: appointment
+        type: one_to_one
+        display_name: Related Appointment
+        foreign_key: appointment_id
+        back_populates: medical_record
+    
+    default_sort_field: visit_date
+    default_sort_order: desc
+    items_per_page: 20
+    
+    permissions:
+      create: [user, manager, admin]
+      read: [user, manager, admin]
+      update: [user, manager, admin]
+      delete: [admin]
+
+  prescription:
+    name: prescription
+    display_name: Prescription
+    display_name_plural: Prescriptions
+    description: Patient prescription management
+    table_name: prescriptions
+    icon: 💊
+    color: pink
+    
+    fields:
+      - name: prescription_date
+        type: date
+        display_name: Prescription Date
+        required: true
+        default: today
+        sortable: true
+        filterable: true
+        
+      - name: medication_name
+        type: string
+        display_name: Medication Name
+        required: true
+        max_length: 255
+        searchable: true
+        
+      - name: dosage
+        type: string
+        display_name: Dosage
+        required: true
+        max_length: 100
+        
+      - name: frequency
+        type: string
+        display_name: Frequency
+        required: true
+        max_length: 100
+        
+      - name: duration
+        type: string
+        display_name: Duration
+        required: true
+        max_length: 100
+        
+      - name: quantity
+        type: integer
+        display_name: Quantity
+        required: true
+        min_value: 1
+        
+      - name: refills_remaining
+        type: integer
+        display_name: Refills Remaining
+        default: 0
+        min_value: 0
+        max_value: 12
+        
+      - name: instructions
+        type: text
+        display_name: Instructions
+        max_length: 500
+        ui_component: textarea
+        
+      - name: status
+        type: enum
+        display_name: Status
+        required: true
+        choices:
+          - active
+          - completed
+          - cancelled
+          - expired
+        default: active
+        filterable: true
+        ui_component: select
+        
+      - name: pharmacy_name
+        type: string
+        display_name: Pharmacy Name
+        max_length: 255
+        
+      - name: filled_date
+        type: date
+        display_name: Filled Date
+        filterable: true
+        ui_component: date_picker
+        
+      - name: expiration_date
+        type: date
+        display_name: Expiration Date
+        filterable: true
+        ui_component: date_picker
+    
+    relationships:
+      - name: patient
+        target_entity: patient
+        type: many_to_one
+        display_name: Patient
+        required: true
+        foreign_key: patient_id
+        back_populates: prescriptions
+        
+      - name: doctor
+        target_entity: doctor
+        type: many_to_one
+        display_name: Prescribing Doctor
+        required: true
+        foreign_key: doctor_id
+        back_populates: prescriptions
+    
+    business_rules:
+      - name: expiration_validation
+        description: Expiration date must be after prescription date
+        condition: "expiration_date > prescription_date"
+        error_message: Expiration date must be after prescription date
+        enabled: true
+        priority: 100
+    
+    default_sort_field: prescription_date
+    default_sort_order: desc
+    items_per_page: 25
+
+navigation:
+  primary_menu:
+    - key: dashboard
+      label: Dashboard
+      icon: 📊
+      route: /dashboard
+      order: 1
+      permissions: [user, manager, admin]
+      
+    - key: patients
+      label: Patients
+      icon: 👤
+      route: /patients
+      order: 2
+      permissions: [user, manager, admin]
+      
+    - key: appointments
+      label: Appointments
+      icon: 📅
+      route: /appointments
+      order: 3
+      permissions: [user, manager, admin]
+      
+    - key: doctors
+      label: Doctors
+      icon: 👨‍⚕️
+      route: /doctors
+      order: 4
+      permissions: [manager, admin]
+      
+    - key: medical_records
+      label: Medical Records
+      icon: 📋
+      route: /medical-records
+      order: 5
+      permissions: [user, manager, admin]
+      
+    - key: prescriptions
+      label: Prescriptions
+      icon: 💊
+      route: /prescriptions
+      order: 6
+      permissions: [user, manager, admin]
+
+  secondary_menu:
+    - key: reports
+      label: Reports
+      icon: 📈
+      route: /reports
+      order: 1
+      permissions: [manager, admin]
+      
+    - key: billing
+      label: Billing
+      icon: 💰
+      route: /billing
+      order: 2
+      permissions: [manager, admin]
+      
+    - key: settings
+      label: Settings
+      icon: ⚙️
+      route: /settings
+      order: 3
+      permissions: [admin]
+
+dashboard:
+  title: Healthcare Dashboard
+  
+  metrics:
+    - name: total_patients
+      label: Total Patients
+      entity: patient
+      calculation: count
+      condition: status = 'active'
+      icon: 👤
+      color: blue
+      
+    - name: todays_appointments
+      label: Today's Appointments
+      entity: appointment
+      calculation: count
+      condition: appointment_date >= today AND appointment_date < tomorrow
+      icon: 📅
+      color: green
+      
+    - name: pending_appointments
+      label: Pending Appointments
+      entity: appointment
+      calculation: count
+      condition: status = 'scheduled'
+      icon: ⏰
+      color: orange
+      
+    - name: active_doctors
+      label: Active Doctors
+      entity: doctor
+      calculation: count
+      condition: is_available = true
+      icon: 👨‍⚕️
+      color: teal
+      
+    - name: monthly_revenue
+      label: Monthly Revenue
+      entity: appointment
+      calculation: sum
+      field: fee
+      condition: appointment_date >= first_day_of_month AND payment_status = 'paid'
+      period: this_month
+      icon: 💰
+      color: green
+      format_type: currency
+      
+    - name: outstanding_payments
+      label: Outstanding Payments
+      entity: appointment
+      calculation: count
+      condition: payment_status = 'pending'
+      icon: ⚠️
+      color: red
+
+  charts:
+    - name: daily_appointments
+      title: Daily Appointments (Last 30 Days)
+      type: line
+      entity: appointment
+      x_axis: appointment_date
+      calculation: count
+      time_period: last_30_days
+      width: 8
+      height: 300
+      
+    - name: appointment_status
+      title: Appointment Status Distribution
+      type: pie
+      entity: appointment
+      group_by: status
+      calculation: count
+      time_period: this_month
+      width: 4
+      height: 300
+      
+    - name: doctor_appointments
+      title: Appointments by Doctor
+      type: bar
+      entity: appointment
+      group_by: doctor.last_name
+      calculation: count
+      time_period: this_month
+      width: 6
+      height: 300
+      
+    - name: patient_age_distribution
+      title: Patient Age Distribution
+      type: bar
+      entity: patient
+      group_by: age_group
+      calculation: count
+      width: 6
+      height: 300
+
+features:
+  appointment_reminders:
+    name: appointment_reminders
+    enabled: true
+    description: Automated appointment reminder system
+    parameters:
+      reminder_hours: 24
+      reminder_method: email_sms
+      
+  electronic_health_records:
+    name: electronic_health_records
+    enabled: true
+    description: Complete electronic health record management
+    
+  prescription_management:
+    name: prescription_management
+    enabled: true
+    description: Digital prescription management and tracking
+    
+  insurance_verification:
+    name: insurance_verification
+    enabled: false
+    description: Automated insurance verification
+    
+  telemedicine:
+    name: telemedicine
+    enabled: false
+    description: Telemedicine consultation support
+    
+  lab_integration:
+    name: lab_integration
+    enabled: false
+    description: Laboratory results integration
+    
+  billing_integration:
+    name: billing_integration
+    enabled: true
+    description: Integrated billing and payment processing
+
+api:
+  prefix: /api/v1
+  pagination:
+    default_size: 25
+    max_size: 100
+  rate_limiting:
+    enabled: true
+    requests_per_minute: 60
+  hipaa_compliance:
+    enabled: true
+    audit_logging: true
+    encryption: true
+
+custom_config:
+  clinic_settings:
+    clinic_name: "MedFlow Clinic"
+    clinic_address: "123 Medical Center Dr, Health City, HC 12345"
+    clinic_phone: "(555) 123-4567"
+    clinic_email: "info@medflowclinic.com"
+    
+  appointment_settings:
+    default_appointment_duration: 30
+    advance_booking_days: 90
+    same_day_booking_enabled: true
+    appointment_buffer_minutes: 15
+    
+  working_hours:
+    monday: "09:00-17:00"
+    tuesday: "09:00-17:00"
+    wednesday: "09:00-17:00"
+    thursday: "09:00-17:00"
+    friday: "09:00-17:00"
+    saturday: "09:00-13:00"
+    sunday: "closed"
+    
+  prescription_settings:
+    default_prescription_duration: 30
+    max_refills: 6
+    require_doctor_approval: true
+    
+  privacy_settings:
+    hipaa_compliant: true
+    audit_all_access: true
+    patient_portal_enabled: true
+    data_retention_years: 7
+    
+  notification_settings:
+    appointment_reminders: true
+    prescription_expiry_alerts: true
+    follow_up_reminders: true
+    birthday_reminders: false

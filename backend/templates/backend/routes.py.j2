@@ -1,0 +1,240 @@
+"""
+{{ entity.name }} API Routes
+Generated on: {{ today() }}
+Domain: {{ domain.name }}
+"""
+
+from typing import List, Optional
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.database import get_db
+from app.core.security import get_current_user
+from app.models.user import User
+from app.models.{{ entity.name | snake_case }} import {{ entity.name | camel_case }}
+from app.schemas.{{ entity.name | snake_case }} import (
+    {{ entity.name | camel_case }}Create,
+    {{ entity.name | camel_case }}Update,
+    {{ entity.name | camel_case }}Response,
+    {{ entity.name | camel_case }}List
+)
+from app.services.{{ entity.name | snake_case }}_service import {{ entity.name | camel_case }}Service
+
+
+router = APIRouter()
+{{ entity.name | snake_case }}_service = {{ entity.name | camel_case }}Service()
+
+
+@router.get("/", response_model={{ entity.name | camel_case }}List)
+async def list_{{ entity.name | snake_case | plural }}(
+    *,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    skip: int = Query(0, ge=0, description="Number of records to skip"),
+    limit: int = Query(20, ge=1, le=100, description="Number of records to return"),
+    {% if entity.filterable_fields %}
+    # Filterable fields
+    {% for field in entity.filterable_fields %}
+    {% if field.type == 'string' %}
+    {{ field.name }}: Optional[str] = Query(None, description="Filter by {{ field.name }}"),
+    {% elif field.type == 'boolean' %}
+    {{ field.name }}: Optional[bool] = Query(None, description="Filter by {{ field.name }}"),
+    {% elif field.type == 'enum' %}
+    {{ field.name }}: Optional[str] = Query(None, description="Filter by {{ field.name }}"),
+    {% endif %}
+    {% endfor %}
+    {% endif %}
+    search: Optional[str] = Query(None, description="Search term")
+) -> {{ entity.name | camel_case }}List:
+    """
+    List {{ entity.name | snake_case | plural }} with pagination and filtering.
+    
+    {% if entity.permissions and entity.permissions.read %}
+    **Required Permission**: {{ entity.permissions.read }}
+    {% endif %}
+    """
+    # TODO: Add permission checking if needed
+    # if not has_permission(current_user, "{{ entity.name | snake_case }}.read"):
+    #     raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    filters = {}
+    {% if entity.filterable_fields %}
+    {% for field in entity.filterable_fields %}
+    if {{ field.name }} is not None:
+        filters["{{ field.name }}"] = {{ field.name }}
+    {% endfor %}
+    {% endif %}
+    
+    {{ entity.name | snake_case | plural }}, total = await {{ entity.name | snake_case }}_service.list_{{ entity.name | snake_case | plural }}(
+        db=db,
+        skip=skip,
+        limit=limit,
+        filters=filters,
+        search=search
+    )
+    
+    return {{ entity.name | camel_case }}List(
+        items={{ entity.name | snake_case | plural }},
+        total=total,
+        page=skip // limit + 1,
+        size=limit,
+        pages=(total + limit - 1) // limit
+    )
+
+
+@router.post("/", response_model={{ entity.name | camel_case }}Response, status_code=status.HTTP_201_CREATED)
+async def create_{{ entity.name | snake_case }}(
+    *,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    {{ entity.name | snake_case }}_create: {{ entity.name | camel_case }}Create
+) -> {{ entity.name | camel_case }}Response:
+    """
+    Create a new {{ entity.name | snake_case }}.
+    
+    {% if entity.permissions and entity.permissions.create %}
+    **Required Permission**: {{ entity.permissions.create }}
+    {% endif %}
+    """
+    # TODO: Add permission checking if needed
+    # if not has_permission(current_user, "{{ entity.name | snake_case }}.create"):
+    #     raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    {{ entity.name | snake_case }} = await {{ entity.name | snake_case }}_service.create_{{ entity.name | snake_case }}(
+        db=db, 
+        {{ entity.name | snake_case }}_create={{ entity.name | snake_case }}_create,
+        created_by=current_user.id
+    )
+    
+    return {{ entity.name | snake_case }}
+
+
+@router.get("/{%raw%}{{ entity.name | snake_case }}_id}{%endraw%}", response_model={{ entity.name | camel_case }}Response)
+async def get_{{ entity.name | snake_case }}(
+    *,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    {{ entity.name | snake_case }}_id: UUID
+) -> {{ entity.name | camel_case }}Response:
+    """
+    Get a specific {{ entity.name | snake_case }} by ID.
+    
+    {% if entity.permissions and entity.permissions.read %}
+    **Required Permission**: {{ entity.permissions.read }}
+    {% endif %}
+    """
+    # TODO: Add permission checking if needed
+    # if not has_permission(current_user, "{{ entity.name | snake_case }}.read"):
+    #     raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    {{ entity.name | snake_case }} = await {{ entity.name | snake_case }}_service.get_{{ entity.name | snake_case }}(
+        db=db, 
+        {{ entity.name | snake_case }}_id={{ entity.name | snake_case }}_id
+    )
+    
+    if not {{ entity.name | snake_case }}:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="{{ entity.name | camel_case }} not found"
+        )
+    
+    return {{ entity.name | snake_case }}
+
+
+@router.put("/{%raw%}{{ entity.name | snake_case }}_id}{%endraw%}", response_model={{ entity.name | camel_case }}Response)
+async def update_{{ entity.name | snake_case }}(
+    *,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    {{ entity.name | snake_case }}_id: UUID,
+    {{ entity.name | snake_case }}_update: {{ entity.name | camel_case }}Update
+) -> {{ entity.name | camel_case }}Response:
+    """
+    Update a specific {{ entity.name | snake_case }}.
+    
+    {% if entity.permissions and entity.permissions.update %}
+    **Required Permission**: {{ entity.permissions.update }}
+    {% endif %}
+    """
+    # TODO: Add permission checking if needed
+    # if not has_permission(current_user, "{{ entity.name | snake_case }}.update"):
+    #     raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    {{ entity.name | snake_case }} = await {{ entity.name | snake_case }}_service.get_{{ entity.name | snake_case }}(
+        db=db, 
+        {{ entity.name | snake_case }}_id={{ entity.name | snake_case }}_id
+    )
+    
+    if not {{ entity.name | snake_case }}:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="{{ entity.name | camel_case }} not found"
+        )
+    
+    updated_{{ entity.name | snake_case }} = await {{ entity.name | snake_case }}_service.update_{{ entity.name | snake_case }}(
+        db=db,
+        {{ entity.name | snake_case }}={{ entity.name | snake_case }},
+        {{ entity.name | snake_case }}_update={{ entity.name | snake_case }}_update
+    )
+    
+    return updated_{{ entity.name | snake_case }}
+
+
+@router.delete("/{%raw%}{{ entity.name | snake_case }}_id}{%endraw%}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_{{ entity.name | snake_case }}(
+    *,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    {{ entity.name | snake_case }}_id: UUID
+) -> None:
+    """
+    Delete a specific {{ entity.name | snake_case }}.
+    
+    {% if entity.permissions and entity.permissions.delete %}
+    **Required Permission**: {{ entity.permissions.delete }}
+    {% endif %}
+    """
+    # TODO: Add permission checking if needed
+    # if not has_permission(current_user, "{{ entity.name | snake_case }}.delete"):
+    #     raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    {{ entity.name | snake_case }} = await {{ entity.name | snake_case }}_service.get_{{ entity.name | snake_case }}(
+        db=db, 
+        {{ entity.name | snake_case }}_id={{ entity.name | snake_case }}_id
+    )
+    
+    if not {{ entity.name | snake_case }}:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="{{ entity.name | camel_case }} not found"
+        )
+    
+    await {{ entity.name | snake_case }}_service.delete_{{ entity.name | snake_case }}(
+        db=db, 
+        {{ entity.name | snake_case }}={{ entity.name | snake_case }}
+    )
+
+
+{% if entity.custom_endpoints %}
+# Custom endpoints
+{% for endpoint in entity.custom_endpoints %}
+@router.{{ endpoint.method | lower }}("{{ endpoint.path }}")
+async def {{ endpoint.name }}(
+    *,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    {% for param in endpoint.parameters %}
+    {{ param.name }}: {{ param.type | python_type }}{% if not param.required %} = {{ param.default or 'None' }}{% endif %},
+    {% endfor %}
+):
+    """
+    {{ endpoint.description or endpoint.name }}
+    """
+    # TODO: Implement custom endpoint logic
+    pass
+
+
+{% endfor %}
+{% endif %}

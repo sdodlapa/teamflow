@@ -1,0 +1,255 @@
+/**
+ * {{ entity.name }} API Service
+ * Generated on: {{ today() }}
+ * Domain: {{ domain.name }}
+ */
+
+import axios, { AxiosResponse } from 'axios';
+import {
+  {{ entity.name | camel_case }}Create,
+  {{ entity.name | camel_case }}Update,
+  {{ entity.name | camel_case }}Response,
+  {{ entity.name | camel_case }}List,
+  {{ entity.name | camel_case }}ListRequest,
+  {{ entity.name | camel_case }}CreateRequest,
+  {{ entity.name | camel_case }}UpdateRequest,
+  {{ entity.name | camel_case }}DeleteRequest,
+} from '../types/{{ entity.name | snake_case }}.types';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_PREFIX = '{{ domain.api_prefix }}';
+
+// Create axios instance with base configuration
+const apiClient = axios.create({
+  baseURL: `${API_BASE_URL}${API_PREFIX}`,
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Request interceptor to add authentication token
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor for error handling
+apiClient.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    if (error.response?.status === 401) {
+      // Handle unauthorized access
+      localStorage.removeItem('access_token');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+export class {{ entity.name | camel_case }}API {
+  private static readonly endpoint = '/{{ entity.name | snake_case | plural }}';
+
+  /**
+   * List {{ entity.name | snake_case | plural }} with pagination and filtering
+   */
+  static async list(request: {{ entity.name | camel_case }}ListRequest): Promise<{{ entity.name | camel_case }}List> {
+    const params: Record<string, any> = {};
+
+    if (request.skip !== undefined) {
+      params.skip = request.skip;
+    }
+    if (request.limit !== undefined) {
+      params.limit = request.limit;
+    }
+    if (request.filters?.search) {
+      params.search = request.filters.search;
+    }
+    
+    {% if entity.filterable_fields %}
+    // Add filter parameters
+    {% for filter_field in entity.filterable_fields %}
+    if (request.filters?.{{ filter_field.name }}) {
+      params.{{ filter_field.name }} = request.filters.{{ filter_field.name }};
+    }
+    {% endfor %}
+    {% endif %}
+
+    const response: AxiosResponse<{{ entity.name | camel_case }}List> = await apiClient.get(
+      this.endpoint,
+      { params }
+    );
+
+    return response.data;
+  }
+
+  /**
+   * Get a single {{ entity.name | snake_case }} by ID
+   */
+  static async getById(id: string): Promise<{{ entity.name | camel_case }}Response> {
+    const response: AxiosResponse<{{ entity.name | camel_case }}Response> = await apiClient.get(
+      `${this.endpoint}/${id}`
+    );
+
+    return response.data;
+  }
+
+  /**
+   * Create a new {{ entity.name | snake_case }}
+   */
+  static async create(request: {{ entity.name | camel_case }}CreateRequest): Promise<{{ entity.name | camel_case }}Response> {
+    const response: AxiosResponse<{{ entity.name | camel_case }}Response> = await apiClient.post(
+      this.endpoint,
+      request.data
+    );
+
+    return response.data;
+  }
+
+  /**
+   * Update an existing {{ entity.name | snake_case }}
+   */
+  static async update(request: {{ entity.name | camel_case }}UpdateRequest): Promise<{{ entity.name | camel_case }}Response> {
+    const response: AxiosResponse<{{ entity.name | camel_case }}Response> = await apiClient.put(
+      `${this.endpoint}/${request.id}`,
+      request.data
+    );
+
+    return response.data;
+  }
+
+  /**
+   * Delete a {{ entity.name | snake_case }}
+   */
+  static async delete(request: {{ entity.name | camel_case }}DeleteRequest): Promise<void> {
+    await apiClient.delete(`${this.endpoint}/${request.id}`);
+  }
+
+  {% if entity.custom_endpoints %}
+  // Custom endpoints
+  {% for endpoint in entity.custom_endpoints %}
+  /**
+   * {{ endpoint.description or endpoint.name }}
+   */
+  static async {{ endpoint.name }}(
+    {% if endpoint.parameters %}
+    {% for param in endpoint.parameters %}
+    {{ param.name }}: {{ param.type | typescript_type }}{% if not param.required %} | null = null{% endif %},
+    {% endfor %}
+    {% endif %}
+  ): Promise<any> {
+    const params: Record<string, any> = {};
+    {% if endpoint.parameters %}
+    {% for param in endpoint.parameters %}
+    if ({{ param.name }} !== null) {
+      params.{{ param.name }} = {{ param.name }};
+    }
+    {% endfor %}
+    {% endif %}
+
+    const response = await apiClient.{{ endpoint.method | lower }}(
+      `${this.endpoint}{{ endpoint.path }}`{% if endpoint.method | upper in ['GET', 'DELETE'] %},
+      { params }{% else %},
+      params{% endif %}
+    );
+
+    return response.data;
+  }
+
+  {% endfor %}
+  {% endif %}
+
+  {% if entity.bulk_operations %}
+  /**
+   * Bulk create {{ entity.name | snake_case | plural }}
+   */
+  static async bulkCreate(items: {{ entity.name | camel_case }}Create[]): Promise<{{ entity.name | camel_case }}Response[]> {
+    const response: AxiosResponse<{{ entity.name | camel_case }}Response[]> = await apiClient.post(
+      `${this.endpoint}/bulk`,
+      { items }
+    );
+
+    return response.data;
+  }
+
+  /**
+   * Bulk update {{ entity.name | snake_case | plural }}
+   */
+  static async bulkUpdate(updates: Array<{ id: string; data: {{ entity.name | camel_case }}Update }>): Promise<{{ entity.name | camel_case }}Response[]> {
+    const response: AxiosResponse<{{ entity.name | camel_case }}Response[]> = await apiClient.put(
+      `${this.endpoint}/bulk`,
+      { updates }
+    );
+
+    return response.data;
+  }
+
+  /**
+   * Bulk delete {{ entity.name | snake_case | plural }}
+   */
+  static async bulkDelete(ids: string[]): Promise<void> {
+    await apiClient.delete(`${this.endpoint}/bulk`, {
+      data: { ids }
+    });
+  }
+  {% endif %}
+}
+
+// Export individual methods for convenience
+export const {
+  list: list{{ entity.name | camel_case | plural }},
+  getById: get{{ entity.name | camel_case }}ById,
+  create: create{{ entity.name | camel_case }},
+  update: update{{ entity.name | camel_case }},
+  delete: delete{{ entity.name | camel_case }},
+  {% if entity.bulk_operations %}
+  bulkCreate: bulkCreate{{ entity.name | camel_case | plural }},
+  bulkUpdate: bulkUpdate{{ entity.name | camel_case | plural }},
+  bulkDelete: bulkDelete{{ entity.name | camel_case | plural }},
+  {% endif %}
+} = {{ entity.name | camel_case }}API;
+
+// React Query hooks factory
+export const create{{ entity.name | camel_case }}QueryHooks = () => {
+  return {
+    // Query hook for listing {{ entity.name | snake_case | plural }}
+    useList{{ entity.name | camel_case | plural }}: (request: {{ entity.name | camel_case }}ListRequest) => ({
+      queryKey: ['{{ entity.name | snake_case | plural }}', request],
+      queryFn: () => {{ entity.name | camel_case }}API.list(request),
+    }),
+
+    // Query hook for getting a single {{ entity.name | snake_case }}
+    use{{ entity.name | camel_case }}: (id: string, enabled = true) => ({
+      queryKey: ['{{ entity.name | snake_case }}', id],
+      queryFn: () => {{ entity.name | camel_case }}API.getById(id),
+      enabled: enabled && !!id,
+    }),
+
+    // Mutation hooks
+    useCreate{{ entity.name | camel_case }}: () => ({
+      mutationFn: (data: {{ entity.name | camel_case }}Create) => 
+        {{ entity.name | camel_case }}API.create({ data }),
+    }),
+
+    useUpdate{{ entity.name | camel_case }}: () => ({
+      mutationFn: ({ id, data }: { id: string; data: {{ entity.name | camel_case }}Update }) =>
+        {{ entity.name | camel_case }}API.update({ id, data }),
+    }),
+
+    useDelete{{ entity.name | camel_case }}: () => ({
+      mutationFn: (id: string) => {{ entity.name | camel_case }}API.delete({ id }),
+    }),
+  };
+};
+
+export default {{ entity.name | camel_case }}API;

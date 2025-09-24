@@ -1,14 +1,23 @@
-"""Template system API routes."""
+"""Enhanced template system API routes with Pydantic validation."""
 
-from typing import List, Optional
-from fastapi import APIRouter, HTTPException, Depends, Query
+from typing import List, Optional, Dict, Any
+from fastapi import APIRouter, HTTPException, Depends, Query, Body
 from sqlalchemy.ext.asyncio import AsyncSession
+from pydantic import BaseModel as PydanticBaseModel, ValidationError
 
 from app.core.database import get_db
+from app.core.enhanced_domain_config import (
+    get_domain_loader,
+    DomainConfigLoader,
+    DomainConfigManager,
+    DomainConfig,
+    ConfigurationError
+)
+# Keep legacy imports for backward compatibility
 from app.core.template_config import (
-    get_domain_config, 
-    get_available_domains,
-    template_config_loader
+    get_domain_config as legacy_get_domain_config, 
+    get_available_domains as legacy_get_available_domains,
+    template_config_loader as legacy_template_config_loader
 )
 from app.services.universal_service import UniversalAnalyticsService
 from app.models.template import DomainTemplate, DomainInstance, TemplateUsage
@@ -16,19 +25,69 @@ from app.models.base import BaseModel
 
 router = APIRouter()
 
+# Initialize enhanced domain configuration system
+enhanced_config_loader = get_domain_loader("../domain_configs")
+enhanced_config_manager = DomainConfigManager(enhanced_config_loader)
+
+
+# Pydantic models for API responses
+class DomainSummary(PydanticBaseModel):
+    """Summary information about a domain configuration."""
+    name: str
+    title: str
+    description: str
+    domain_type: str
+    version: str
+    logo: str
+    color_scheme: str
+    entity_count: int
+    navigation_items: int
+    features_enabled: int
+
+
+class ValidationResult(PydanticBaseModel):
+    """Domain configuration validation result."""
+    domain: str
+    valid: bool
+    errors: List[str]
+    warnings: List[str] = []
+
+
+class ConfigurationComparison(PydanticBaseModel):
+    """Comparison result between two domain configurations."""
+    domain1: str
+    domain2: str
+    entities_count: Dict[str, int]
+    common_entities: List[str]
+    unique_entities: Dict[str, List[str]]
+    differences: Dict[str, Any] = {}
+
 
 @router.get("/domain-config")
 async def get_current_domain_config():
-    """Get the current domain configuration."""
-    # For now, return the default TeamFlow configuration
-    config = get_domain_config("teamflow_original")
+    """Get the current domain configuration (legacy endpoint)."""
+    # Try enhanced config first, fall back to legacy
+    try:
+        config = enhanced_config_loader.load_domain_config("teamflow_original")
+        if config:
+            return {
+                "name": config.domain.name,
+                "title": config.domain.title,
+                "primaryEntity": list(config.entities.keys())[0] if config.entities else "Task",
+                "secondaryEntity": list(config.entities.keys())[1] if len(config.entities) > 1 else "Project",
+                "logo": config.domain.logo
+            }
+    except Exception:
+        pass
+    
+    # Fall back to legacy system
+    config = legacy_get_domain_config("teamflow_original")
     if not config:
-        # Return default config if not found
         return {
             "name": "teamflow_original",
             "title": "TeamFlow",
             "primaryEntity": "Task",
-            "secondaryEntity": "Project",
+            "secondaryEntity": "Project", 
             "logo": "🚀"
         }
     
@@ -41,107 +100,221 @@ async def get_current_domain_config():
     }
 
 
-@router.get("/domains")
+@router.get("/domains", response_model=Dict[str, List[DomainSummary]])
 async def list_available_domains():
-    """List all available domain configurations."""
-    domains = get_available_domains()
-    domain_configs = []
+    """List all available domain configurations with enhanced information."""
+    domains = enhanced_config_loader.get_available_domains()
+    domain_summaries = []
     
     for domain_name in domains:
-        config = get_domain_config(domain_name)
-        if config:
-            domain_configs.append({
-                "name": config.name,
-                "title": config.title,
-                "description": config.description,
-                "domain_type": config.domain_type.value,
-                "version": config.version,
-                "logo": config.logo,
-                "entities": [entity.name for entity in config.entities],
-                "features": config.features
-            })
+        try:
+            config = enhanced_config_loader.load_domain_config(domain_name)
+            if config:
+                # Count enabled features
+                enabled_features = sum(1 for feature in config.features.values() if feature.enabled)
+                
+                summary = DomainSummary(
+                    name=config.domain.name,
+                    title=config.domain.title,
+                    description=config.domain.description,
+                    domain_type=config.domain.domain_type,
+                    version=config.domain.version,
+                    logo=config.domain.logo,
+                    color_scheme=config.domain.color_scheme,
+                    entity_count=len(config.entities),
+                    navigation_items=sum(len(items) for items in config.navigation.values()),
+                    features_enabled=enabled_features
+                )
+                domain_summaries.append(summary)
+        except Exception as e:
+            # Log error but continue with other domains
+            print(f"Error loading domain {domain_name}: {e}")
+            continue
     
-    return {"domains": domain_configs}
+    return {"domains": domain_summaries}
 
 
 @router.get("/domains/{domain_name}")
 async def get_domain_details(domain_name: str):
     """Get detailed information about a specific domain."""
-    config = get_domain_config(domain_name)
-    if not config:
-        raise HTTPException(status_code=404, detail=f"Domain {domain_name} not found")
+    try:
+        config = enhanced_config_loader.load_domain_config(domain_name)
+        if not config:
+            raise HTTPException(status_code=404, detail=f"Domain {domain_name} not found")
+        
+        # Convert to detailed dictionary representation
+        return {
+            "domain": config.domain.dict(),
+            "entities": {
+                name: {
+                    **entity.dict(),
+                    "field_count": len(entity.fields),
+                    "relationship_count": len(entity.relationships),
+                    "business_rules_count": len(entity.business_rules)
+                }
+                for name, entity in config.entities.items()
+            },
+            "navigation": config.navigation,
+            "dashboard": config.dashboard,
+            "features": {name: feature.dict() for name, feature in config.features.items()},
+            "api": config.api,
+            "custom_config": config.custom_config,
+            "metadata": {
+                "total_entities": len(config.entities),
+                "total_fields": sum(len(entity.fields) for entity in config.entities.values()),
+                "total_relationships": sum(len(entity.relationships) for entity in config.entities.values()),
+                "total_business_rules": sum(len(entity.business_rules) for entity in config.entities.values()),
+                "enabled_features": sum(1 for feature in config.features.values() if feature.enabled)
+            }
+        }
     
-    return {
-        "name": config.name,
-        "title": config.title,
-        "description": config.description,
-        "domain_type": config.domain_type.value,
-        "version": config.version,
-        "logo": config.logo,
-        "color_scheme": config.color_scheme,
-        "theme": config.theme,
-        "entities": [
-            {
-                "name": entity.name,
-                "table_name": entity.table_name,
-                "description": entity.description,
-                "fields": [
-                    {
-                        "name": field.name,
-                        "type": field.type,
-                        "nullable": field.nullable,
-                        "default": field.default,
-                        "max_length": field.max_length,
-                        "choices": field.choices,
-                        "indexed": field.indexed,
-                        "unique": field.unique,
-                        "description": field.description
-                    }
-                    for field in entity.fields
-                ],
-                "relationships": [
-                    {
-                        "name": rel.name,
-                        "target_entity": rel.target_entity,
-                        "relationship_type": rel.relationship_type,
-                        "foreign_key": rel.foreign_key,
-                        "back_populates": rel.back_populates
-                    }
-                    for rel in entity.relationships
-                ]
-            }
-            for entity in config.entities
-        ],
-        "navigation": [
-            {
-                "key": nav.key,
-                "label": nav.label,
-                "icon": nav.icon,
-                "route": nav.route,
-                "order": nav.order,
-                "permissions": nav.permissions
-            }
-            for nav in config.navigation
-        ],
-        "features": config.features,
-        "custom_config": config.custom_config
-    }
+    except ConfigurationError as e:
+        raise HTTPException(status_code=400, detail=f"Configuration error: {e.message}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.post("/domains/{domain_name}/validate")
+@router.post("/domains/{domain_name}/validate", response_model=ValidationResult)
 async def validate_domain_config(domain_name: str):
-    """Validate a domain configuration."""
-    config = get_domain_config(domain_name)
-    if not config:
-        raise HTTPException(status_code=404, detail=f"Domain {domain_name} not found")
+    """Validate a domain configuration with detailed error reporting."""
+    try:
+        config = enhanced_config_loader.load_domain_config(domain_name)
+        if not config:
+            raise HTTPException(status_code=404, detail=f"Domain {domain_name} not found")
+        
+        # Enhanced validation
+        errors = enhanced_config_loader.validate_config(config)
+        warnings = []  # Could add warning checks here
+        
+        return ValidationResult(
+            domain=domain_name,
+            valid=len(errors) == 0,
+            errors=errors,
+            warnings=warnings
+        )
     
-    errors = template_config_loader.validate_config(config)
+    except ConfigurationError as e:
+        return ValidationResult(
+            domain=domain_name,
+            valid=False,
+            errors=[f"Configuration error: {e.message}"],
+            warnings=[]
+        )
+    except ValidationError as e:
+        return ValidationResult(
+            domain=domain_name,
+            valid=False,
+            errors=[f"Pydantic validation error: {str(e)}"],
+            warnings=[]
+        )
+
+
+@router.post("/domains/{domain1}/compare/{domain2}", response_model=ConfigurationComparison)
+async def compare_domain_configs(domain1: str, domain2: str):
+    """Compare two domain configurations and return differences."""
+    try:
+        comparison = enhanced_config_manager.compare_configs(domain1, domain2)
+        
+        if "error" in comparison:
+            raise HTTPException(status_code=404, detail=comparison["error"])
+        
+        return ConfigurationComparison(**comparison)
     
-    return {
-        "domain": domain_name,
-        "valid": len(errors) == 0,
-        "errors": errors
-    }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Comparison failed: {str(e)}")
+
+
+@router.get("/domains/{domain_name}/export")
+async def export_domain_schema(domain_name: str):
+    """Export domain configuration as JSON schema."""
+    try:
+        config = enhanced_config_loader.load_domain_config(domain_name)
+        if not config:
+            raise HTTPException(status_code=404, detail="Domain not found")
+        schema = enhanced_config_manager.generate_schema_export(config)
+        if not schema:
+            raise HTTPException(status_code=404, detail=f"Domain {domain_name} not found")
+        
+        return {
+            "domain": domain_name,
+            "schema": schema,
+            "export_timestamp": "2025-01-28T00:00:00Z",
+            "version": "1.0"
+        }
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Export failed: {str(e)}")
+
+
+@router.post("/domains/{domain_name}/reload")
+async def reload_domain_config(domain_name: str):
+    """Force reload a domain configuration from file."""
+    try:
+        config = enhanced_config_loader.load_domain_config(domain_name, force_reload=True)
+        if not config:
+            raise HTTPException(status_code=404, detail=f"Domain {domain_name} not found")
+        
+        return {
+            "domain": domain_name,
+            "status": "reloaded",
+            "version": config.domain.version,
+            "entities": len(config.entities)
+        }
+    
+    except ConfigurationError as e:
+        raise HTTPException(status_code=400, detail=f"Configuration error: {e.message}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Reload failed: {str(e)}")
+
+
+# Enhanced validation endpoint for specific entity
+@router.post("/domains/{domain_name}/entities/{entity_name}/validate")
+async def validate_entity_config(domain_name: str, entity_name: str):
+    """Validate a specific entity configuration."""
+    try:
+        config = enhanced_config_loader.load_domain_config(domain_name)
+        if not config:
+            raise HTTPException(status_code=404, detail=f"Domain {domain_name} not found")
+        
+        entity = config.get_entity(entity_name)
+        if not entity:
+            raise HTTPException(status_code=404, detail=f"Entity {entity_name} not found in domain {domain_name}")
+        
+        # Entity-specific validation
+        errors = []
+        warnings = []
+        
+        # Check for duplicate field names
+        field_names = [field.name for field in entity.fields]
+        if len(field_names) != len(set(field_names)):
+            errors.append("Entity has duplicate field names")
+        
+        # Check relationship targets exist
+        entity_names = set(config.entities.keys())
+        for rel in entity.relationships:
+            if rel.target_entity not in entity_names:
+                errors.append(f"Relationship '{rel.name}' targets non-existent entity '{rel.target_entity}'")
+        
+        # Check business rule syntax (basic check)
+        for rule in entity.business_rules:
+            if rule.condition and not rule.condition.strip():
+                errors.append(f"Business rule '{rule.name}' has empty condition")
+        
+        return {
+            "domain": domain_name,
+            "entity": entity_name,
+            "valid": len(errors) == 0,
+            "errors": errors,
+            "warnings": warnings,
+            "metadata": {
+                "field_count": len(entity.fields),
+                "relationship_count": len(entity.relationships),
+                "business_rules_count": len(entity.business_rules)
+            }
+        }
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Entity validation failed: {str(e)}")
 
 
 @router.get("/templates")
@@ -150,30 +323,44 @@ async def list_templates(
     status: Optional[str] = Query(None, description="Filter by template status"),
     db: AsyncSession = Depends(get_db)
 ):
-    """List available templates."""
-    # For now, return domain configurations as templates
-    domains = get_available_domains()
+    """List available templates with enhanced filtering."""
+    domains = enhanced_config_loader.get_available_domains()
     templates = []
     
     for domain_name in domains:
-        config = get_domain_config(domain_name)
-        if config:
-            if domain_type and config.domain_type.value != domain_type:
+        try:
+            config = enhanced_config_loader.load_domain_config(domain_name)
+            if not config:
                 continue
                 
-            templates.append({
+            if domain_type and config.domain.domain_type != domain_type:
+                continue
+            
+            # Count enabled features
+            enabled_features = [name for name, feature in config.features.items() if feature.enabled]
+            
+            template_info = {
                 "id": domain_name,
-                "name": config.name,
-                "title": config.title,
-                "description": config.description,
-                "domain_type": config.domain_type.value,
-                "version": config.version,
-                "logo": config.logo,
+                "name": config.domain.name,
+                "title": config.domain.title,
+                "description": config.domain.description,
+                "domain_type": config.domain.domain_type,
+                "version": config.domain.version,
+                "logo": config.domain.logo,
+                "color_scheme": config.domain.color_scheme,
                 "status": "active",
                 "is_official": True,
                 "usage_count": 0,
-                "features": list(config.features.keys()) if config.features else []
-            })
+                "features": enabled_features,
+                "entity_count": len(config.entities),
+                "author": getattr(config.domain, 'author', 'TeamFlow Templates'),
+                "tags": getattr(config.domain, 'tags', [])
+            }
+            templates.append(template_info)
+            
+        except Exception as e:
+            print(f"Error loading template {domain_name}: {e}")
+            continue
     
     return {"templates": templates}
 
