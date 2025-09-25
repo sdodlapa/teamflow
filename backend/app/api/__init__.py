@@ -3,10 +3,13 @@
 from fastapi import APIRouter
 
 from app.api.routes import auth, organizations, projects, tasks, users, advanced_features, websocket, files, search, workflow, webhooks, security, performance, performance_optimization, admin, config, enhanced_comments, comment_attachments, comment_websockets, comment_search, task_analytics, workflow_automation, enhanced_tasks, templates, fast_auth, optimized_auth, db_performance
-from app.api import template
+from app.api import template, health
 
 # Create main API router
 api_router = APIRouter()
+
+# Health check endpoints (not prefixed to be accessible at root)
+api_router.include_router(health.router, tags=["health"])
 
 # Include route modules
 api_router.include_router(auth.router, prefix="/auth", tags=["authentication"])
