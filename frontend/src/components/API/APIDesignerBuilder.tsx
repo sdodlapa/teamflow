@@ -294,9 +294,7 @@ const APIDesignerBuilder: React.FC = () => {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<'name' | 'method' | 'modified'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [showEndpointModal, setShowEndpointModal] = useState(false);
   const [showTestModal, setShowTestModal] = useState(false);
-  const [showExportModal, setShowExportModal] = useState(false);
   const [isExecutingTest, setIsExecutingTest] = useState(false);
   const [selectedEnvironment, setSelectedEnvironment] = useState('1');
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
@@ -434,7 +432,7 @@ const APIDesignerBuilder: React.FC = () => {
         <div className="header-actions">
           <button 
             className="action-btn secondary"
-            onClick={() => setShowEndpointModal(true)}
+            onClick={() => alert('New Endpoint feature coming soon!')}
           >
             <Plus size={16} />
             New Endpoint
@@ -477,7 +475,7 @@ const APIDesignerBuilder: React.FC = () => {
 
           <button 
             className="action-btn secondary"
-            onClick={() => setShowExportModal(true)}
+            onClick={() => alert('Export feature coming soon!')}
           >
             <Download size={16} />
             Export

@@ -53,8 +53,6 @@ export const RealtimeReporting: React.FC<RealtimeReportingProps> = () => {
   const [realTimeMode, setRealTimeMode] = useState(false);
   const [selectedFilters, setSelectedFilters] = useState<ReportFilter[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showTemplateBuilder] = useState(false);
-  const [exportFormat] = useState<'pdf' | 'xlsx' | 'csv'>('pdf');
   const intervalRef = useRef<number | null>(null);
 
   // Mock report templates

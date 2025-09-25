@@ -336,34 +336,7 @@ export const WorkflowAutomationBuilder: React.FC<WorkflowAutomationBuilderProps>
     }
   }, [selectedNode, readonly]);
 
-  const addConnection = useCallback((from: string, to: string, fromPort: string, toPort: string) => {
-    if (readonly) return;
-
-    const newConnection: WorkflowConnection = {
-      id: `connection_${Date.now()}`,
-      from,
-      to,
-      fromPort,
-      toPort
-    };
-
-    setCurrentWorkflow(prev => ({
-      ...prev,
-      connections: [...prev.connections, newConnection],
-      updated_at: new Date().toISOString()
-    }));
-  }, [readonly]);
-
-  const deleteConnection = useCallback((connectionId: string) => {
-    if (readonly) return;
-
-    setCurrentWorkflow(prev => ({
-      ...prev,
-      connections: prev.connections.filter(conn => conn.id !== connectionId),
-      updated_at: new Date().toISOString()
-    }));
-  }, [readonly]);
-
+  // Save workflow handler
   const handleMouseDown = useCallback((e: React.MouseEvent, nodeId: string) => {
     if (readonly) return;
 
