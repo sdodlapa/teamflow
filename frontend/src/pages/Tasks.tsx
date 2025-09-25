@@ -1,56 +1,97 @@
 /**
- * Tasks Page Component
- * Comprehensive task management with CRUD operations, filtering, and real-time updates
+ * Enhanced Tasks Page with Error Handling & Loading States
+ * Demonstrates comprehensive error handling, loading states, and user feedback
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Filter, Search, ChevronDown, RefreshCw, Trash2, Edit } from 'lucide-react';
+import { Plus, Search, RefreshCw, AlertCircle } from 'lucide-react';
 import Layout from '../components/Layout';
-import { 
-  taskApi, 
-  Task, 
-  TaskFilters, 
-  TASK_STATUSES, 
-  TASK_PRIORITIES,
-  TaskCreate,
-  TaskUpdate
-} from '../services/taskApi';
+import { ErrorDisplay } from '../components/ErrorComponents';
+import { LoadingSpinner, LoadingSkeleton, LoadingButton } from '../components/LoadingComponents';
+import { useErrorHandler } from '../hooks/useErrorHandler';
+import { useToast } from '../contexts/ToastContext';
+import { ApiError } from '../utils/apiClient';
 
-// Task List Item Component
-const TaskItem: React.FC<{
+// Mock Task interface (replace with actual API types)
+interface Task {
+  id: number;
+  title: string;
+  description?: string;
+  status: 'todo' | 'in_progress' | 'completed' | 'cancelled';
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  assignee_email?: string;
+  due_date?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface TaskCreate {
+  title: string;
+  description?: string;
+  priority: Task['priority'];
+  status?: Task['status'];
+  assignee_email?: string;
+  due_date?: string;
+}
+
+// Enhanced Task Card with error states
+const TaskCard: React.FC<{
   task: Task;
-  onEdit: (task: Task) => void;
-  onDelete: (taskId: number) => void;
-  onStatusChange: (taskId: number, status: Task['status']) => void;
-}> = ({ task, onEdit, onDelete, onStatusChange }) => {
-  const statusConfig = TASK_STATUSES.find(s => s.value === task.status);
-  const priorityConfig = TASK_PRIORITIES.find(p => p.value === task.priority);
-  
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
+  onUpdate: (task: Task) => Promise<void>;
+  onDelete: (id: number) => Promise<void>;
+}> = ({ task, onUpdate, onDelete }) => {
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const toast = useToast();
+
+  const handleStatusChange = async (newStatus: Task['status']) => {
+    try {
+      setIsUpdating(true);
+      const updatedTask = { ...task, status: newStatus };
+      await onUpdate(updatedTask);
+      toast.success(`Task status updated to ${newStatus}`);
+    } catch (error) {
+      toast.error('Failed to update task status');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirm(`Are you sure you want to delete "${task.title}"?`)) return;
+    
+    try {
+      setIsDeleting(true);
+      await onDelete(task.id);
+      toast.success('Task deleted successfully');
+    } catch (error) {
+      toast.error('Failed to delete task');
+      setIsDeleting(false);
+    }
+  };
+
+
+
+  const priorityColors = {
+    low: 'bg-gray-100 text-gray-700',
+    medium: 'bg-yellow-100 text-yellow-700',
+    high: 'bg-orange-100 text-orange-700',
+    critical: 'bg-red-100 text-red-700',
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+    <div className={`bg-white border rounded-lg p-4 shadow-sm transition-all ${
+      isDeleting ? 'opacity-50 pointer-events-none' : 'hover:shadow-md'
+    }`}>
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
-          {/* Task Title & Description */}
-          <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-center gap-2 mb-2">
             <h3 className="text-lg font-semibold text-gray-900 truncate">
               {task.title}
             </h3>
-            <div className="flex gap-2">
-              <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusConfig?.color}`}>
-                {statusConfig?.label}
-              </span>
-              <span className={`px-2 py-1 text-xs font-medium rounded-full ${priorityConfig?.color}`}>
-                {priorityConfig?.label}
-              </span>
-            </div>
+            <span className={`px-2 py-1 text-xs font-medium rounded-full ${priorityColors[task.priority]}`}>
+              {task.priority}
+            </span>
           </div>
           
           {task.description && (
@@ -59,79 +100,47 @@ const TaskItem: React.FC<{
             </p>
           )}
           
-          {/* Task Metadata */}
-          <div className="flex flex-wrap gap-4 text-xs text-gray-500">
-            {task.assignee_email && (
-              <span>Assigned to: {task.assignee_email}</span>
-            )}
-            {task.due_date && (
-              <span>Due: {formatDate(task.due_date)}</span>
-            )}
-            {task.estimated_hours && (
-              <span>Estimated: {task.estimated_hours}h</span>
-            )}
-            {task.time_spent && (
-              <span>Spent: {task.time_spent}h</span>
-            )}
-            <span>Created: {formatDate(task.created_at)}</span>
+          <div className="flex items-center gap-4 text-xs text-gray-500">
+            {task.assignee_email && <span>👤 {task.assignee_email}</span>}
+            {task.due_date && <span>📅 {new Date(task.due_date).toLocaleDateString()}</span>}
+            <span>🕒 {new Date(task.created_at).toLocaleDateString()}</span>
           </div>
-          
-          {/* Tags */}
-          {task.tags && task.tags.length > 0 && (
-            <div className="flex gap-2 mt-2">
-              {task.tags.map((tag, index) => (
-                <span key={index} className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
         </div>
         
-        {/* Actions */}
         <div className="flex items-center gap-2 ml-4">
-          {/* Status Dropdown */}
           <select
             value={task.status}
-            onChange={(e) => onStatusChange(task.id, e.target.value as Task['status'])}
-            className="text-xs px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            onChange={(e) => handleStatusChange(e.target.value as Task['status'])}
+            disabled={isUpdating}
+            className="text-xs px-2 py-1 border rounded focus:ring-2 focus:ring-blue-500"
           >
-            {TASK_STATUSES.map(status => (
-              <option key={status.value} value={status.value}>
-                {status.label}
-              </option>
-            ))}
+            <option value="todo">To Do</option>
+            <option value="in_progress">In Progress</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
           </select>
           
-          <button
-            onClick={() => onEdit(task)}
-            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded"
-            title="Edit Task"
-          >
-            <Edit size={16} />
-          </button>
+          {isUpdating && <LoadingSpinner size="sm" />}
           
-          <button
-            onClick={() => onDelete(task.id)}
-            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
-            title="Delete Task"
+          <LoadingButton
+            onClick={handleDelete}
+            isLoading={isDeleting}
+            loadingText="Deleting..."
+            className="px-2 py-1 text-xs text-red-600 hover:bg-red-50 rounded border border-red-200"
           >
-            <Trash2 size={16} />
-          </button>
+            Delete
+          </LoadingButton>
         </div>
       </div>
     </div>
   );
 };
 
-// Task Form Modal Component
-const TaskFormModal: React.FC<{
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmit: (data: TaskCreate | TaskUpdate) => Promise<void>;
-  task?: Task;
-  isLoading?: boolean;
-}> = ({ isOpen, onClose, onSubmit, task, isLoading = false }) => {
+// Create Task Form with validation
+const CreateTaskForm: React.FC<{
+  onSubmit: (task: TaskCreate) => Promise<void>;
+  onCancel: () => void;
+}> = ({ onSubmit, onCancel }) => {
   const [formData, setFormData] = useState<TaskCreate>({
     title: '',
     description: '',
@@ -139,204 +148,154 @@ const TaskFormModal: React.FC<{
     status: 'todo',
     assignee_email: '',
     due_date: '',
-    estimated_hours: undefined,
-    tags: []
   });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const { loading, executeWithLoading } = useErrorHandler();
 
-  const [tagsInput, setTagsInput] = useState('');
-
-  useEffect(() => {
-    if (task) {
-      setFormData({
-        title: task.title,
-        description: task.description || '',
-        priority: task.priority,
-        status: task.status,
-        assignee_email: task.assignee_email || '',
-        due_date: task.due_date ? task.due_date.split('T')[0] : '',
-        estimated_hours: task.estimated_hours,
-        tags: task.tags || []
-      });
-      setTagsInput(task.tags?.join(', ') || '');
-    } else {
-      setFormData({
-        title: '',
-        description: '',
-        priority: 'medium',
-        status: 'todo',
-        assignee_email: '',
-        due_date: '',
-        estimated_hours: undefined,
-        tags: []
-      });
-      setTagsInput('');
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+    
+    if (!formData.title.trim()) {
+      newErrors.title = 'Title is required';
     }
-  }, [task, isOpen]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const tags = tagsInput.split(',').map(tag => tag.trim()).filter(tag => tag);
-    onSubmit({
-      ...formData,
-      tags: tags.length > 0 ? tags : undefined,
-      estimated_hours: formData.estimated_hours || undefined
-    });
+    
+    if (formData.assignee_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.assignee_email)) {
+      newErrors.assignee_email = 'Please enter a valid email address';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
-  if (!isOpen) return null;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) return;
+
+    const result = await executeWithLoading(async () => {
+      return onSubmit({
+        ...formData,
+        description: formData.description || undefined,
+        assignee_email: formData.assignee_email || undefined,
+        due_date: formData.due_date || undefined,
+      });
+    });
+
+    if (result !== null) {
+      onCancel(); // Close form on success
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <h2 className="text-xl font-semibold mb-6">
-          {task ? 'Edit Task' : 'Create New Task'}
-        </h2>
+      <div className="bg-white rounded-lg p-6 w-full max-w-lg">
+        <h2 className="text-xl font-semibold mb-4">Create New Task</h2>
         
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Title *
-            </label>
+            <label className="block text-sm font-medium mb-1">Title *</label>
             <input
               type="text"
-              required
               value={formData.title}
               onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={`w-full px-3 py-2 border rounded-md ${
+                errors.title ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+              }`}
               placeholder="Enter task title"
             />
+            {errors.title && (
+              <div className="flex items-center mt-1 text-sm text-red-600">
+                <AlertCircle size={14} className="mr-1" />
+                {errors.title}
+              </div>
+            )}
           </div>
-          
-          {/* Description */}
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Description
-            </label>
+            <label className="block text-sm font-medium mb-1">Description</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Enter task description"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500"
+              placeholder="Enter task description (optional)"
             />
           </div>
-          
-          {/* Priority and Status */}
+
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Priority *
-              </label>
+              <label className="block text-sm font-medium mb-1">Priority</label>
               <select
-                required
                 value={formData.priority}
                 onChange={(e) => setFormData(prev => ({ ...prev, priority: e.target.value as Task['priority'] }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500"
               >
-                {TASK_PRIORITIES.map(priority => (
-                  <option key={priority.value} value={priority.value}>
-                    {priority.label}
-                  </option>
-                ))}
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="critical">Critical</option>
               </select>
             </div>
-            
+
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Status
-              </label>
+              <label className="block text-sm font-medium mb-1">Status</label>
               <select
                 value={formData.status}
                 onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as Task['status'] }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500"
               >
-                {TASK_STATUSES.map(status => (
-                  <option key={status.value} value={status.value}>
-                    {status.label}
-                  </option>
-                ))}
+                <option value="todo">To Do</option>
+                <option value="in_progress">In Progress</option>
+                <option value="completed">Completed</option>
               </select>
             </div>
           </div>
-          
-          {/* Assignee and Due Date */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Assignee Email
-              </label>
-              <input
-                type="email"
-                value={formData.assignee_email}
-                onChange={(e) => setFormData(prev => ({ ...prev, assignee_email: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="user@example.com"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Due Date
-              </label>
-              <input
-                type="date"
-                value={formData.due_date}
-                onChange={(e) => setFormData(prev => ({ ...prev, due_date: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-          </div>
-          
-          {/* Estimated Hours */}
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Estimated Hours
-            </label>
+            <label className="block text-sm font-medium mb-1">Assignee Email</label>
             <input
-              type="number"
-              min="0"
-              step="0.5"
-              value={formData.estimated_hours || ''}
-              onChange={(e) => setFormData(prev => ({ 
-                ...prev, 
-                estimated_hours: e.target.value ? parseFloat(e.target.value) : undefined 
-              }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="0.0"
+              type="email"
+              value={formData.assignee_email}
+              onChange={(e) => setFormData(prev => ({ ...prev, assignee_email: e.target.value }))}
+              className={`w-full px-3 py-2 border rounded-md ${
+                errors.assignee_email ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+              }`}
+              placeholder="user@example.com (optional)"
+            />
+            {errors.assignee_email && (
+              <div className="flex items-center mt-1 text-sm text-red-600">
+                <AlertCircle size={14} className="mr-1" />
+                {errors.assignee_email}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Due Date</label>
+            <input
+              type="date"
+              value={formData.due_date}
+              onChange={(e) => setFormData(prev => ({ ...prev, due_date: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500"
             />
           </div>
-          
-          {/* Tags */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Tags (comma-separated)
-            </label>
-            <input
-              type="text"
-              value={tagsInput}
-              onChange={(e) => setTagsInput(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="frontend, urgent, bug"
-            />
-          </div>
-          
-          {/* Form Actions */}
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+
+          <div className="flex justify-end gap-3 pt-4">
             <button
               type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
-              disabled={isLoading}
+              onClick={onCancel}
+              disabled={loading}
+              className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={isLoading}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={loading}
+              className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
             >
-              {isLoading ? 'Saving...' : task ? 'Update Task' : 'Create Task'}
+              {loading && <LoadingSpinner size="sm" className="mr-2" />}
+              {loading ? 'Creating...' : 'Create Task'}
             </button>
           </div>
         </form>
@@ -345,148 +304,149 @@ const TaskFormModal: React.FC<{
   );
 };
 
-// Main Tasks Page Component
+// Main Tasks Component
 const Tasks: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
-  
-  // Modal state
-  const [showTaskForm, setShowTaskForm] = useState(false);
-  const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [formLoading, setFormLoading] = useState(false);
-  
-  // Filter state
-  const [filters, setFilters] = useState<TaskFilters>({
-    status: [],
-    priority: [],
-    assignee_email: ''
-  });
-  const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const { loading, error, executeWithLoading, clearError } = useErrorHandler();
+  const toast = useToast();
 
-  // Load tasks
-  const loadTasks = useCallback(async (showLoader = true) => {
-    try {
-      if (showLoader) setLoading(true);
-      setError(null);
+  // Mock API functions (replace with actual API calls)
+  const mockApi = {
+    getTasks: async (): Promise<Task[]> => {
+      // Simulate network delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      const fetchedTasks = await taskApi.getTasks(filters);
-      
-      // Apply client-side search filter if needed
-      let filteredTasks = fetchedTasks;
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
-        filteredTasks = fetchedTasks.filter(task =>
-          task.title.toLowerCase().includes(query) ||
-          task.description?.toLowerCase().includes(query) ||
-          task.assignee_email?.toLowerCase().includes(query)
-        );
+      // Simulate occasional errors for demonstration
+      if (Math.random() < 0.1) {
+        throw new Error('Network connection failed');
       }
       
-      setTasks(filteredTasks);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load tasks');
-      console.error('Failed to load tasks:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [filters, searchQuery]);
+      return [
+        {
+          id: 1,
+          title: 'Implement user authentication',
+          description: 'Add login and registration functionality',
+          status: 'in_progress' as const,
+          priority: 'high' as const,
+          assignee_email: 'john@example.com',
+          due_date: '2024-01-15',
+          created_at: '2024-01-01T10:00:00Z',
+          updated_at: '2024-01-05T10:00:00Z',
+        },
+        {
+          id: 2,
+          title: 'Design database schema',
+          description: 'Create efficient database structure for the application',
+          status: 'completed' as const,
+          priority: 'medium' as const,
+          assignee_email: 'sarah@example.com',
+          due_date: '2024-01-10',
+          created_at: '2024-01-01T11:00:00Z',
+          updated_at: '2024-01-08T15:30:00Z',
+        },
+        {
+          id: 3,
+          title: 'Fix responsive layout issues',
+          description: 'Address mobile layout problems on task cards',
+          status: 'todo' as const,
+          priority: 'critical' as const,
+          due_date: '2024-01-20',
+          created_at: '2024-01-02T09:00:00Z',
+          updated_at: '2024-01-02T09:00:00Z',
+        },
+      ];
+    },
 
-  // Initial load
-  useEffect(() => {
-    loadTasks();
-  }, [loadTasks]);
+    createTask: async (task: TaskCreate): Promise<Task> => {
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      if (Math.random() < 0.15) {
+        const error = new Error('Validation failed') as ApiError;
+        error.status = 422;
+        error.response = {
+          status: 422,
+          statusText: 'Unprocessable Entity',
+          data: { message: 'Task title already exists' },
+        };
+        throw error;
+      }
+      
+      return {
+        ...task,
+        id: Date.now(),
+        status: task.status || 'todo',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+    },
 
-  // Refresh tasks
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await loadTasks(false);
-    setRefreshing(false);
+    updateTask: async (id: number, updates: Partial<Task>): Promise<Task> => {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      if (Math.random() < 0.1) {
+        throw new Error('Server error occurred');
+      }
+      
+      return { ...updates, id, updated_at: new Date().toISOString() } as Task;
+    },
+
+    deleteTask: async (_id: number): Promise<void> => {
+      await new Promise(resolve => setTimeout(resolve, 600));
+      
+      if (Math.random() < 0.1) {
+        const error = new Error('Task not found') as ApiError;
+        error.status = 404;
+        throw error;
+      }
+    },
   };
 
-  // Create task
-  const handleCreateTask = async (taskData: TaskCreate) => {
-    try {
-      setFormLoading(true);
-      const newTask = await taskApi.createTask(taskData);
-      setTasks(prev => [newTask, ...prev]);
-      setShowTaskForm(false);
-      setError(null);
-    } catch (err: any) {
-      setError(err.message || 'Failed to create task');
-    } finally {
-      setFormLoading(false);
+  // Load tasks
+  const loadTasks = useCallback(async () => {
+    const result = await executeWithLoading(async () => {
+      const fetchedTasks = await mockApi.getTasks();
+      return fetchedTasks;
+    });
+
+    if (result) {
+      setTasks(result);
     }
+  }, [executeWithLoading]);
+
+  // Create task
+  const createTask = async (taskData: TaskCreate) => {
+    const newTask = await mockApi.createTask(taskData);
+    setTasks(prev => [newTask, ...prev]);
+    toast.success('Task created successfully!');
   };
 
   // Update task
-  const handleUpdateTask = async (taskData: TaskUpdate) => {
-    if (!editingTask) return;
-    
-    try {
-      setFormLoading(true);
-      const updatedTask = await taskApi.updateTask(editingTask.id, taskData);
-      setTasks(prev => prev.map(task => 
-        task.id === editingTask.id ? updatedTask : task
-      ));
-      setShowTaskForm(false);
-      setEditingTask(null);
-      setError(null);
-    } catch (err: any) {
-      setError(err.message || 'Failed to update task');
-    } finally {
-      setFormLoading(false);
-    }
+  const updateTask = async (updatedTask: Task) => {
+    const result = await mockApi.updateTask(updatedTask.id, updatedTask);
+    setTasks(prev => prev.map(task => 
+      task.id === updatedTask.id ? result : task
+    ));
   };
 
   // Delete task
-  const handleDeleteTask = async (taskId: number) => {
-    if (!confirm('Are you sure you want to delete this task?')) return;
-    
-    try {
-      await taskApi.deleteTask(taskId);
-      setTasks(prev => prev.filter(task => task.id !== taskId));
-      setError(null);
-    } catch (err: any) {
-      setError(err.message || 'Failed to delete task');
-    }
+  const deleteTask = async (id: number) => {
+    await mockApi.deleteTask(id);
+    setTasks(prev => prev.filter(task => task.id !== id));
   };
 
-  // Update task status
-  const handleStatusChange = async (taskId: number, status: Task['status']) => {
-    try {
-      const updatedTask = await taskApi.updateTaskStatus(taskId, status);
-      setTasks(prev => prev.map(task => 
-        task.id === taskId ? updatedTask : task
-      ));
-      setError(null);
-    } catch (err: any) {
-      setError(err.message || 'Failed to update task status');
-    }
-  };
+  // Filter tasks by search query
+  const filteredTasks = tasks.filter(task =>
+    task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (task.description?.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (task.assignee_email?.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
-  // Edit task
-  const handleEditTask = (task: Task) => {
-    setEditingTask(task);
-    setShowTaskForm(true);
-  };
-
-  // Handle form submit (create or update)
-  const handleFormSubmit = async (taskData: TaskCreate | TaskUpdate) => {
-    if (editingTask) {
-      await handleUpdateTask(taskData as TaskUpdate);
-    } else {
-      await handleCreateTask(taskData as TaskCreate);
-    }
-  };
-
-  // Close modal
-  const handleCloseModal = () => {
-    setShowTaskForm(false);
-    setEditingTask(null);
-  };
+  // Load tasks on component mount
+  useEffect(() => {
+    loadTasks();
+  }, [loadTasks]);
 
   return (
     <Layout>
@@ -496,12 +456,12 @@ const Tasks: React.FC = () => {
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Tasks</h1>
             <p className="text-gray-600 mt-1">
-              Manage and track your team's tasks
+              Manage your tasks with comprehensive error handling
             </p>
           </div>
           
           <button
-            onClick={() => setShowTaskForm(true)}
+            onClick={() => setShowCreateForm(true)}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
           >
             <Plus size={20} />
@@ -509,10 +469,9 @@ const Tasks: React.FC = () => {
           </button>
         </div>
 
-        {/* Search and Filters */}
-        <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6">
+        {/* Search and Actions */}
+        <div className="bg-white border rounded-lg p-4 mb-6">
           <div className="flex flex-col sm:flex-row gap-4">
-            {/* Search */}
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
               <input
@@ -520,141 +479,55 @@ const Tasks: React.FC = () => {
                 placeholder="Search tasks..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
               />
             </div>
             
-            {/* Filter Button */}
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+            <LoadingButton
+              onClick={loadTasks}
+              isLoading={loading}
+              loadingText="Refreshing..."
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
             >
-              <Filter size={16} />
-              Filters
-              <ChevronDown size={16} className={`transform transition-transform ${showFilters ? 'rotate-180' : ''}`} />
-            </button>
-            
-            {/* Refresh Button */}
-            <button
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50"
-            >
-              <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+              <RefreshCw size={16} />
               Refresh
-            </button>
+            </LoadingButton>
           </div>
-          
-          {/* Expandable Filters */}
-          {showFilters && (
-            <div className="mt-4 pt-4 border-t border-gray-200 grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {/* Status Filter */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                <div className="space-y-2">
-                  {TASK_STATUSES.map(status => (
-                    <label key={status.value} className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={filters.status?.includes(status.value) || false}
-                        onChange={(e) => {
-                          const statusList = filters.status || [];
-                          if (e.target.checked) {
-                            setFilters(prev => ({
-                              ...prev,
-                              status: [...statusList, status.value]
-                            }));
-                          } else {
-                            setFilters(prev => ({
-                              ...prev,
-                              status: statusList.filter(s => s !== status.value)
-                            }));
-                          }
-                        }}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="ml-2 text-sm text-gray-700">{status.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-              
-              {/* Priority Filter */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
-                <div className="space-y-2">
-                  {TASK_PRIORITIES.map(priority => (
-                    <label key={priority.value} className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={filters.priority?.includes(priority.value) || false}
-                        onChange={(e) => {
-                          const priorityList = filters.priority || [];
-                          if (e.target.checked) {
-                            setFilters(prev => ({
-                              ...prev,
-                              priority: [...priorityList, priority.value]
-                            }));
-                          } else {
-                            setFilters(prev => ({
-                              ...prev,
-                              priority: priorityList.filter(p => p !== priority.value)
-                            }));
-                          }
-                        }}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="ml-2 text-sm text-gray-700">{priority.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-              
-              {/* Assignee Filter */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Assignee Email</label>
-                <input
-                  type="email"
-                  placeholder="Filter by assignee..."
-                  value={filters.assignee_email || ''}
-                  onChange={(e) => setFilters(prev => ({
-                    ...prev,
-                    assignee_email: e.target.value || undefined
-                  }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Error Display */}
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md mb-6">
-            {error}
-          </div>
+          <ErrorDisplay
+            type={error.type}
+            message={error.message}
+            details={error.details}
+            onRetry={() => {
+              clearError();
+              loadTasks();
+            }}
+            onDismiss={clearError}
+            className="mb-6"
+          />
         )}
 
-        {/* Task List */}
-        {loading ? (
-          <div className="flex justify-center items-center py-12">
-            <RefreshCw className="animate-spin text-blue-600" size={32} />
-          </div>
-        ) : tasks.length === 0 ? (
+        {/* Content */}
+        {loading && tasks.length === 0 ? (
+          <LoadingSkeleton rows={5} className="space-y-4" />
+        ) : filteredTasks.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-gray-400 mb-4">
               <Plus size={48} className="mx-auto" />
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">No tasks found</h3>
             <p className="text-gray-600 mb-4">
-              {searchQuery || filters.status?.length || filters.priority?.length || filters.assignee_email
-                ? 'Try adjusting your search or filters'
+              {searchQuery 
+                ? `No tasks match "${searchQuery}"`
                 : 'Get started by creating your first task'
               }
             </p>
-            {!searchQuery && !filters.status?.length && !filters.priority?.length && !filters.assignee_email && (
+            {!searchQuery && (
               <button
-                onClick={() => setShowTaskForm(true)}
+                onClick={() => setShowCreateForm(true)}
                 className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
               >
                 Create Your First Task
@@ -663,32 +536,28 @@ const Tasks: React.FC = () => {
           </div>
         ) : (
           <div className="space-y-4">
-            {/* Task Count */}
-            <div className="text-sm text-gray-600 mb-4">
-              Showing {tasks.length} task{tasks.length !== 1 ? 's' : ''}
+            <div className="text-sm text-gray-600">
+              Showing {filteredTasks.length} of {tasks.length} tasks
             </div>
             
-            {/* Task Items */}
-            {tasks.map(task => (
-              <TaskItem
+            {filteredTasks.map(task => (
+              <TaskCard
                 key={task.id}
                 task={task}
-                onEdit={handleEditTask}
-                onDelete={handleDeleteTask}
-                onStatusChange={handleStatusChange}
+                onUpdate={updateTask}
+                onDelete={deleteTask}
               />
             ))}
           </div>
         )}
 
-        {/* Task Form Modal */}
-        <TaskFormModal
-          isOpen={showTaskForm}
-          onClose={handleCloseModal}
-          onSubmit={handleFormSubmit}
-          task={editingTask || undefined}
-          isLoading={formLoading}
-        />
+        {/* Create Task Form */}
+        {showCreateForm && (
+          <CreateTaskForm
+            onSubmit={createTask}
+            onCancel={() => setShowCreateForm(false)}
+          />
+        )}
       </div>
     </Layout>
   );

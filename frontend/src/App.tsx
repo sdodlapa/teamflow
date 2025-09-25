@@ -1,11 +1,17 @@
 import { Toaster } from 'react-hot-toast';
+import ErrorBoundary from './components/ErrorBoundary';
+import { ToastProvider } from './contexts/ToastContext';
 import AppRouter from './router/AppRouter';
 import './index.css';
 
 function App() {
   return (
     <div className="app">
-      <AppRouter />
+      <ErrorBoundary>
+        <ToastProvider>
+          <AppRouter />
+        </ToastProvider>
+      </ErrorBoundary>
       <Toaster 
         position="top-right"
         toastOptions={{

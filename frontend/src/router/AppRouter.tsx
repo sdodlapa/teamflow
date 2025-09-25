@@ -1,5 +1,5 @@
 import React from 'react';
-import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { AuthProvider } from '../contexts/AuthContext';
 import PrivateRoute from '../components/PrivateRoute';
 import LoginPage from '../pages/Login';
@@ -7,16 +7,12 @@ import RegisterPage from '../pages/Register';
 import Dashboard from '../pages/Dashboard';
 import Tasks from '../pages/Tasks';
 import Projects from '../pages/Projects';
-
-// Placeholder components - replace with actual components when they exist
-const PlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
-  <div className="flex items-center justify-center min-h-screen">
-    <div className="text-center">
-      <h1 className="text-2xl font-bold text-gray-900 mb-4">{title}</h1>
-      <p className="text-gray-600">This page is under development</p>
-    </div>
-  </div>
-);
+import Calendar from '../pages/Calendar';
+import Analytics from '../pages/Analytics';
+import Settings from '../pages/Settings';
+import Profile from '../pages/Profile';
+import ErrorHandlingDemo from '../pages/ErrorHandlingDemo';
+import NotFound from '../pages/NotFound';
 
 // Create the router configuration
 const router = createBrowserRouter([
@@ -67,7 +63,7 @@ const router = createBrowserRouter([
     path: '/calendar',
     element: (
       <PrivateRoute>
-        <PlaceholderPage title="Calendar" />
+        <Calendar />
       </PrivateRoute>
     ),
   },
@@ -75,7 +71,7 @@ const router = createBrowserRouter([
     path: '/analytics',
     element: (
       <PrivateRoute>
-        <PlaceholderPage title="Analytics" />
+        <Analytics />
       </PrivateRoute>
     ),
   },
@@ -83,7 +79,7 @@ const router = createBrowserRouter([
     path: '/settings',
     element: (
       <PrivateRoute>
-        <PlaceholderPage title="Settings" />
+        <Settings />
       </PrivateRoute>
     ),
   },
@@ -91,15 +87,23 @@ const router = createBrowserRouter([
     path: '/profile',
     element: (
       <PrivateRoute>
-        <PlaceholderPage title="Profile" />
+        <Profile />
+      </PrivateRoute>
+    ),
+  },
+  {
+    path: '/demo/error-handling',
+    element: (
+      <PrivateRoute>
+        <ErrorHandlingDemo />
       </PrivateRoute>
     ),
   },
   
-  // Catch-all route
+  // Catch-all route for 404
   {
     path: '*',
-    element: <Navigate to="/dashboard" replace />,
+    element: <NotFound />,
   },
 ]);
 
