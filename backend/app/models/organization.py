@@ -101,6 +101,9 @@ class Organization(Base):
     consent_records = relationship("DataConsentRecord", back_populates="organization", cascade="all, delete-orphan")
     security_configurations = relationship("SecurityConfiguration", back_populates="organization", cascade="all, delete-orphan")
     login_attempts = relationship("LoginAttempt", back_populates="organization", cascade="all, delete-orphan")
+    
+    # Template relationships
+    templates = relationship("Template", back_populates="organization", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<Organization(id={self.id}, name='{self.name}')>"

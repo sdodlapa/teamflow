@@ -96,15 +96,26 @@
 }
 
 .form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-row {
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.form-row .form-group {
+  flex: 1;
+  margin-bottom: 0;
 }
 
 .form-label {
-  color: #374151;
-  font-weight: 600;
+  display: block;
   font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.5rem;
 }
 
 .input-wrapper {
@@ -339,6 +350,22 @@
 .social-button.github:hover {
   border-color: #24292f;
   color: #24292f;
+}
+
+.signup-link {
+  color: #6366f1;
+  text-decoration: none;
+  font-weight: 500;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-size: inherit;
+}
+
+.signup-link:hover {
+  color: #4f46e5;
+  text-decoration: underline;
 }
 
 .social-icon {

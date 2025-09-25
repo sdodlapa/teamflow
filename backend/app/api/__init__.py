@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from app.api.routes import auth, organizations, projects, tasks, users, advanced_features, websocket, files, search, workflow, webhooks, security, performance, performance_optimization, admin, config, enhanced_comments, comment_attachments, comment_websockets, comment_search, task_analytics, workflow_automation, enhanced_tasks
+from app.api.routes import auth, organizations, projects, tasks, users, advanced_features, websocket, files, search, workflow, webhooks, security, performance, performance_optimization, admin, config, enhanced_comments, comment_attachments, comment_websockets, comment_search, task_analytics, workflow_automation, enhanced_tasks, templates
 from app.api import template
 
 # Create main API router
@@ -46,10 +46,13 @@ api_router.include_router(enhanced_tasks.router, prefix="/api/v1", tags=["enhanc
 # Template system routes
 api_router.include_router(template.router, prefix="/template", tags=["template-system"])
 
+# Database persistence templates API (Day 13)
+api_router.include_router(templates.router, prefix="/templates", tags=["template-persistence"])
+
 # Template Builder routes (new)
 try:
     from app.api import template_builder
-    api_router.include_router(template_builder.router, prefix="/templates", tags=["template-builder"])
+    api_router.include_router(template_builder.router, prefix="/templates/builder", tags=["template-builder"])
 except ImportError:
     # Template builder not available yet
     pass

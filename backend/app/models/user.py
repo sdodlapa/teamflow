@@ -127,6 +127,9 @@ class User(Base):
     comment_likes = relationship("CommentLike", back_populates="user", cascade="all, delete-orphan")
     comment_reactions = relationship("CommentReaction", back_populates="user", cascade="all, delete-orphan")
     comment_activities = relationship("CommentActivity", back_populates="user", cascade="all, delete-orphan")
+    
+    # Template relationships
+    templates = relationship("Template", back_populates="user", cascade="all, delete-orphan")
 
     @property
     def full_name(self) -> str:

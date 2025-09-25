@@ -3,83 +3,157 @@
  * Handles user authentication with form validation
  */
 import React, { useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import './Login.css';
 
 interface LoginForm {
-  email: string;
+  username: string;
   password: string;
 }
 
-interface LoginProps {
-  onLogin?: (credentials: LoginForm) => void;
+interface RegisterForm {
+  username: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  first_name: string;
+  last_name: string;
 }
 
-const Login: React.FC<LoginProps> = ({ onLogin }) => {
-  const [formData, setFormData] = useState<LoginForm>({
-    email: '',
+const Login: React.FC = () => {
+  const { login, register, isLoading } = useAuth();
+  const [isLoginMode, setIsLoginMode] = useState(true);
+  const [loginData, setLoginData] = useState<LoginForm>({
+    username: '',
     password: ''
   });
-  const [errors, setErrors] = useState<Partial<LoginForm>>({});
-  const [isLoading, setIsLoading] = useState(false);
+  const [registerData, setRegisterData] = useState<RegisterForm>({
+    username: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    first_name: '',
+    last_name: ''
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [showPassword, setShowPassword] = useState(false);
 
-  const validateForm = (): boolean => {
-    const newErrors: Partial<LoginForm> = {};
+  const validateLoginForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
 
-    if (!formData.email) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
+    if (!loginData.username) {
+      newErrors.username = 'Username is required';
     }
 
-    if (!formData.password) {
+    if (!loginData.password) {
       newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const validateRegisterForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!registerData.username) {
+      newErrors.username = 'Username is required';
+    } else if (registerData.username.length < 3) {
+      newErrors.username = 'Username must be at least 3 characters';
+    }
+
+    if (!registerData.email) {
+      newErrors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(registerData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+
+    if (!registerData.password) {
+      newErrors.password = 'Password is required';
+    } else if (registerData.password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
+    }
+
+    if (!registerData.confirmPassword) {
+      newErrors.confirmPassword = 'Please confirm your password';
+    } else if (registerData.password !== registerData.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
+    }
+
+    if (!registerData.first_name) {
+      newErrors.first_name = 'First name is required';
+    }
+
+    if (!registerData.last_name) {
+      newErrors.last_name = 'Last name is required';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) {
+    if (!validateLoginForm()) {
       return;
     }
 
-    setIsLoading(true);
-    
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      if (onLogin) {
-        onLogin(formData);
-      }
-      
-      // In a real app, you would handle the response here
-      console.log('Login successful:', formData);
+      await login(loginData.username, loginData.password);
     } catch (error) {
-      console.error('Login failed:', error);
-    } finally {
-      setIsLoading(false);
+      // Error handling is done in the auth context
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateRegisterForm()) {
+      return;
+    }
+
+    try {
+      await register({
+        username: registerData.username,
+        email: registerData.email,
+        password: registerData.password,
+        first_name: registerData.first_name,
+        last_name: registerData.last_name
+      });
+    } catch (error) {
+      // Error handling is done in the auth context
+    }
+  };
+
+  const handleLoginInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setLoginData(prev => ({
       ...prev,
       [name]: value
     }));
     
     // Clear error when user starts typing
-    if (errors[name as keyof LoginForm]) {
+    if (errors[name]) {
       setErrors(prev => ({
         ...prev,
-        [name]: undefined
+        [name]: ''
+      }));
+    }
+  };
+
+  const handleRegisterInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setRegisterData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: ''
       }));
     }
   };
@@ -96,94 +170,259 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             <span className="logo-icon">🚀</span>
             <span className="logo-text">TeamFlow</span>
           </div>
-          <h1>Welcome Back</h1>
-          <p>Sign in to your account to continue</p>
+          <h1>{isLoginMode ? 'Welcome Back' : 'Create Account'}</h1>
+          <p>
+            {isLoginMode 
+              ? 'Sign in to your account to continue' 
+              : 'Join TeamFlow and start building amazing templates'
+            }
+          </p>
         </div>
 
-        <form className="login-form" onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="email" className="form-label">
-              Email Address
-            </label>
-            <div className="input-wrapper">
-              <input
-                id="email"
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                className={`form-input ${errors.email ? 'error' : ''}`}
-                placeholder="Enter your email"
-                autoComplete="email"
-              />
-              <span className="input-icon">📧</span>
+        {isLoginMode ? (
+          <form className="login-form" onSubmit={handleLoginSubmit}>
+            <div className="form-group">
+              <label htmlFor="username" className="form-label">
+                Username
+              </label>
+              <div className="input-wrapper">
+                <input
+                  id="username"
+                  name="username"
+                  type="text"
+                  value={loginData.username}
+                  onChange={handleLoginInputChange}
+                  className={`form-input ${errors.username ? 'error' : ''}`}
+                  placeholder="Enter your username"
+                  autoComplete="username"
+                />
+                <span className="input-icon">�</span>
+              </div>
+              {errors.username && (
+                <span className="error-message">{errors.username}</span>
+              )}
             </div>
-            {errors.email && (
-              <span className="error-message">{errors.email}</span>
-            )}
-          </div>
 
-          <div className="form-group">
-            <label htmlFor="password" className="form-label">
-              Password
-            </label>
-            <div className="input-wrapper">
-              <input
-                id="password"
-                name="password"
-                type={showPassword ? 'text' : 'password'}
-                value={formData.password}
-                onChange={handleInputChange}
-                className={`form-input ${errors.password ? 'error' : ''}`}
-                placeholder="Enter your password"
-                autoComplete="current-password"
-              />
-              <button
-                type="button"
-                className="password-toggle"
-                onClick={() => setShowPassword(!showPassword)}
-                tabIndex={-1}
-              >
-                {showPassword ? '🙈' : '👁️'}
-              </button>
+            <div className="form-group">
+              <label htmlFor="password" className="form-label">
+                Password
+              </label>
+              <div className="input-wrapper">
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={loginData.password}
+                  onChange={handleLoginInputChange}
+                  className={`form-input ${errors.password ? 'error' : ''}`}
+                  placeholder="Enter your password"
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowPassword(!showPassword)}
+                  tabIndex={-1}
+                >
+                  {showPassword ? '🙈' : '👁️'}
+                </button>
+              </div>
+              {errors.password && (
+                <span className="error-message">{errors.password}</span>
+              )}
             </div>
-            {errors.password && (
-              <span className="error-message">{errors.password}</span>
-            )}
-          </div>
 
-          <div className="form-options">
-            <label className="checkbox-wrapper">
-              <input type="checkbox" className="checkbox" />
-              <span className="checkbox-label">Remember me</span>
-            </label>
-            <a href="#" className="forgot-password">
-              Forgot password?
-            </a>
-          </div>
+            <div className="form-options">
+              <label className="checkbox-wrapper">
+                <input type="checkbox" className="checkbox" />
+                <span className="checkbox-label">Remember me</span>
+              </label>
+              <a href="#" className="forgot-password">
+                Forgot password?
+              </a>
+            </div>
 
-          <button
-            type="submit"
-            className={`login-button ${isLoading ? 'loading' : ''}`}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <>
-                <span className="spinner"></span>
-                Signing in...
-              </>
-            ) : (
-              'Sign In'
-            )}
-          </button>
-        </form>
+            <button
+              type="submit"
+              className={`login-button ${isLoading ? 'loading' : ''}`}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <span className="spinner"></span>
+                  Signing in...
+                </>
+              ) : (
+                'Sign In'
+              )}
+            </button>
+          </form>
+        ) : (
+          <form className="login-form" onSubmit={handleRegisterSubmit}>
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="first_name" className="form-label">
+                  First Name
+                </label>
+                <div className="input-wrapper">
+                  <input
+                    id="first_name"
+                    name="first_name"
+                    type="text"
+                    value={registerData.first_name}
+                    onChange={handleRegisterInputChange}
+                    className={`form-input ${errors.first_name ? 'error' : ''}`}
+                    placeholder="First name"
+                  />
+                  <span className="input-icon">👤</span>
+                </div>
+                {errors.first_name && (
+                  <span className="error-message">{errors.first_name}</span>
+                )}
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="last_name" className="form-label">
+                  Last Name
+                </label>
+                <div className="input-wrapper">
+                  <input
+                    id="last_name"
+                    name="last_name"
+                    type="text"
+                    value={registerData.last_name}
+                    onChange={handleRegisterInputChange}
+                    className={`form-input ${errors.last_name ? 'error' : ''}`}
+                    placeholder="Last name"
+                  />
+                  <span className="input-icon">👤</span>
+                </div>
+                {errors.last_name && (
+                  <span className="error-message">{errors.last_name}</span>
+                )}
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="reg-username" className="form-label">
+                Username
+              </label>
+              <div className="input-wrapper">
+                <input
+                  id="reg-username"
+                  name="username"
+                  type="text"
+                  value={registerData.username}
+                  onChange={handleRegisterInputChange}
+                  className={`form-input ${errors.username ? 'error' : ''}`}
+                  placeholder="Choose a username"
+                />
+                <span className="input-icon">@</span>
+              </div>
+              {errors.username && (
+                <span className="error-message">{errors.username}</span>
+              )}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="reg-email" className="form-label">
+                Email Address
+              </label>
+              <div className="input-wrapper">
+                <input
+                  id="reg-email"
+                  name="email"
+                  type="email"
+                  value={registerData.email}
+                  onChange={handleRegisterInputChange}
+                  className={`form-input ${errors.email ? 'error' : ''}`}
+                  placeholder="Enter your email"
+                />
+                <span className="input-icon">📧</span>
+              </div>
+              {errors.email && (
+                <span className="error-message">{errors.email}</span>
+              )}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="reg-password" className="form-label">
+                Password
+              </label>
+              <div className="input-wrapper">
+                <input
+                  id="reg-password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={registerData.password}
+                  onChange={handleRegisterInputChange}
+                  className={`form-input ${errors.password ? 'error' : ''}`}
+                  placeholder="Create a password"
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowPassword(!showPassword)}
+                  tabIndex={-1}
+                >
+                  {showPassword ? '🙈' : '👁️'}
+                </button>
+              </div>
+              {errors.password && (
+                <span className="error-message">{errors.password}</span>
+              )}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="confirmPassword" className="form-label">
+                Confirm Password
+              </label>
+              <div className="input-wrapper">
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type={showPassword ? 'text' : 'password'}
+                  value={registerData.confirmPassword}
+                  onChange={handleRegisterInputChange}
+                  className={`form-input ${errors.confirmPassword ? 'error' : ''}`}
+                  placeholder="Confirm your password"
+                />
+                <span className="input-icon">🔒</span>
+              </div>
+              {errors.confirmPassword && (
+                <span className="error-message">{errors.confirmPassword}</span>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              className={`login-button ${isLoading ? 'loading' : ''}`}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <span className="spinner"></span>
+                  Creating account...
+                </>
+              ) : (
+                'Create Account'
+              )}
+            </button>
+          </form>
+        )}
 
         <div className="login-footer">
           <p>
-            Don't have an account?{' '}
-            <a href="#" className="signup-link">
-              Sign up
-            </a>
+            {isLoginMode ? "Don't have an account?" : "Already have an account?"}{' '}
+            <button 
+              className="signup-link"
+              onClick={() => {
+                setIsLoginMode(!isLoginMode);
+                setErrors({});
+              }}
+            >
+              {isLoginMode ? 'Sign up' : 'Sign in'}
+            </button>
           </p>
         </div>
 
