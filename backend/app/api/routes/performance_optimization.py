@@ -9,7 +9,8 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_admin_user
 from app.models.user import User
 from app.services.performance_service import performance_monitor, metrics_collector
-from app.core.database_optimizer import db_optimizer, query_tracker, db_maintenance
+# from app.core.database_optimizer import db_optimizer, query_tracker, db_maintenance
+# Database optimizer disabled to prevent hanging
 from app.core.cache import cache
 from app.middleware.compression import SmartCompressionMiddleware
 

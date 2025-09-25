@@ -2,7 +2,7 @@
 import apiClient from './apiClient';
 
 export interface LoginRequest {
-  username: string;
+  email: string;
   password: string;
 }
 
@@ -16,21 +16,36 @@ export interface RegisterRequest {
 
 export interface AuthResponse {
   access_token: string;
-  refresh_token: string;
-  token_type: string;
-  expires_in: number;
+  refresh_token?: string; // Optional since backend doesn't provide it yet
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    role: string;
+    organizationId?: string;
+  };
 }
 
 export interface UserProfile {
   id: string;
-  username: string;
   email: string;
   first_name?: string;
   last_name?: string;
-  is_active: boolean;
-  is_admin: boolean;
-  created_at: string;
-  updated_at: string;
+  full_name?: string; // Added to match backend
+  is_active?: boolean;
+  is_admin?: boolean; 
+  is_verified?: boolean; // Added to match backend
+  role?: string;
+  status?: string;
+  created_at?: string;
+  updated_at?: string;
+  last_login_at?: string | null;
+  // Add other fields that might come from backend
+  bio?: string;
+  avatar_url?: string;
+  // For compatibility with login response
+  name?: string;
+  organizationId?: string | null;
 }
 
 export interface RefreshTokenRequest {
@@ -62,15 +77,7 @@ class AuthApiService {
   
   // Authentication
   async login(credentials: LoginRequest): Promise<AuthResponse> {
-    const formData = new FormData();
-    formData.append('username', credentials.username);
-    formData.append('password', credentials.password);
-    
-    return apiClient.post(`${this.basePath}/login`, formData, {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-    });
+    return apiClient.post(`${this.basePath}/login/json`, credentials);
   }
   
   async register(userData: RegisterRequest): Promise<UserProfile> {
@@ -112,8 +119,20 @@ class AuthApiService {
   // Token management utilities
   setTokens(tokens: AuthResponse): void {
     localStorage.setItem('access_token', tokens.access_token);
-    localStorage.setItem('refresh_token', tokens.refresh_token);
-    localStorage.setItem('token_expires', (Date.now() + tokens.expires_in * 1000).toString());
+    if (tokens.refresh_token) {
+      localStorage.setItem('refresh_token', tokens.refresh_token);
+    }
+    
+    // Set a default expiration of 15 minutes (matching backend settings)
+    // Backend typically provides 15-minute access tokens
+    const expiresIn = 15 * 60; // 15 minutes default
+    const expirationTime = Date.now() + (expiresIn * 1000);
+    localStorage.setItem('token_expires', expirationTime.toString());
+    
+    // Store user data
+    localStorage.setItem('user_data', JSON.stringify(tokens.user));
+    
+    console.log(`Token set, expires at: ${new Date(expirationTime).toLocaleTimeString()}`);
   }
   
   getAccessToken(): string | null {
@@ -124,17 +143,49 @@ class AuthApiService {
     return localStorage.getItem('refresh_token');
   }
   
+  getUserData(): AuthResponse['user'] | null {
+    const userData = localStorage.getItem('user_data');
+    return userData ? JSON.parse(userData) : null;
+  }
+  
   clearTokens(): void {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('token_expires');
+    localStorage.removeItem('user_data');
   }
   
   isTokenExpired(): boolean {
     const expiresAt = localStorage.getItem('token_expires');
     if (!expiresAt) return true;
     
-    return Date.now() > parseInt(expiresAt) - 60000; // Consider expired 1 minute before actual expiry
+    // Consider expired 2 minutes before actual expiry for safety margin
+    const expirationTime = parseInt(expiresAt);
+    const timeUntilExpiry = expirationTime - Date.now();
+    const isExpiring = timeUntilExpiry <= (2 * 60 * 1000); // 2 minutes
+    
+    if (isExpiring) {
+      console.log(`Token expiring in ${Math.floor(timeUntilExpiry / 1000)}s`);
+    }
+    
+    return isExpiring;
+  }
+  
+  // New method: Get time until token expires
+  getTokenExpiryTime(): number | null {
+    const expiresAt = localStorage.getItem('token_expires');
+    if (!expiresAt) return null;
+    
+    return parseInt(expiresAt);
+  }
+  
+  // New method: Check if token expires within specified minutes
+  isTokenExpiringWithin(minutes: number): boolean {
+    const expiryTime = this.getTokenExpiryTime();
+    if (!expiryTime) return true;
+    
+    const timeUntilExpiry = expiryTime - Date.now();
+    return timeUntilExpiry <= (minutes * 60 * 1000);
   }
   
   isAuthenticated(): boolean {

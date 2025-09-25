@@ -6,7 +6,7 @@ interface AuthContextType {
   user: UserProfile | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   register: (userData: {
     username: string;
@@ -16,6 +16,9 @@ interface AuthContextType {
     last_name?: string;
   }) => Promise<void>;
   refreshUser: () => Promise<void>;
+  // Additional methods for Day 2 requirements
+  refreshToken: () => Promise<boolean>;
+  isTokenExpiring: () => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -73,10 +76,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const login = async (username: string, password: string): Promise<void> => {
+  const login = async (email: string, password: string): Promise<void> => {
     try {
       setIsLoading(true);
-      const tokens: AuthResponse = await authApi.login({ username, password });
+      const tokens: AuthResponse = await authApi.login({ email, password });
       authApi.setTokens(tokens);
       
       const userData = await authApi.getCurrentUser();
@@ -104,7 +107,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await authApi.register(userData);
       
       // Auto-login after successful registration
-      await login(userData.username, userData.password);
+      await login(userData.email, userData.password);
       
       toast.success('Registration successful! Welcome to TeamFlow!');
     } catch (error: any) {
@@ -140,6 +143,56 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // New method for Day 2: Manual token refresh
+  const refreshToken = async (): Promise<boolean> => {
+    try {
+      const refreshTokenValue = authApi.getRefreshToken();
+      if (!refreshTokenValue) {
+        return false;
+      }
+
+      const tokens = await authApi.refreshToken(refreshTokenValue);
+      authApi.setTokens(tokens);
+      
+      // Refresh user data
+      const userData = await authApi.getCurrentUser();
+      setUser(userData);
+      
+      return true;
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+      authApi.clearTokens();
+      setUser(null);
+      return false;
+    }
+  };
+
+  // New method for Day 2: Check if token is expiring soon
+  const isTokenExpiring = (): boolean => {
+    return authApi.isTokenExpired();
+  };
+
+  // Auto-refresh token when it's about to expire
+  useEffect(() => {
+    const checkTokenExpiration = async () => {
+      if (isAuthenticated && isTokenExpiring()) {
+        const refreshSuccess = await refreshToken();
+        if (!refreshSuccess) {
+          // Auto-logout if refresh fails
+          await logout();
+        }
+      }
+    };
+
+    // Check every 5 minutes
+    const interval = setInterval(checkTokenExpiration, 5 * 60 * 1000);
+    
+    // Also check immediately
+    checkTokenExpiration();
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
+
   const value: AuthContextType = {
     user,
     isAuthenticated,
@@ -148,6 +201,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     register,
     refreshUser,
+    refreshToken,
+    isTokenExpiring,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -1,6 +1,6 @@
 import React from 'react';
 import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
-import { AuthProvider } from '../context/AuthContext';
+import { AuthProvider } from '../contexts/AuthContext';
 import PrivateRoute from '../components/PrivateRoute';
 import LoginPage from '../pages/Login';
 import RegisterPage from '../pages/Register';

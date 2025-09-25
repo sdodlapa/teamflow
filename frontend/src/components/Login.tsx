@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import './Login.css';
 
 interface LoginForm {
-  username: string;
+  email: string;
   password: string;
 }
 
@@ -24,7 +24,7 @@ const Login: React.FC = () => {
   const { login, register, isLoading } = useAuth();
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [loginData, setLoginData] = useState<LoginForm>({
-    username: '',
+    email: '',
     password: ''
   });
   const [registerData, setRegisterData] = useState<RegisterForm>({
@@ -41,8 +41,10 @@ const Login: React.FC = () => {
   const validateLoginForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!loginData.username) {
-      newErrors.username = 'Username is required';
+    if (!loginData.email) {
+      newErrors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(loginData.email)) {
+      newErrors.email = 'Please enter a valid email address';
     }
 
     if (!loginData.password) {
@@ -100,7 +102,7 @@ const Login: React.FC = () => {
     }
 
     try {
-      await login(loginData.username, loginData.password);
+      await login(loginData.email, loginData.password);
     } catch (error) {
       // Error handling is done in the auth context
     }
@@ -182,24 +184,24 @@ const Login: React.FC = () => {
         {isLoginMode ? (
           <form className="login-form" onSubmit={handleLoginSubmit}>
             <div className="form-group">
-              <label htmlFor="username" className="form-label">
-                Username
+              <label htmlFor="email" className="form-label">
+                Email
               </label>
               <div className="input-wrapper">
                 <input
-                  id="username"
-                  name="username"
-                  type="text"
-                  value={loginData.username}
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={loginData.email}
                   onChange={handleLoginInputChange}
-                  className={`form-input ${errors.username ? 'error' : ''}`}
-                  placeholder="Enter your username"
-                  autoComplete="username"
+                  className={`form-input ${errors.email ? 'error' : ''}`}
+                  placeholder="Enter your email"
+                  autoComplete="email"
                 />
-                <span className="input-icon">�</span>
+                <span className="input-icon">📧</span>
               </div>
-              {errors.username && (
-                <span className="error-message">{errors.username}</span>
+              {errors.email && (
+                <span className="error-message">{errors.email}</span>
               )}
             </div>
 

@@ -168,7 +168,7 @@ const BackendIntegrationTest: React.FC = () => {
       
       {isAuthenticated ? (
         <div style={{ marginBottom: '1.5rem', padding: '1rem', background: '#f0fdf4', borderRadius: '0.5rem' }}>
-          <p>✅ Authenticated as: {user?.username} ({user?.email})</p>
+          <p>✅ Authenticated as: {user?.name || user?.full_name || user?.email} ({user?.email})</p>
         </div>
       ) : (
         <div style={{ marginBottom: '1.5rem', padding: '1rem', background: '#fef3c7', borderRadius: '0.5rem' }}>

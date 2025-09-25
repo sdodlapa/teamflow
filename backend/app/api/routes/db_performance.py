@@ -45,31 +45,32 @@ async def get_auth_performance_comparison(current_user = Depends(get_current_use
         if "auth" in endpoint.lower()
     }
     
-    # Organize by auth type
+    # Organize by auth type (optimized_auth routes archived)
     comparison = {
-        "standard_auth": {},
-        "optimized_auth": {},
-        "recommendation": ""
+        "main_auth": {},
+        "archived_auth": {},  # Previously optimized_auth, now archived
+        "recommendation": "Using main auth system - redundant auth systems archived"
     }
     
     # Populate comparison data
     for endpoint, stats in auth_stats.items():
-        if "optimized" in endpoint.lower():
-            comparison["optimized_auth"][endpoint] = stats
+        if "optimized" in endpoint.lower() or "fast" in endpoint.lower():
+            comparison["archived_auth"][endpoint] = stats
         else:
-            comparison["standard_auth"][endpoint] = stats
+            comparison["main_auth"][endpoint] = stats
     
-    # Generate recommendation
-    std_avg = 0
-    std_count = 0
-    opt_avg = 0
-    opt_count = 0
+    # Generate recommendation based on main auth performance
+    main_avg = 0
+    main_count = 0
+    archived_avg = 0
+    archived_count = 0
     
-    for stats in comparison["standard_auth"].values():
-        std_avg += stats.get("avg_ms", 0)
-        std_count += 1
+    for stats in comparison["main_auth"].values():
+        if stats["count"] > 0:
+            main_avg += stats["avg_time"]
+            main_count += 1
     
-    for stats in comparison["optimized_auth"].values():
+    for stats in comparison["archived_auth"].values():
         opt_avg += stats.get("avg_ms", 0)
         opt_count += 1
     

@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Navigate, Link } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import { useAuthContext } from '../context/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 
 const LoginPage: React.FC = () => {
-  const { login, isAuthenticated, isLoading } = useAuthContext();
+  const { login, isAuthenticated, isLoading } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -25,14 +25,11 @@ const LoginPage: React.FC = () => {
     }
 
     try {
-      const success = await login(formData.email, formData.password);
-      if (success) {
-        toast.success('Login successful!');
-      } else {
-        toast.error('Invalid credentials');
-      }
+      await login(formData.email, formData.password);
+      // Success is handled by the AuthContext with toast notification
     } catch (error) {
       console.error('Login error:', error);
+      // Error is handled by the AuthContext with toast notification
     }
   };
 

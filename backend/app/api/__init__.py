@@ -3,7 +3,8 @@
 from fastapi import APIRouter
 
 # Import routes with file management commented out temporarily
-from app.api.routes import auth, organizations, projects, tasks, users, advanced_features, websocket, search, workflow, webhooks, security, performance, performance_optimization, admin, config, enhanced_comments, comment_attachments, comment_websockets, comment_search, task_analytics, workflow_automation, enhanced_tasks, templates, fast_auth, optimized_auth, db_performance
+from app.api.routes import auth, organizations, projects, tasks, users, advanced_features, websocket, search, workflow, webhooks, security, performance, performance_optimization, admin, config, enhanced_comments, comment_attachments, comment_websockets, comment_search, task_analytics, workflow_automation, enhanced_tasks, templates, db_performance
+# Redundant auth routes archived: fast_auth, optimized_auth
 # from app.api.routes import files  # Disabled for deployment
 from app.api import template, health
 
@@ -63,11 +64,9 @@ except ImportError:
     # Template builder not available yet
     pass
 
-# Ultra-fast auth route that bypasses SQLAlchemy completely
-api_router.include_router(fast_auth.router)
+# Removed redundant auth routes that were causing confusion:
+# - fast_auth: Direct SQLite implementation (redundant with main auth)  
+# - optimized_auth: Alternative auth system (redundant with main auth)
 
-# Optimized auth routes with direct SQLite integration
-api_router.include_router(optimized_auth.router, prefix="/optimized-auth", tags=["optimized-authentication"])
-
-# Database performance monitoring
+# Database performance monitoring (commented out - was causing hanging)
 api_router.include_router(db_performance.router, prefix="/monitoring", tags=["db-performance-monitoring"])

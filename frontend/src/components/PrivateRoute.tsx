@@ -1,6 +1,6 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuthContext } from '../context/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 
 interface PrivateRouteProps {
   children: React.ReactNode;
@@ -14,7 +14,7 @@ export const PrivateRoute: React.FC<PrivateRouteProps> = ({
   children, 
   redirectTo = '/login' 
 }) => {
-  const { isAuthenticated, isLoading } = useAuthContext();
+  const { isAuthenticated, isLoading } = useAuth();
 
   // Show loading while auth status is being determined
   if (isLoading) {

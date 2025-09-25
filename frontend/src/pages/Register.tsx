@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Navigate, Link } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import { useAuthContext } from '../context/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 
 const RegisterPage: React.FC = () => {
-  const { signup, isAuthenticated, isLoading } = useAuthContext();
+  const { register, isAuthenticated, isLoading } = useAuth();
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -37,16 +37,17 @@ const RegisterPage: React.FC = () => {
     }
 
     try {
-      const fullName = `${formData.first_name} ${formData.last_name}`;
-      const success = await signup(fullName, formData.email, formData.password);
-      if (success) {
-        toast.success('Account created successfully!');
-      } else {
-        toast.error('Registration failed. Please try again.');
-      }
+      await register({
+        username: formData.email, // Use email as username
+        email: formData.email,
+        password: formData.password,
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+      });
+      // Success is handled by the AuthContext with toast notification
     } catch (error) {
       console.error('Registration error:', error);
-      toast.error('Registration failed. Please try again.');
+      // Error is handled by the AuthContext with toast notification
     }
   };
 
