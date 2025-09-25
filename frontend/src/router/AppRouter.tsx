@@ -6,6 +6,7 @@ import LoginPage from '../pages/Login';
 import RegisterPage from '../pages/Register';
 import Dashboard from '../pages/Dashboard';
 import Tasks from '../pages/Tasks';
+import Projects from '../pages/Projects';
 
 // Placeholder components - replace with actual components when they exist
 const PlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
@@ -58,7 +59,7 @@ const router = createBrowserRouter([
     path: '/projects',
     element: (
       <PrivateRoute>
-        <PlaceholderPage title="Projects" />
+        <Projects />
       </PrivateRoute>
     ),
   },
