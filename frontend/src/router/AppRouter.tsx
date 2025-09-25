@@ -5,6 +5,7 @@ import PrivateRoute from '../components/PrivateRoute';
 import LoginPage from '../pages/Login';
 import RegisterPage from '../pages/Register';
 import Dashboard from '../pages/Dashboard';
+import Tasks from '../pages/Tasks';
 
 // Placeholder components - replace with actual components when they exist
 const PlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
@@ -49,7 +50,7 @@ const router = createBrowserRouter([
     path: '/tasks',
     element: (
       <PrivateRoute>
-        <PlaceholderPage title="Tasks" />
+        <Tasks />
       </PrivateRoute>
     ),
   },
