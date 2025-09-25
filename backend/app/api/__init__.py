@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from app.api.routes import auth, organizations, projects, tasks, users, advanced_features, websocket, files, search, workflow, webhooks, security, performance, performance_optimization, admin, config, enhanced_comments, comment_attachments, comment_websockets, comment_search, task_analytics, workflow_automation, enhanced_tasks, templates
+from app.api.routes import auth, organizations, projects, tasks, users, advanced_features, websocket, files, search, workflow, webhooks, security, performance, performance_optimization, admin, config, enhanced_comments, comment_attachments, comment_websockets, comment_search, task_analytics, workflow_automation, enhanced_tasks, templates, fast_auth, optimized_auth, db_performance
 from app.api import template
 
 # Create main API router
@@ -56,3 +56,12 @@ try:
 except ImportError:
     # Template builder not available yet
     pass
+
+# Ultra-fast auth route that bypasses SQLAlchemy completely
+api_router.include_router(fast_auth.router)
+
+# Optimized auth routes with direct SQLite integration
+api_router.include_router(optimized_auth.router, prefix="/optimized-auth", tags=["optimized-authentication"])
+
+# Database performance monitoring
+api_router.include_router(db_performance.router, prefix="/monitoring", tags=["db-performance-monitoring"])
