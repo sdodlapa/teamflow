@@ -24,6 +24,50 @@ from app.schemas.templates import (
 logger = logging.getLogger(__name__)
 
 
+class TemplateService:
+    """Template service class for handling template operations."""
+    
+    @staticmethod
+    async def get_templates(db: AsyncSession, user_id: str, **kwargs) -> Tuple[List[Template], int]:
+        """Get templates with pagination and filtering."""
+        return await get_templates(db, user_id, **kwargs)
+    
+    @staticmethod
+    async def get_template(db: AsyncSession, template_id: Union[str, UUID]) -> Template:
+        """Get a single template by ID."""
+        return await get_template(db, template_id)
+    
+    @staticmethod
+    async def create_template(db: AsyncSession, template_data: TemplateCreate, user_id: UUID) -> Template:
+        """Create a new template."""
+        return await create_template(db, template_data, user_id)
+    
+    @staticmethod
+    async def update_template(db: AsyncSession, template_id: UUID, template_data: TemplateUpdate, user_id: UUID) -> Template:
+        """Update an existing template."""
+        return await update_template(db, template_id, template_data, user_id)
+    
+    @staticmethod
+    async def delete_template(db: AsyncSession, template_id: UUID, user_id: UUID) -> bool:
+        """Delete a template."""
+        return await delete_template(db, template_id, user_id)
+    
+    @staticmethod
+    async def publish_template(db: AsyncSession, template_id: UUID, user_id: UUID) -> Template:
+        """Publish a template."""
+        return await publish_template(db, template_id, user_id)
+    
+    @staticmethod
+    async def duplicate_template(db: AsyncSession, template_id: UUID, new_name: str, user_id: UUID) -> Template:
+        """Duplicate a template."""
+        return await duplicate_template(db, template_id, new_name, user_id)
+    
+    @staticmethod
+    async def get_analytics(db: AsyncSession, template_id: UUID) -> Dict[str, Any]:
+        """Get template analytics."""
+        return await get_template_analytics(db, template_id)
+
+
 async def get_templates(
     db: AsyncSession,
     user_id: str,
