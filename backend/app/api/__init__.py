@@ -2,7 +2,9 @@
 
 from fastapi import APIRouter
 
-from app.api.routes import auth, organizations, projects, tasks, users, advanced_features, websocket, files, search, workflow, webhooks, security, performance, performance_optimization, admin, config, enhanced_comments, comment_attachments, comment_websockets, comment_search, task_analytics, workflow_automation, enhanced_tasks, templates, fast_auth, optimized_auth, db_performance
+# Import routes with file management commented out temporarily
+from app.api.routes import auth, organizations, projects, tasks, users, advanced_features, websocket, search, workflow, webhooks, security, performance, performance_optimization, admin, config, enhanced_comments, comment_attachments, comment_websockets, comment_search, task_analytics, workflow_automation, enhanced_tasks, templates, fast_auth, optimized_auth, db_performance
+# from app.api.routes import files  # Disabled for deployment
 from app.api import template, health
 
 # Create main API router
@@ -25,7 +27,7 @@ api_router.include_router(
 api_router.include_router(
     websocket.router, prefix="/realtime", tags=["realtime-collaboration"]
 )
-api_router.include_router(files.router, prefix="/files", tags=["file-management"])
+# api_router.include_router(files.router, prefix="/files", tags=["file-management"])  # Disabled for deployment
 api_router.include_router(search.router, prefix="/search", tags=["search"])
 api_router.include_router(workflow.router, tags=["workflow-automation"])
 api_router.include_router(webhooks.router, tags=["webhooks-integrations"])
@@ -37,7 +39,8 @@ api_router.include_router(config.router, prefix="/config", tags=["system-configu
 
 # Enhanced comment system routes (Day 2)
 api_router.include_router(enhanced_comments.router, prefix="/tasks", tags=["enhanced-comments"])
-api_router.include_router(comment_attachments.router, prefix="/comments", tags=["comment-attachments"])
+# TODO LATER: Re-enable after file management system dependencies resolved (libmagic)
+# api_router.include_router(comment_attachments.router, prefix="/comments", tags=["comment-attachments"])
 api_router.include_router(comment_websockets.router, prefix="/realtime", tags=["comment-websockets"])
 api_router.include_router(comment_search.router, prefix="/search", tags=["comment-search"])
 

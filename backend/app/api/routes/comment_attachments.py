@@ -19,7 +19,9 @@ from app.core.dependencies import get_current_active_user
 from app.models.enhanced_comments import TaskCommentEnhanced, CommentAttachment
 from app.models.file_management import FileUpload, FileType, FileVisibility
 from app.schemas.user import UserRead
-from app.services.file_management import FileManagementService
+# TODO LATER: Switch back to full file_management service after libmagic is configured
+# from app.services.file_management import FileManagementService
+from app.services.file_management_stub import FileManagementService
 from app.core.config import settings
 
 router = APIRouter()
