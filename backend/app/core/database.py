@@ -22,7 +22,18 @@ _async_session_maker = None
 
 def get_database_url() -> str:
     """Get database URL with proper configuration."""
-    return str(settings.DATABASE_URL)
+    db_url = str(settings.DATABASE_URL)
+    
+    # For SQLite, add query parameters to optimize performance
+    if "sqlite" in db_url.lower():
+        # Add optimization parameters for SQLite
+        if "?" not in db_url:
+            db_url += "?"
+        else:
+            db_url += "&"
+        db_url += "cache=shared&timeout=5&journal_mode=WAL&synchronous=NORMAL"
+    
+    return db_url
 
 
 def create_sync_engine():
@@ -55,17 +66,31 @@ def get_async_engine():
         if "sqlite" in db_url.lower():
             connect_args = {
                 "check_same_thread": False,
-                "timeout": 20,
+                "timeout": 5,  # Reduced timeout to avoid blocking
             }
         
-        _async_engine = create_async_engine(
-            db_url,
-            echo=settings.DEBUG,
-            pool_pre_ping=True,
-            pool_recycle=300,
-            connect_args=connect_args,
-            future=True,
-        )
+        if "sqlite" in db_url.lower():
+            # SQLite-specific optimizations
+            _async_engine = create_async_engine(
+                db_url,
+                echo=settings.DEBUG,
+                pool_pre_ping=True,
+                pool_recycle=60,  # Shorter pool recycle
+                connect_args=connect_args,
+                future=True,
+            )
+        else:
+            # PostgreSQL configurations
+            _async_engine = create_async_engine(
+                db_url,
+                echo=settings.DEBUG,
+                pool_pre_ping=True,
+                pool_recycle=300,
+                pool_size=settings.DB_POOL_SIZE,
+                max_overflow=settings.DB_MAX_OVERFLOW,
+                connect_args=connect_args,
+                future=True,
+            )
     
     return _async_engine
 
@@ -114,8 +139,16 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
     Usage:
         def my_endpoint(db: AsyncSession = Depends(get_db)):
     """
-    async with get_async_session() as session:
+    session_maker = get_async_session_maker()
+    session = session_maker()
+    try:
         yield session
+        await session.commit()
+    except Exception:
+        await session.rollback()
+        raise
+    finally:
+        await session.close()
 
 
 def create_tables_sync():
@@ -124,11 +157,27 @@ def create_tables_sync():
         print("🔧 Creating database tables synchronously...")
         
         # Import all models to ensure they're registered
-        from app.models import user, organization  # Import the models we need
+        import importlib
+        import pkgutil
+        import app.models
         
-        # Create sync engine and tables
+        # Dynamically import all models
+        print("📦 Importing all models...")
+        for _, name, _ in pkgutil.iter_modules(app.models.__path__):
+            try:
+                importlib.import_module(f'app.models.{name}')
+                print(f"  ✓ Loaded model: {name}")
+            except Exception as model_err:
+                print(f"  ✗ Error loading model {name}: {model_err}")
+        
+        # Create sync engine with optimizations
+        print("🔄 Setting up database engine...")
         sync_engine = create_sync_engine()
-        Base.metadata.create_all(bind=sync_engine)
+        
+        # Use batch DDL for faster table creation
+        print("🏗️ Creating tables in a single transaction...")
+        with sync_engine.begin() as conn:
+            Base.metadata.create_all(bind=conn)
         
         print("✅ Database tables created successfully")
         return True
@@ -146,15 +195,9 @@ def check_database_exists() -> bool:
         if "sqlite" in db_url.lower():
             # Check SQLite file
             db_path = db_url.replace("sqlite+aiosqlite://", "").replace("sqlite://", "")
-            if not os.path.exists(db_path):
-                return False
             
-            # Check if it has tables
-            sync_engine = create_sync_engine()
-            with sync_engine.connect() as conn:
-                result = conn.execute(text("SELECT name FROM sqlite_master WHERE type='table'"))
-                tables = result.fetchall()
-                return len(tables) > 0
+            # Simple file existence check - avoid running queries at this stage
+            return os.path.exists(db_path) and os.path.getsize(db_path) > 0
         else:
             # For PostgreSQL, assume it exists
             return True

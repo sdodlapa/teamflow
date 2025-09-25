@@ -95,6 +95,24 @@ class Token(BaseModel):
     token_type: str = "bearer"
 
 
+class LoginResponseUser(BaseModel):
+    """User data in login response."""
+    
+    id: str
+    email: str
+    name: str
+    role: str
+    organizationId: Optional[str] = None
+
+
+class LoginResponse(BaseModel):
+    """Schema for login response with user data."""
+
+    access_token: str
+    refresh_token: Optional[str] = None
+    user: LoginResponseUser
+
+
 class TokenData(BaseModel):
     """Schema for token data."""
 

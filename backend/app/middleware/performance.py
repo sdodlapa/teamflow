@@ -300,15 +300,17 @@ class PerformanceMiddlewareConfig:
     
     @staticmethod
     def get_middleware_stack() -> list:
-        """Get optimized middleware stack for performance"""
+        """Get simplified, non-hanging middleware stack for performance"""
         return [
+            # Keep essential middleware only
             (GZipMiddleware, {"minimum_size": 1000}),
-            (ResponseCompressionMiddleware, {"minimum_size": 1000, "compression_level": 6}),
-            (PerformanceTrackingMiddleware, {}),
             (APIOptimizationMiddleware, {"max_request_size": 10 * 1024 * 1024}),
-            (ConnectionPoolMiddleware, {}),
-            (ResourceMonitoringMiddleware, {}),
-            (SmartPaginationMiddleware, {}),
+            # REMOVED: Heavy middleware that causes hanging
+            # - ResponseCompressionMiddleware (redundant with GZip)
+            # - PerformanceTrackingMiddleware (async context manager issues)
+            # - ConnectionPoolMiddleware (not needed with proper SQLAlchemy setup)
+            # - ResourceMonitoringMiddleware (psutil calls are expensive)
+            # - SmartPaginationMiddleware (complex logic)
         ]
     
     @staticmethod

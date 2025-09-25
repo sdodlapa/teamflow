@@ -139,7 +139,22 @@ class User(Base):
     @classmethod
     async def get_by_email(cls, db: AsyncSession, email: str) -> Optional["User"]:
         """Get user by email address."""
-        result = await db.execute(select(cls).where(cls.email == email))
+        from sqlalchemy import select, func
+        from sqlalchemy.orm import load_only
+        
+        # Use load_only to specify exactly which columns we need for authentication
+        # This prevents loading all the relationships and columns we don't need
+        stmt = (
+            select(cls)
+            .options(load_only(
+                cls.id, cls.email, cls.hashed_password, cls.is_verified,
+                cls.first_name, cls.last_name, cls.role, cls.status
+            ))
+            .where(cls.email == email)
+        )
+        
+        # Use execution options for more efficient query
+        result = await db.execute(stmt.execution_options(populate_existing=False))
         return result.scalar_one_or_none()
 
     @classmethod

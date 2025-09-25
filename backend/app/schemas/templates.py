@@ -8,6 +8,8 @@ from enum import Enum
 
 from pydantic import BaseModel, Field, validator
 
+from app.models.templates import TemplateStatus, CollaboratorPermissions
+
 
 # Enums
 class TemplateStatus(str, Enum):
@@ -159,7 +161,7 @@ class TemplateVersionCreate(BaseModel):
 class CollaboratorCreate(BaseModel):
     """Schema for adding a collaborator to a template."""
     userId: UUID
-    permissions: TemplatePermission = TemplatePermission.READ
+    permissions: CollaboratorPermissions = CollaboratorPermissions.READ
 
 
 class TemplateResponse(TemplateBase):
@@ -203,7 +205,7 @@ class TemplateCollaboratorResponse(BaseModel):
     id: UUID
     templateId: UUID
     userId: UUID
-    permissions: TemplatePermission
+    permissions: CollaboratorPermissions
     createdAt: datetime
     updatedAt: Optional[datetime] = None
     

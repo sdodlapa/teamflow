@@ -63,7 +63,7 @@ export const useAuth = () => {
     setError(null);
     
     try {
-      const response = await apiClient.post<LoginResponse>('/auth/login', {
+      const response = await apiClient.post<LoginResponse>('/auth/login/json', {
         email,
         password
       });
@@ -122,22 +122,22 @@ export const useAuth = () => {
     setError(null);
     
     try {
-      const response = await apiClient.post<LoginResponse>('/auth/register', {
-        name,
+      // Split the name into first and last name
+      const nameParts = name.trim().split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+      
+      await apiClient.post('/auth/register', {
+        first_name: firstName,
+        last_name: lastName,
         email,
         password
       });
       
-      const { access_token, refresh_token, user: userData } = response;
-      
-      // Store tokens
-      localStorage.setItem('access_token', access_token);
-      localStorage.setItem('refresh_token', refresh_token);
-      
-      // Update state
-      setUser(userData);
-      setIsAuthenticated(true);
+      // Registration successful but user needs verification
+      // Don't auto-login, just show success message
       setIsLoading(false);
+      setError('Account created successfully! Please check your email for verification (for demo purposes, you can login immediately).');
       
       return true;
     } catch (err) {

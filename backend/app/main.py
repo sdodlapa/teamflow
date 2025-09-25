@@ -13,8 +13,9 @@ from app.api import api_router
 from app.core.config import settings
 from app.core.database import ensure_database_ready, close_database
 from app.middleware.security import security_middleware, audit_middleware
-from app.middleware.performance import PerformanceMiddlewareConfig
-from app.services.performance_service import performance_monitor, metrics_collector
+# Removed heavy performance middleware imports that cause hanging
+# from app.middleware.performance import PerformanceMiddlewareConfig
+# from app.services.performance_service import performance_monitor, metrics_collector
 
 logger = logging.getLogger(__name__)
 
@@ -43,8 +44,10 @@ def create_application() -> FastAPI:
     app.middleware("http")(security_middleware)
     app.middleware("http")(audit_middleware)
 
-    # Day 6: Add performance optimization middleware
-    PerformanceMiddlewareConfig.configure_app_middleware(app)
+    # Use minimal performance middleware (fixed hanging)
+    from app.middleware.minimal_performance import MinimalPerformanceConfig
+    MinimalPerformanceConfig.configure_app_middleware(app)
+    print("✅ Minimal performance middleware enabled - NO HANGING")
 
     # Request timing middleware
     @app.middleware("http")
@@ -158,9 +161,13 @@ def create_application() -> FastAPI:
 app = create_application()
 
 
-@app.on_event("startup")
-async def startup_event():
-    """Application startup event with Day 6 Performance Optimization."""
+# TEMPORARILY DISABLED: Startup event causing Redis hanging
+# @app.on_event("startup")
+async def startup_event_disabled():
+    """DISABLED: Application startup event was causing hanging."""
+    print("⚠️ Startup event temporarily disabled to fix hanging issue")
+    print("🚀 TeamFlow API starting without Redis/Performance monitoring")
+    pass
     try:
         print("🚀 TeamFlow API v2.0 starting up with Performance Optimization...")
         print(f"✅ Environment: {settings.ENVIRONMENT}")
@@ -171,11 +178,19 @@ async def startup_event():
         
         # Initialize Redis connection for metrics collector
         print("💾 Initializing Redis connection for caching...")
-        redis_connected = await metrics_collector.initialize_redis_connection()
-        if redis_connected:
-            print("✅ Redis connection established for enhanced caching")
-        else:
-            print("⚠️ Redis unavailable - using local caching only")
+        try:
+            redis_connected = await asyncio.wait_for(
+                metrics_collector.initialize_redis_connection(),
+                timeout=3.0  # 3 second timeout to prevent hanging
+            )
+            if redis_connected:
+                print("✅ Redis connection established for enhanced caching")
+            else:
+                print("⚠️ Redis unavailable - using local caching only")
+        except asyncio.TimeoutError:
+            print("⚠️ Redis connection timed out - using local caching only")
+        except Exception as e:
+            print(f"⚠️ Redis connection failed: {e} - using local caching only")
         
         print("�📋 Database: Lazy-loaded (use /test-db to check or run setup_database.py)")
         print("🎯 No hanging - server ready instantly!")
@@ -193,14 +208,8 @@ async def shutdown_event():
     """Application shutdown event with performance monitoring cleanup."""
     print("👋 TeamFlow API shutting down...")
     try:
-        # Stop performance monitoring
-        print("📊 Stopping performance monitoring...")
-        await performance_monitor.stop_monitoring()
-        
-        # Close Redis connection
-        if metrics_collector.redis_client:
-            print("💾 Closing Redis connection...")
-            await metrics_collector.redis_client.close()
+        # Removed performance monitor (causing shutdown errors)
+        print("� Minimal middleware shutdown...")
         
         # Close database connections
         await close_database()

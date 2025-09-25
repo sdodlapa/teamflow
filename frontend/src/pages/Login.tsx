@@ -121,8 +121,9 @@ const LoginPage: React.FC = () => {
 
             <div className="mt-4 text-center text-sm text-gray-600">
               Demo credentials:<br />
-              Email: admin@teamflow.com<br />
-              Password: password
+              <strong>Admin:</strong> admin@example.com / admin123<br />
+              <strong>User:</strong> user@example.com / password123<br />
+              <strong>Dev:</strong> dev@example.com / dev123
             </div>
           </form>
         ) : (

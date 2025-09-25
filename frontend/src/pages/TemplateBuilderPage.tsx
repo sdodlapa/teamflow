@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Settings, Users, BarChart3 } from 'lucide-react';
+import { Settings, Users, BarChart3, Save, Upload } from 'lucide-react';
 import { SimpleDomainConfigForm } from '../components/TemplateBuilder/SimpleDomainConfigForm';
 import EntityManager from '../components/templates/EntityManager';
 import RelationshipDesigner from '../components/templates/RelationshipDesigner';
@@ -15,6 +15,8 @@ import RealTimeStatus from '../components/RealTimeStatus';
 import { Entity, Field, Relationship } from '../types/template';
 import { CollaborativeUser } from '../hooks/useRealTimeCollaboration';
 import { useRealTimeCollaboration } from '../hooks/useRealTimeCollaboration';
+import { useTemplatePersistence } from '../hooks/useTemplatePersistence';
+import { useAuth } from '../hooks/useAuth';
 
 interface DomainConfig {
   name: string;
@@ -28,7 +30,10 @@ interface DomainConfig {
 }
 
 export const TemplateBuilderPage: React.FC = () => {
+  const { isAuthenticated } = useAuth();
   const collaboration = useRealTimeCollaboration();
+  const templatePersistence = useTemplatePersistence();
+  
   const [currentConfig, setCurrentConfig] = useState<DomainConfig | null>(null);
   const [isValid, setIsValid] = useState(false);
   const [step, setStep] = useState(1);
@@ -48,6 +53,12 @@ export const TemplateBuilderPage: React.FC = () => {
   
   // Advanced template features state
   const [showAdvancedFeatures, setShowAdvancedFeatures] = useState(false);
+
+  // Persistence state
+  const [templateName, setTemplateName] = useState('');
+  const [templateDescription, setTemplateDescription] = useState('');
+  const [isPublic, setIsPublic] = useState(false);
+  const [templateTags, setTemplateTags] = useState<string[]>([]);
   
   // Collaboration tools state
   const [showCollaborationTools, setShowCollaborationTools] = useState(false);
@@ -129,13 +140,77 @@ export const TemplateBuilderPage: React.FC = () => {
     setShowCodeGenDashboard(true);
   };
 
-  const handleSaveTemplate = async (templateData: any) => {
-    console.log('Saving template:', templateData);
-    // TODO: Implement actual template saving to backend
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    alert('Template saved successfully!');
-  };
+  const handleSaveTemplate = useCallback(async (templateData?: {
+    name?: string;
+    description?: string;
+    isPublic?: boolean;
+    tags?: string[];
+  }) => {
+    if (!currentConfig || !isAuthenticated) {
+      alert('Please complete the configuration and ensure you are logged in to save templates.');
+      return;
+    }
+
+    const name = templateData?.name || templateName || currentConfig.name || 'Untitled Template';
+    const description = templateData?.description || templateDescription || currentConfig.description || '';
+
+    try {
+      const result = await templatePersistence.saveTemplate({
+        name,
+        description,
+        domainConfig: currentConfig,
+        entities,
+        relationships,
+        isPublic: templateData?.isPublic ?? isPublic,
+        tags: templateData?.tags ?? templateTags,
+        changeDescription: `Updated template configuration`
+      });
+
+      if (result) {
+        alert(`Template "${result.name}" saved successfully!`);
+        // Update local state with saved template data
+        setTemplateName(result.name);
+        setTemplateDescription(result.description || '');
+      } else if (templatePersistence.saveError) {
+        alert(`Failed to save template: ${templatePersistence.saveError}`);
+      }
+    } catch (error: any) {
+      console.error('Error saving template:', error);
+      alert(`Failed to save template: ${error.message || 'Unknown error'}`);
+    }
+  }, [currentConfig, entities, relationships, templateName, templateDescription, isPublic, templateTags, isAuthenticated, templatePersistence]);
+
+  const handleLoadTemplate = useCallback(async (templateId: string) => {
+    if (!isAuthenticated) {
+      alert('Please log in to load templates.');
+      return;
+    }
+
+    try {
+      const loadedTemplate = await templatePersistence.loadTemplate(templateId);
+      if (loadedTemplate) {
+        // Update the form with loaded template data
+        setCurrentConfig(loadedTemplate.domainConfig as DomainConfig);
+        setEntities(loadedTemplate.entities);
+        setRelationships(loadedTemplate.relationships);
+        setTemplateName(loadedTemplate.name);
+        setTemplateDescription(loadedTemplate.description);
+        setIsPublic(loadedTemplate.metadata.isPublic);
+        setTemplateTags(loadedTemplate.metadata.tags);
+        
+        // Reset to step 1 to show the loaded configuration
+        setStep(1);
+        setIsValid(true); // Assume loaded config is valid
+        
+        alert(`Template "${loadedTemplate.name}" loaded successfully!`);
+      } else if (templatePersistence.loadError) {
+        alert(`Failed to load template: ${templatePersistence.loadError}`);
+      }
+    } catch (error: any) {
+      console.error('Error loading template:', error);
+      alert(`Failed to load template: ${error.message || 'Unknown error'}`);
+    }
+  }, [isAuthenticated, templatePersistence]);
 
   const handleOpenTemplateManager = () => {
     setShowTemplateManager(true);
@@ -154,19 +229,39 @@ export const TemplateBuilderPage: React.FC = () => {
                 Step 1 of 5: Configure your domain template
               </p>
               
-              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-medium text-blue-900">Need inspiration?</h3>
-                    <p className="text-sm text-blue-700">Browse our marketplace of professional templates</p>
+              <div className="mt-4 space-y-4">
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-medium text-blue-900">Need inspiration?</h3>
+                      <p className="text-sm text-blue-700">Browse our marketplace of professional templates</p>
+                    </div>
+                    <button
+                      onClick={() => setShowMarketplace(true)}
+                      className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors text-sm"
+                    >
+                      🏪 Browse Marketplace
+                    </button>
                   </div>
-                  <button
-                    onClick={() => setShowMarketplace(true)}
-                    className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors text-sm"
-                  >
-                    🏪 Browse Marketplace
-                  </button>
                 </div>
+                
+                {isAuthenticated && (
+                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-medium text-green-900">Load existing template</h3>
+                        <p className="text-sm text-green-700">Continue working on your saved templates</p>
+                      </div>
+                      <button
+                        onClick={handleOpenTemplateManager}
+                        className="px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-lg transition-colors text-sm flex items-center space-x-2"
+                      >
+                        <Upload size={16} />
+                        <span>Load Template</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
             
@@ -387,7 +482,7 @@ export const TemplateBuilderPage: React.FC = () => {
         {renderStepContent()}
 
         {/* Navigation */}
-        <div className="max-w-4xl mx-auto mt-8 flex justify-between">
+        <div className="max-w-4xl mx-auto mt-8 flex justify-between items-center">
           <button
             onClick={prevStep}
             disabled={step === 1}
@@ -400,8 +495,33 @@ export const TemplateBuilderPage: React.FC = () => {
             Previous
           </button>
           
-          <div className="text-sm text-gray-500 flex items-center">
-            Step {step} of 5
+          <div className="flex items-center space-x-4">
+            <div className="text-sm text-gray-500">
+              Step {step} of 5
+            </div>
+            
+            {/* Save Template Button */}
+            {isAuthenticated && currentConfig && (
+              <button
+                onClick={() => handleSaveTemplate()}
+                disabled={templatePersistence.isSaving}
+                className={`px-4 py-2 rounded-md font-medium flex items-center space-x-2 ${
+                  templatePersistence.isSaving
+                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                }`}
+              >
+                <Save size={16} />
+                <span>
+                  {templatePersistence.isSaving 
+                    ? 'Saving...' 
+                    : templatePersistence.currentTemplate 
+                      ? 'Update' 
+                      : 'Save'
+                  }
+                </span>
+              </button>
+            )}
           </div>
           
           {step < 5 ? (
@@ -439,6 +559,7 @@ export const TemplateBuilderPage: React.FC = () => {
           isVisible={showTemplateManager}
           onClose={() => setShowTemplateManager(false)}
           onSave={handleSaveTemplate}
+          onLoad={handleLoadTemplate}
         />
       )}
 

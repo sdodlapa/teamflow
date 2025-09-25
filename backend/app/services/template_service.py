@@ -98,29 +98,29 @@ async def get_templates(
     templates = result.scalars().all()
     
     return templates, total or 0
-        
+    """
     Returns:
         Tuple[List[Template], int]: List of templates and total count
     """
     # Build query
-    query = select(DomainTemplate)
+    query = select(Template)
     
     # Filter by user or organization access
     query = query.filter(
-        (DomainTemplate.created_by == str(user_id)) |
-        (DomainTemplate.is_public == True)
+        (Template.created_by == str(user_id)) |
+        (Template.is_public == True)
     )
     
     # Apply organization filter
     if organization_id:
-        query = query.filter(DomainTemplate.organization_id == organization_id)
+        query = query.filter(Template.organization_id == organization_id)
     
     # Apply search filter
     if search:
         query = query.filter(
-            DomainTemplate.name.ilike(f"%{search}%") |
-            DomainTemplate.title.ilike(f"%{search}%") |
-            DomainTemplate.description.ilike(f"%{search}%")
+            Template.name.ilike(f"%{search}%") |
+            Template.title.ilike(f"%{search}%") |
+            Template.description.ilike(f"%{search}%")
         )
     
     # Apply tags filter
@@ -128,18 +128,18 @@ async def get_templates(
         # This is a simplified approach - in a real implementation, you'd need 
         # to adapt this to your database's JSON query syntax
         for tag in tags:
-            query = query.filter(DomainTemplate.tags.contains(tag))
+            query = query.filter(Template.tags.contains(tag))
     
     # Apply status filter
     if status:
-        query = query.filter(DomainTemplate.status == status)
+        query = query.filter(Template.status == status)
     
     # Get total count before pagination
     count_query = select(func.count()).select_from(query.subquery())
     total = await db.scalar(count_query)
     
     # Apply sorting
-    sort_column = getattr(DomainTemplate, sort_by.lower(), DomainTemplate.created_at)
+    sort_column = getattr(Template, sort_by.lower(), Template.created_at)
     if sort_order.lower() == 'desc':
         query = query.order_by(desc(sort_column))
     else:
@@ -155,9 +155,9 @@ async def get_templates(
     return templates, total
 
 
-async def get_template(db: AsyncSession, template_id: Union[str, UUID]) -> DomainTemplate:
+async def get_template(db: AsyncSession, template_id: Union[str, UUID]) -> Template:
     """Get a single template by ID."""
-    query = select(DomainTemplate).where(DomainTemplate.id == template_id)
+    query = select(Template).where(Template.id == template_id)
     result = await db.execute(query)
     template = result.scalar_one_or_none()
     
@@ -174,10 +174,10 @@ async def create_template(
     db: AsyncSession,
     template_data: TemplateCreate,
     user_id: UUID
-) -> DomainTemplate:
+) -> Template:
     """Create a new template."""
     # Convert data from Pydantic model to SQLAlchemy model
-    template = DomainTemplate(
+    template = Template(
         name=template_data.name,
         title=template_data.domainConfig.title,
         description=template_data.description or template_data.domainConfig.description or "",
@@ -198,14 +198,14 @@ async def create_template(
     await db.commit()
     await db.refresh(template)
     
-    # Log template creation
-    usage = TemplateUsage.log_usage(
-        template_id=template.id,
-        action="created",
-        user_id=str(user_id),
-        organization_id=template_data.organizationId
-    )
-    db.add(usage)
+    # Log template creation (analytics - TODO: implement TemplateUsage model)
+    # usage = TemplateUsage.log_usage(
+    #     template_id=template.id,
+    #     action="created",
+    #     user_id=str(user_id),
+    #     organization_id=template_data.organizationId
+    # )
+    # db.add(usage)
     await db.commit()
     
     return template
@@ -216,7 +216,7 @@ async def update_template(
     template_id: UUID,
     template_data: TemplateUpdate,
     user_id: UUID
-) -> DomainTemplate:
+) -> Template:
     """Update an existing template."""
     # Get current template
     template = await get_template(db, template_id)
@@ -266,22 +266,22 @@ async def update_template(
     if update_data:
         # Update template
         query = (
-            update(DomainTemplate)
-            .where(DomainTemplate.id == template_id)
+            update(Template)
+            .where(Template.id == template_id)
             .values(**update_data)
-            .returning(DomainTemplate)
+            .returning(Template)
         )
         result = await db.execute(query)
         updated_template = result.scalar_one()
         
-        # Log template update
-        usage = TemplateUsage.log_usage(
-            template_id=updated_template.id,
-            action="updated",
-            user_id=str(user_id),
-            context_data={"change_description": template_data.changeDescription}
-        )
-        db.add(usage)
+        # Log template update (analytics - TODO: implement TemplateUsage model)
+        # usage = TemplateUsage.log_usage(
+        #     template_id=updated_template.id,
+        #     action="updated",
+        #     user_id=str(user_id),
+        #     context_data={"change_description": template_data.changeDescription}
+        # )
+        # db.add(usage)
         
         await db.commit()
         return updated_template
@@ -300,13 +300,13 @@ async def delete_template(db: AsyncSession, template_id: UUID, user_id: UUID) ->
             detail="You do not have permission to delete this template"
         )
     
-    # Log template deletion
-    usage = TemplateUsage.log_usage(
-        template_id=template.id,
-        action="deleted",
-        user_id=str(user_id)
-    )
-    db.add(usage)
+    # Log template deletion (analytics - TODO: implement TemplateUsage model)
+    # usage = TemplateUsage.log_usage(
+    #     template_id=template.id,
+    #     action="deleted",
+    #     user_id=str(user_id)
+    # )
+    # db.add(usage)
     
     # Delete template
     await db.delete(template)
@@ -315,7 +315,7 @@ async def delete_template(db: AsyncSession, template_id: UUID, user_id: UUID) ->
     return True
 
 
-async def publish_template(db: AsyncSession, template_id: UUID, user_id: UUID) -> DomainTemplate:
+async def publish_template(db: AsyncSession, template_id: UUID, user_id: UUID) -> Template:
     """Publish a draft template."""
     template = await get_template(db, template_id)
     
@@ -329,13 +329,13 @@ async def publish_template(db: AsyncSession, template_id: UUID, user_id: UUID) -
     # Update status
     template.status = TemplateStatus.ACTIVE
     
-    # Log template publication
-    usage = TemplateUsage.log_usage(
-        template_id=template.id,
-        action="published",
-        user_id=str(user_id)
-    )
-    db.add(usage)
+    # Log template publication (analytics - TODO: implement TemplateUsage model)
+    # usage = TemplateUsage.log_usage(
+    #     template_id=template.id,
+    #     action="published",
+    #     user_id=str(user_id)
+    # )
+    # db.add(usage)
     
     await db.commit()
     await db.refresh(template)
@@ -343,7 +343,7 @@ async def publish_template(db: AsyncSession, template_id: UUID, user_id: UUID) -
     return template
 
 
-async def archive_template(db: AsyncSession, template_id: UUID, user_id: UUID) -> DomainTemplate:
+async def archive_template(db: AsyncSession, template_id: UUID, user_id: UUID) -> Template:
     """Archive a template."""
     template = await get_template(db, template_id)
     
@@ -357,13 +357,13 @@ async def archive_template(db: AsyncSession, template_id: UUID, user_id: UUID) -
     # Update status
     template.status = TemplateStatus.ARCHIVED
     
-    # Log template archival
-    usage = TemplateUsage.log_usage(
-        template_id=template.id,
-        action="archived",
-        user_id=str(user_id)
-    )
-    db.add(usage)
+    # Log template archival (analytics - TODO: implement TemplateUsage model)
+    # usage = TemplateUsage.log_usage(
+    #     template_id=template.id,
+    #     action="archived",
+    #     user_id=str(user_id)
+    # )
+    # db.add(usage)
     
     await db.commit()
     await db.refresh(template)
@@ -376,13 +376,13 @@ async def duplicate_template(
     template_id: UUID,
     new_name: str,
     user_id: UUID
-) -> DomainTemplate:
+) -> Template:
     """Duplicate a template."""
     # Get source template
     source = await get_template(db, template_id)
     
     # Create new template from source
-    new_template = DomainTemplate(
+    new_template = Template(
         name=new_name,
         title=f"Copy of {source.title}",
         description=source.description,
@@ -402,14 +402,14 @@ async def duplicate_template(
     
     db.add(new_template)
     
-    # Log template duplication
-    usage = TemplateUsage.log_usage(
-        template_id=source.id,
-        action="duplicated",
-        user_id=str(user_id),
-        context_data={"new_template_name": new_name}
-    )
-    db.add(usage)
+    # Log template duplication (analytics - TODO: implement TemplateUsage model)
+    # usage = TemplateUsage.log_usage(
+    #     template_id=source.id,
+    #     action="duplicated",
+    #     user_id=str(user_id),
+    #     context_data={"new_template_name": new_name}
+    # )
+    # db.add(usage)
     
     await db.commit()
     await db.refresh(new_template)
@@ -421,10 +421,11 @@ async def get_template_analytics(db: AsyncSession, template_id: UUID) -> Dict[st
     """Get analytics for a template."""
     template = await get_template(db, template_id)
     
-    # Get usage statistics
-    query = select(TemplateUsage).filter(TemplateUsage.template_id == template.id)
-    result = await db.execute(query)
-    usages = result.scalars().all()
+    # Get usage statistics (TODO: implement TemplateUsage model)
+    # query = select(TemplateUsage).filter(TemplateUsage.template_id == template.id)
+    # result = await db.execute(query)
+    # usages = result.scalars().all()
+    usages = []  # Placeholder until TemplateUsage is implemented
     
     # Process analytics data
     views = sum(1 for u in usages if u.action == "viewed")
@@ -457,12 +458,12 @@ async def record_template_view(db: AsyncSession, template_id: UUID, user_id: Opt
     """Record a template view."""
     template = await get_template(db, template_id)
     
-    # Log template view
-    usage = TemplateUsage.log_usage(
-        template_id=template.id,
-        action="viewed",
-        user_id=str(user_id) if user_id else None
-    )
-    db.add(usage)
+    # Log template view (analytics - TODO: implement TemplateUsage model)
+    # usage = TemplateUsage.log_usage(
+    #     template_id=template.id,
+    #     action="viewed",
+    #     user_id=str(user_id) if user_id else None
+    # )
+    # db.add(usage)
     
     await db.commit()

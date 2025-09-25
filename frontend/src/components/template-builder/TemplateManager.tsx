@@ -10,12 +10,15 @@ import {
   Info
 } from 'lucide-react';
 import { DomainConfig, Entity, Relationship } from '../../types/template';
+import { useTemplatePersistence } from '../../hooks/useTemplatePersistence';
+import { useAuth } from '../../hooks/useAuth';
 
 interface TemplateManagerProps {
   domainConfig: DomainConfig;
   entities: Entity[];
   relationships: Relationship[];
   onSave?: (templateData: any) => Promise<void>;
+  onLoad?: (templateId: string) => Promise<void>;
   onExport?: (format: string) => void;
   isVisible?: boolean;
   onClose?: () => void;
@@ -35,11 +38,43 @@ const TemplateManager: React.FC<TemplateManagerProps> = ({
   entities,
   relationships,
   onSave,
+  onLoad,
   onExport,
   isVisible = false,
   onClose
 }) => {
-  const [activeTab, setActiveTab] = useState<'save' | 'export' | 'share'>('save');
+  const [activeTab, setActiveTab] = useState<'save' | 'load' | 'export' | 'share'>('save');
+  const { isAuthenticated } = useAuth();
+  const templatePersistence = useTemplatePersistence();
+
+  // Template loading state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedDomainType, setSelectedDomainType] = useState('all');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  // Get templates to display - use search results if searching, otherwise recent templates
+  const displayTemplates = searchQuery.trim() ? searchResults : templatePersistence.recentTemplates;
+
+  const handleSearchTemplates = async (query: string) => {
+    setSearchQuery(query);
+    if (!query.trim()) {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const results = await templatePersistence.searchTemplates(query);
+      setSearchResults(results || []);
+    } catch (error) {
+      console.error('Search failed:', error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
@@ -257,6 +292,17 @@ ${relationships.map(rel => `  - name: ${rel.name}
               Save Template
             </button>
             <button
+              onClick={() => setActiveTab('load')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'load'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <Download className="h-4 w-4 inline mr-2" />
+              Load Template
+            </button>
+            <button
               onClick={() => setActiveTab('export')}
               className={`py-4 px-1 border-b-2 font-medium text-sm ${
                 activeTab === 'export'
@@ -456,6 +502,141 @@ ${relationships.map(rel => `  - name: ${rel.name}
                     </>
                   )}
                 </button>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'load' && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  Load Template
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  Choose a saved template to load into the builder.
+                </p>
+              </div>
+
+              <div className="grid gap-4">
+                {/* Template Search/Filter */}
+                <div className="flex gap-4 mb-6">
+                  <div className="flex-1">
+                    <input
+                      type="text"
+                      placeholder="Search templates..."
+                      value={searchQuery}
+                      onChange={(e) => handleSearchTemplates(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg 
+                               focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <select 
+                    value={selectedDomainType}
+                    onChange={(e) => setSelectedDomainType(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 rounded-lg 
+                                     focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="all">All Types</option>
+                    <option value="e_commerce">E-commerce</option>
+                    <option value="healthcare">Healthcare</option>
+                    <option value="finance">Finance</option>
+                    <option value="education">Education</option>
+                    <option value="manufacturing">Manufacturing</option>
+                  </select>
+                </div>
+
+                {/* Templates List */}
+                <div className="grid gap-3 max-h-96 overflow-y-auto">
+                  {!isAuthenticated ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <Info className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                      <p>Please log in to view and load templates</p>
+                    </div>
+                  ) : isSearching || templatePersistence.isLoading ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                      <p>Loading templates...</p>
+                    </div>
+                  ) : displayTemplates.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <Info className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                      <p>
+                        {searchQuery.trim() ? 'No templates found matching your search' : 'No templates available'}
+                      </p>
+                      {!searchQuery.trim() && (
+                        <p className="text-sm mt-2">Save a template first to see it here</p>
+                      )}
+                    </div>
+                  ) : (
+                    displayTemplates
+                      .filter(template => 
+                        selectedDomainType === 'all' || 
+                        template.metadata?.domain_type === selectedDomainType
+                      )
+                      .map((template) => (
+                        <div
+                          key={template.id}
+                          className="p-4 border border-gray-200 rounded-lg hover:border-blue-300 
+                                   hover:bg-blue-50 cursor-pointer transition-colors"
+                          onClick={() => onLoad?.(template.id)}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-gray-900">
+                                {template.metadata?.name || template.name || 'Unnamed Template'}
+                              </h4>
+                              <p className="text-sm text-gray-600 mt-1">
+                                {template.metadata?.description || template.description || 'No description'}
+                              </p>
+                              <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
+                                <span>By {template.metadata?.author || 'Unknown'}</span>
+                                <span>•</span>
+                                <span>{template.metadata?.domain_type || 'Unknown Type'}</span>
+                                <span>•</span>
+                                <span>{new Date(template.created_at || template.metadata?.created_at || '').toLocaleDateString()}</span>
+                              </div>
+                            </div>
+                            <div className="ml-4">
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full 
+                                           text-xs font-medium ${
+                                template.metadata?.isPublic 
+                                  ? 'bg-blue-100 text-blue-800' 
+                                  : 'bg-green-100 text-green-800'
+                              }`}>
+                                {template.metadata?.isPublic ? 'Public' : 'Private'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                  )}
+                </div>
+
+                {/* Load from File */}
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                  <h4 className="font-medium text-gray-900 mb-3">Load from File</h4>
+                  <div className="flex items-center gap-4">
+                    <input
+                      type="file"
+                      accept=".json"
+                      className="block w-full text-sm text-gray-500
+                               file:mr-4 file:py-2 file:px-4
+                               file:rounded-lg file:border-0
+                               file:text-sm file:font-medium
+                               file:bg-blue-50 file:text-blue-700
+                               hover:file:bg-blue-100"
+                    />
+                    <button
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700
+                               transition-colors font-medium text-sm"
+                    >
+                      Upload
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Upload a JSON template file to load into the builder
+                  </p>
+                </div>
               </div>
             </div>
           )}

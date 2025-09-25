@@ -3,6 +3,7 @@ import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom'
 import { AuthProvider } from '../context/AuthContext';
 import PrivateRoute from '../components/PrivateRoute';
 import LoginPage from '../pages/Login';
+import RegisterPage from '../pages/Register';
 
 // Placeholder components - replace with actual components when they exist
 const PlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
@@ -23,7 +24,7 @@ const router = createBrowserRouter([
   },
   {
     path: '/register',
-    element: <PlaceholderPage title="Register Page" />,
+    element: <RegisterPage />,
   },
   
   // Private routes wrapped in authentication
