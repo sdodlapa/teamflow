@@ -302,6 +302,46 @@ class DomainConfig(BaseModel):
     business_rules: List[BusinessRuleConfig] = Field(default_factory=list)
     features: Dict[str, FeatureConfig] = Field(default_factory=dict)
 
+    # Compatibility properties for CodeGenerationOrchestrator
+    @property
+    def name(self) -> str:
+        """Get domain name for compatibility."""
+        return self.domain.name
+    
+    @property
+    def description(self) -> str:
+        """Get domain description for compatibility."""
+        return self.domain.description
+    
+    @property
+    def display_name(self) -> str:
+        """Get domain display name for compatibility."""
+        return self.domain.display_name
+    
+    @property
+    def api_prefix(self) -> str:
+        """Get API prefix for compatibility."""
+        return "/api/v1"  # Default API prefix
+    
+    @property
+    def enable_audit(self) -> bool:
+        """Get enable audit flag for compatibility."""
+        return True  # Default enable audit
+    
+    @property
+    def enable_cache(self) -> bool:
+        """Get enable cache flag for compatibility."""
+        return False  # Default disable cache for development
+    
+    @property  
+    def entities_list(self) -> List[EntityConfig]:
+        """Get entities as a list for orchestrator compatibility."""
+        return list(self.entities.values())
+
+    def get_entity(self, name: str) -> Optional[EntityConfig]:
+        """Get entity by name."""
+        return self.entities.get(name)
+
     @model_validator(mode='after')
     def validate_domain_config(self):
         """Validate domain configuration integrity."""

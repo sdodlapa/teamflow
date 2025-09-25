@@ -5,6 +5,7 @@ from typing import List, Optional, Dict, Any, Union
 from pydantic import BaseModel, Field
 from datetime import datetime
 from enum import Enum
+import uuid
 
 # Base schemas for template configuration
 class FieldType(str, Enum):
@@ -289,3 +290,59 @@ class TemplateSearchRequest(BaseModel):
     sort_order: Optional[str] = Field(default="desc", description="asc or desc")
     page: int = Field(default=1, ge=1)
     per_page: int = Field(default=20, ge=1, le=100)
+
+
+# Code Generation Results Schemas
+class GenerationStatus(str, Enum):
+    PENDING = "pending"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+class GeneratedFile(BaseModel):
+    path: str = Field(..., description="Relative path of the generated file")
+    content: str = Field(..., description="Generated file content")
+    size: int = Field(..., description="File size in bytes")
+    type: str = Field(..., description="File type (e.g., 'model', 'api', 'frontend')")
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class GenerationResult(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    entity_name: str = Field(..., description="Name of the entity generated")
+    files: List[GeneratedFile] = Field(default_factory=list)
+    status: GenerationStatus = Field(default=GenerationStatus.PENDING)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    completed_at: Optional[datetime] = None
+    error_message: Optional[str] = None
+    warnings: List[str] = Field(default_factory=list)
+    
+    @property
+    def total_files(self) -> int:
+        return len(self.files)
+    
+    @property
+    def total_size(self) -> int:
+        return sum(f.size for f in self.files)
+
+
+class GenerationSummary(BaseModel):
+    domain_name: str
+    total_entities: int
+    successful_generations: int
+    failed_generations: int
+    total_files: int
+    total_size: int
+    start_time: datetime
+    end_time: Optional[datetime] = None
+    duration_seconds: Optional[float] = None
+    results: List[GenerationResult] = Field(default_factory=list)
+    errors: List[str] = Field(default_factory=list)
+    
+    @property
+    def success_rate(self) -> float:
+        if self.total_entities == 0:
+            return 0.0
+        return (self.successful_generations / self.total_entities) * 100

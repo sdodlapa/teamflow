@@ -1,0 +1,142 @@
+{
+  "domain_name": "real_estate_simple",
+  "generation_timestamp": "2025-09-25T01:55:01.246084",
+  "statistics": {
+    "total_entities": 1,
+    "successful_generations": 6,
+    "failed_generations": 8,
+    "total_files_created": 6,
+    "total_content_length": 2413,
+    "generation_time_seconds": 0.002212
+  },
+  "output_directory": "generated/real_estate_simple",
+  "results": [
+    {
+      "success": false,
+      "entity_name": "user",
+      "component_type": "backend_model",
+      "file_path": null,
+      "content_length": 0,
+      "error_message": "Unexpected error: asdict() should be called on dataclass instances",
+      "generation_time_seconds": 0.000114
+    },
+    {
+      "success": false,
+      "entity_name": "user",
+      "component_type": "backend_schema",
+      "file_path": null,
+      "content_length": 0,
+      "error_message": "Unexpected error: asdict() should be called on dataclass instances",
+      "generation_time_seconds": 4.1e-05
+    },
+    {
+      "success": false,
+      "entity_name": "user",
+      "component_type": "backend_routes",
+      "file_path": null,
+      "content_length": 0,
+      "error_message": "Unexpected error: asdict() should be called on dataclass instances",
+      "generation_time_seconds": 3.4e-05
+    },
+    {
+      "success": false,
+      "entity_name": "user",
+      "component_type": "backend_service",
+      "file_path": null,
+      "content_length": 0,
+      "error_message": "Unexpected error: asdict() should be called on dataclass instances",
+      "generation_time_seconds": 3e-05
+    },
+    {
+      "success": false,
+      "entity_name": "user",
+      "component_type": "frontend_types",
+      "file_path": null,
+      "content_length": 0,
+      "error_message": "Unexpected error: asdict() should be called on dataclass instances",
+      "generation_time_seconds": 4.4e-05
+    },
+    {
+      "success": false,
+      "entity_name": "user",
+      "component_type": "frontend_form",
+      "file_path": null,
+      "content_length": 0,
+      "error_message": "Unexpected error: asdict() should be called on dataclass instances",
+      "generation_time_seconds": 3.1e-05
+    },
+    {
+      "success": false,
+      "entity_name": "user",
+      "component_type": "frontend_list",
+      "file_path": null,
+      "content_length": 0,
+      "error_message": "Unexpected error: asdict() should be called on dataclass instances",
+      "generation_time_seconds": 2.9e-05
+    },
+    {
+      "success": false,
+      "entity_name": "user",
+      "component_type": "frontend_service",
+      "file_path": null,
+      "content_length": 0,
+      "error_message": "Unexpected error: asdict() should be called on dataclass instances",
+      "generation_time_seconds": 2.8e-05
+    },
+    {
+      "success": true,
+      "entity_name": "application",
+      "component_type": "backend_init_models",
+      "file_path": "generated/real_estate_simple/backend/models/__init__.py",
+      "content_length": 44,
+      "error_message": null,
+      "generation_time_seconds": null
+    },
+    {
+      "success": true,
+      "entity_name": "application",
+      "component_type": "backend_init_schemas",
+      "file_path": "generated/real_estate_simple/backend/schemas/__init__.py",
+      "content_length": 45,
+      "error_message": null,
+      "generation_time_seconds": null
+    },
+    {
+      "success": true,
+      "entity_name": "application",
+      "component_type": "backend_init_routes",
+      "file_path": "generated/real_estate_simple/backend/routes/__init__.py",
+      "content_length": 44,
+      "error_message": null,
+      "generation_time_seconds": null
+    },
+    {
+      "success": true,
+      "entity_name": "application",
+      "component_type": "backend_init_services",
+      "file_path": "generated/real_estate_simple/backend/services/__init__.py",
+      "content_length": 46,
+      "error_message": null,
+      "generation_time_seconds": null
+    },
+    {
+      "success": true,
+      "entity_name": "application",
+      "component_type": "frontend_package_json",
+      "file_path": "generated/real_estate_simple/frontend/package.json",
+      "content_length": 605,
+      "error_message": null,
+      "generation_time_seconds": null
+    },
+    {
+      "success": true,
+      "entity_name": "application",
+      "component_type": "readme",
+      "file_path": "generated/real_estate_simple/README.md",
+      "content_length": 1629,
+      "error_message": null,
+      "generation_time_seconds": null
+    }
+  ],
+  "errors": []
+}
