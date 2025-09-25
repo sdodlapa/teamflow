@@ -34,7 +34,6 @@ async def get_current_user(
     db: AsyncSession = Depends(get_db),
 ) -> UserRead:
     """Get current authenticated user from JWT token."""
-    from app.services.auth_service import get_user_by_email_sync
     from sqlalchemy import select
 
     credentials_exception = HTTPException(
@@ -48,13 +47,8 @@ async def get_current_user(
     if user_email is None:
         raise credentials_exception
 
-    # Get user from database using direct SQLite access (much faster)
-    user_dict = get_user_by_email_sync(email=user_email)
-    if not user_dict:
-        raise credentials_exception
-        
-    # If needed elsewhere in the app, get the full User object
-    result = await db.execute(select(User).where(User.id == user_dict["id"]))
+    # Get user from database using SQLAlchemy
+    result = await db.execute(select(User).where(User.email == user_email))
     user = result.scalar_one_or_none()
     if not user:
         raise credentials_exception
