@@ -1,9 +1,9 @@
+/* Import loading components styles */
+@import './components/ui/loading-components.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Import loading components styles */
-@import './components/ui/loading-components.css';
 
 /* Custom base styles */
 body {

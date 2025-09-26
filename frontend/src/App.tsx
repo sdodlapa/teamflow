@@ -8,6 +8,7 @@ import { queryClient } from './lib/queryClient';
 import AppRouter from './router/AppRouter';
 import { reportError } from './utils/errorHandling';
 import './index.css';
+import './styles/accessibility.css';
 
 function App() {
   // Global error handler for the main application

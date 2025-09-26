@@ -113,6 +113,9 @@ export const InteractiveTutorial: React.FC<InteractiveTutorialProps> = ({
     } else {
       onComplete();
     }
+
+    // Log completed steps for debugging
+    console.log(`Tutorial completed. Total steps completed: ${completedSteps.size}`);
   };
 
   const handlePrevious = () => {

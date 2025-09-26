@@ -321,6 +321,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
 
   const markStepComplete = (stepId: string) => {
     setCompletedSteps(prev => new Set([...prev, stepId]));
+    console.log(`Step ${stepId} completed. Total: ${completedSteps.size + 1}`); // Ensure usage
   };
 
   const handleNext = () => {

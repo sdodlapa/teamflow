@@ -21,6 +21,7 @@ import TemplateBuilder from '../components/TemplateBuilder';
 import WorkflowAutomationBuilder from '../components/WorkflowAutomationBuilder';
 import ErrorHandlingDemo from '../pages/ErrorHandlingDemo';
 import DataManagementDemo from '../pages/DataManagementDemo';
+import AccessibilityPage from '../pages/AccessibilityPage';
 import NotFound from '../pages/NotFound';
 
 // Create the router configuration
@@ -177,6 +178,14 @@ const router = createBrowserRouter([
     element: (
       <PrivateRoute>
         <DataManagementDemo />
+      </PrivateRoute>
+    ),
+  },
+  {
+    path: '/accessibility',
+    element: (
+      <PrivateRoute>
+        <AccessibilityPage />
       </PrivateRoute>
     ),
   },

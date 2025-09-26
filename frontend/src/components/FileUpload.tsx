@@ -136,7 +136,10 @@ const FileUploadComponent: React.FC<FileUploadComponentProps> = ({
   }, [allowMultiple, maxFiles, projectId, taskId, onUploadComplete, onUploadError]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    handleFiles(acceptedFiles);
+    // Create a proper FileList-like object
+    const dt = new DataTransfer();
+    acceptedFiles.forEach(file => dt.items.add(file));
+    handleFiles(dt.files);
   }, [handleFiles]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
