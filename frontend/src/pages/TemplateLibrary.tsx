@@ -14,7 +14,8 @@ import {
   Star,
   Calendar,
   Package,
-  Plus
+  Plus,
+  GitBranch
 } from 'lucide-react';
 import { 
   SkeletonCard
@@ -327,6 +328,13 @@ const TemplateLibrary: React.FC = () => {
               >
                 <Grid3X3 className="h-4 w-4 inline mr-2" />
                 Template Builder
+              </Link>
+              <Link
+                to="/workflows/builder"
+                className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors font-medium"
+              >
+                <GitBranch className="h-4 w-4 inline mr-2" />
+                Workflow Builder
               </Link>
               <Link
                 to="/marketplace"

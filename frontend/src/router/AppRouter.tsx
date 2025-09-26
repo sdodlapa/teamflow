@@ -18,6 +18,7 @@ import CodeGeneration from '../pages/CodeGeneration';
 import TemplateMarketplace from '../pages/TemplateMarketplace';
 import TemplateManagement from '../pages/TemplateManagement';
 import TemplateBuilder from '../components/TemplateBuilder';
+import WorkflowAutomationBuilder from '../components/WorkflowAutomationBuilder';
 import ErrorHandlingDemo from '../pages/ErrorHandlingDemo';
 import DataManagementDemo from '../pages/DataManagementDemo';
 import NotFound from '../pages/NotFound';
@@ -128,6 +129,14 @@ const router = createBrowserRouter([
     element: (
       <PrivateRoute>
         <TemplateBuilder />
+      </PrivateRoute>
+    ),
+  },
+  {
+    path: '/workflows/builder',
+    element: (
+      <PrivateRoute>
+        <WorkflowAutomationBuilder />
       </PrivateRoute>
     ),
   },
