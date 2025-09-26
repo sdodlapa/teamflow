@@ -55,10 +55,11 @@ class Template(BaseModel):
     status = Column(String, nullable=False, default=TemplateStatus.DRAFT.value)
     tags = Column(JSON, nullable=True)
     is_public = Column(Boolean, default=False, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
     
     # Foreign keys
-    user_id = Column(PostgreSQLUUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    organization_id = Column(PostgreSQLUUID(as_uuid=True), ForeignKey("organizations.id"), nullable=True)
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
+    organization_id = Column(String(36), ForeignKey("organizations.id"), nullable=True)
     
     # Relationships
     user = relationship("User", back_populates="templates")
@@ -115,6 +116,36 @@ class Template(BaseModel):
         
         return False
 
+    def to_domain_config(self) -> Dict[str, Any]:
+        """Convert template to domain config format"""
+        import json
+        
+        # Parse the stored JSON domain_config or create default
+        if self.domain_config:
+            if isinstance(self.domain_config, str):
+                domain_config = json.loads(self.domain_config)
+            else:
+                domain_config = self.domain_config
+        else:
+            domain_config = {
+                "name": self.name.lower().replace(" ", "_"),
+                "title": self.name,
+                "description": self.description or "",
+                "domainType": "custom",  # Use camelCase for API response
+                "version": str(self.version),
+                "logo": "📋",
+                "colorScheme": "blue",  # Use camelCase
+                "theme": "default"
+            }
+        
+        # Ensure domainType is present (convert from domain_type if needed)
+        if "domain_type" in domain_config and "domainType" not in domain_config:
+            domain_config["domainType"] = domain_config["domain_type"]
+        elif "domainType" not in domain_config:
+            domain_config["domainType"] = "custom"
+        
+        return domain_config
+
 
 class TemplateVersion(BaseModel):
     """
@@ -122,14 +153,14 @@ class TemplateVersion(BaseModel):
     """
     __tablename__ = "template_versions"
     
-    template_id = Column(PostgreSQLUUID(as_uuid=True), ForeignKey("templates.id"), nullable=False)
+    template_id = Column(String(36), ForeignKey("templates.id"), nullable=False)
     version_number = Column(Integer, nullable=False)
     domain_config = Column(JSON, nullable=False)
     entities = Column(JSON, nullable=False)
     relationships = Column(JSON, nullable=False)
     changes = Column(JSON, nullable=True)
     change_description = Column(Text, nullable=True)
-    created_by_id = Column(PostgreSQLUUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    created_by_id = Column(String(36), ForeignKey("users.id"), nullable=False)
     
     # Relationships
     template = relationship("Template", back_populates="versions")
@@ -150,8 +181,8 @@ class TemplateCollaborator(BaseModel):
     """
     __tablename__ = "template_collaborators"
     
-    template_id = Column(PostgreSQLUUID(as_uuid=True), ForeignKey("templates.id"), nullable=False)
-    user_id = Column(PostgreSQLUUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    template_id = Column(String(36), ForeignKey("templates.id"), nullable=False)
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
     permissions = Column(String, nullable=False, default=CollaboratorPermissions.READ.value)
     
     # Relationships
@@ -186,8 +217,8 @@ class TemplateCollaborationHistory(BaseModel):
     """
     __tablename__ = "template_collaboration_history"
     
-    template_id = Column(PostgreSQLUUID(as_uuid=True), ForeignKey("templates.id"), nullable=False)
-    user_id = Column(PostgreSQLUUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    template_id = Column(String(36), ForeignKey("templates.id"), nullable=False)
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
     action = Column(String, nullable=False)
     action_data = Column(JSON, nullable=True)
     

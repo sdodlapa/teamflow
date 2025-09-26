@@ -8,17 +8,40 @@ from fastapi import APIRouter, Depends, Query, Path, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.security import get_current_user
-from app.models.user import User
+from app.core.dependencies import get_current_user
+from app.schemas.user import UserRead
 from app.schemas.templates import (
     TemplateCreate, TemplateUpdate, TemplateListResponse, TemplateResponse,
     TemplateVersionResponse, TemplateCollaboratorResponse, CollaborationHistoryResponse,
     TemplateAnalyticsResponse, TemplateStatus, CollaboratorCreate
 )
-from app.services import template_service
+from app.services.template_service import template_service
 
 
 router = APIRouter()
+
+
+@router.get("/test", response_model=dict)
+async def test_templates_no_auth(
+    db: AsyncSession = Depends(get_db)
+):
+    """Test templates endpoint without authentication"""
+    import uuid
+    test_user_id = str(uuid.uuid4())
+    
+    templates, total = await template_service.get_templates(
+        db=db,
+        user_id=test_user_id,
+        page=1,
+        limit=10
+    )
+    
+    return {
+        "message": "Template system working",
+        "templates_found": len(templates),
+        "total": total,
+        "user_id": test_user_id
+    }
 
 
 @router.get("/", response_model=TemplateListResponse)
@@ -31,7 +54,7 @@ async def get_templates(
     sort_by: str = "updatedAt",
     sort_order: str = "desc",
     organization_id: Optional[UUID] = None,
-    current_user: User = Depends(get_current_user),
+    current_user: UserRead = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -62,9 +85,26 @@ async def get_templates(
     # Convert DB models to response schemas
     template_responses = []
     for template in templates:
+        # Convert integer ID to string for UUID compatibility
+        template_id = str(template.uuid) if hasattr(template, 'uuid') and template.uuid else str(template.id)
+        
+        # Handle createdBy UUID conversion
+        created_by = "00000000-0000-0000-0000-000000000000"  # Default UUID
+        if template.user_id:
+            try:
+                # If user_id is already a UUID string, use it
+                if len(str(template.user_id)) > 10:  # Likely a UUID
+                    created_by = str(template.user_id)
+                else:
+                    # For integer user IDs, generate a UUID based on the ID
+                    import uuid
+                    created_by = str(uuid.uuid5(uuid.NAMESPACE_OID, f"user_{template.user_id}"))
+            except:
+                created_by = "00000000-0000-0000-0000-000000000000"
+        
         template_responses.append(
             TemplateResponse(
-                id=template.id,
+                id=template_id,
                 name=template.name,
                 description=template.description,
                 domainConfig=template.to_domain_config(),
@@ -77,7 +117,7 @@ async def get_templates(
                     "version": 1,
                     "createdAt": template.created_at,
                     "updatedAt": template.updated_at,
-                    "createdBy": UUID(template.created_by) if template.created_by else None,
+                    "createdBy": created_by,
                     "collaborators": [],
                     "tags": [],
                     "isPublic": template.is_public
@@ -97,7 +137,7 @@ async def get_templates(
 @router.post("/", response_model=TemplateResponse, status_code=status.HTTP_201_CREATED)
 async def create_template(
     template: TemplateCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: UserRead = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -113,33 +153,49 @@ async def create_template(
     )
     
     # Convert to response model (simplified for this example)
+    # Handle user_id which might be integer or UUID string
+    created_by_uuid = None
+    if created_template.user_id:
+        try:
+            # Try to convert to UUID - if it's already a UUID string
+            created_by_uuid = UUID(str(created_template.user_id))
+        except ValueError:
+            # If it fails, generate a UUID from the integer ID (for compatibility)
+            import uuid
+            created_by_uuid = uuid.uuid5(uuid.NAMESPACE_OID, str(created_template.user_id))
+    
+    # Use the UUID string from the model's uuid field instead of the integer id
+    template_id = UUID(created_template.uuid)
+    
     return TemplateResponse(
-        id=created_template.id,
+        id=template_id,
         name=created_template.name,
         description=created_template.description,
         domainConfig=created_template.to_domain_config(),
-        entities=[],  # Would be converted from entities_config
-        relationships=[],  # Would be calculated from relationships
-        tags=[],  # Would be added from tags field
+        entities=created_template.entities or [],
+        relationships=created_template.relationships or [],
+        tags=created_template.tags or [],
         isPublic=created_template.is_public,
         status=TemplateStatus.DRAFT,
         metadata={
-            "version": 1,
+            "version": created_template.version,
             "createdAt": created_template.created_at,
             "updatedAt": created_template.updated_at,
-            "createdBy": UUID(created_template.created_by) if created_template.created_by else None,
+            "createdBy": created_by_uuid,
             "collaborators": [],
-            "tags": [],
-            "isPublic": created_template.is_public
+            "tags": created_template.tags or [],
+            "isPublic": created_template.is_public,
+            "views": 0,
+            "clones": 0
         },
-        organizationId=None
+        organizationId=UUID(created_template.organization_id) if created_template.organization_id else None
     )
 
 
 @router.get("/{template_id}", response_model=TemplateResponse)
 async def get_template(
     template_id: UUID = Path(...),
-    current_user: User = Depends(get_current_user),
+    current_user: UserRead = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -185,7 +241,7 @@ async def get_template(
 async def update_template(
     template_data: TemplateUpdate,
     template_id: UUID = Path(...),
-    current_user: User = Depends(get_current_user),
+    current_user: UserRead = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -228,7 +284,7 @@ async def update_template(
 @router.delete("/{template_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_template(
     template_id: UUID = Path(...),
-    current_user: User = Depends(get_current_user),
+    current_user: UserRead = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -249,7 +305,7 @@ async def delete_template(
 @router.post("/{template_id}/publish", response_model=TemplateResponse)
 async def publish_template(
     template_id: UUID = Path(...),
-    current_user: User = Depends(get_current_user),
+    current_user: UserRead = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -291,7 +347,7 @@ async def publish_template(
 @router.post("/{template_id}/archive", response_model=TemplateResponse)
 async def archive_template(
     template_id: UUID = Path(...),
-    current_user: User = Depends(get_current_user),
+    current_user: UserRead = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -334,7 +390,7 @@ async def archive_template(
 async def duplicate_template(
     template_id: UUID = Path(...),
     name: str = Query(..., description="Name for the duplicated template"),
-    current_user: User = Depends(get_current_user),
+    current_user: UserRead = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -378,7 +434,7 @@ async def duplicate_template(
 @router.get("/{template_id}/analytics", response_model=TemplateAnalyticsResponse)
 async def get_template_analytics(
     template_id: UUID = Path(...),
-    current_user: User = Depends(get_current_user),
+    current_user: UserRead = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """

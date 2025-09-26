@@ -7,6 +7,7 @@ from uuid import UUID
 import logging
 from datetime import datetime
 import uuid
+import json
 
 from sqlalchemy import select, update, delete, func, desc, asc, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,45 +28,45 @@ logger = logging.getLogger(__name__)
 class TemplateService:
     """Template service class for handling template operations."""
     
-    @staticmethod
-    async def get_templates(db: AsyncSession, user_id: str, **kwargs) -> Tuple[List[Template], int]:
+    async def get_templates(self, db: AsyncSession, user_id: str, **kwargs) -> Tuple[List[Template], int]:
         """Get templates with pagination and filtering."""
         return await get_templates(db, user_id, **kwargs)
     
-    @staticmethod
-    async def get_template(db: AsyncSession, template_id: Union[str, UUID]) -> Template:
+    async def get_template(self, db: AsyncSession, template_id: Union[str, UUID]) -> Template:
         """Get a single template by ID."""
         return await get_template(db, template_id)
     
-    @staticmethod
-    async def create_template(db: AsyncSession, template_data: TemplateCreate, user_id: UUID) -> Template:
+    async def create_template(self, db: AsyncSession, template_data: TemplateCreate, user_id: Union[UUID, int, str]) -> Template:
         """Create a new template."""
         return await create_template(db, template_data, user_id)
     
-    @staticmethod
-    async def update_template(db: AsyncSession, template_id: UUID, template_data: TemplateUpdate, user_id: UUID) -> Template:
+    async def update_template(self, db: AsyncSession, template_id: UUID, template_data: TemplateUpdate, user_id: UUID) -> Template:
         """Update an existing template."""
         return await update_template(db, template_id, template_data, user_id)
     
-    @staticmethod
-    async def delete_template(db: AsyncSession, template_id: UUID, user_id: UUID) -> bool:
+    async def delete_template(self, db: AsyncSession, template_id: UUID, user_id: UUID) -> bool:
         """Delete a template."""
         return await delete_template(db, template_id, user_id)
     
-    @staticmethod
-    async def publish_template(db: AsyncSession, template_id: UUID, user_id: UUID) -> Template:
+    async def publish_template(self, db: AsyncSession, template_id: UUID, user_id: UUID) -> Template:
         """Publish a template."""
         return await publish_template(db, template_id, user_id)
     
-    @staticmethod
-    async def duplicate_template(db: AsyncSession, template_id: UUID, new_name: str, user_id: UUID) -> Template:
+    async def archive_template(self, db: AsyncSession, template_id: UUID, user_id: UUID) -> Template:
+        """Archive a template."""
+        return await archive_template(db, template_id, user_id)
+    
+    async def duplicate_template(self, db: AsyncSession, template_id: UUID, new_name: str, user_id: UUID) -> Template:
         """Duplicate a template."""
         return await duplicate_template(db, template_id, new_name, user_id)
     
-    @staticmethod
-    async def get_analytics(db: AsyncSession, template_id: UUID) -> Dict[str, Any]:
+    async def get_template_analytics(self, db: AsyncSession, template_id: UUID) -> Dict[str, Any]:
         """Get template analytics."""
         return await get_template_analytics(db, template_id)
+    
+    async def record_template_view(self, db: AsyncSession, template_id: UUID, user_id: Optional[UUID] = None):
+        """Record a template view."""
+        return await record_template_view(db, template_id, user_id)
 
 
 async def get_templates(
@@ -99,7 +100,7 @@ async def get_templates(
         Tuple of (templates, total_count)
     """
     # Build base query
-    query = select(Template).where(Template.is_active == True)
+    query = select(Template)
     
     # Apply user access filter (owner or collaborator)
     access_filter = or_(
@@ -217,25 +218,24 @@ async def get_template(db: AsyncSession, template_id: Union[str, UUID]) -> Templ
 async def create_template(
     db: AsyncSession,
     template_data: TemplateCreate,
-    user_id: UUID
+    user_id: Union[UUID, int, str]
 ) -> Template:
     """Create a new template."""
     # Convert data from Pydantic model to SQLAlchemy model
+    # Convert Pydantic Entity objects to dictionaries for JSON storage
+    entities_list = [entity.dict() for entity in template_data.entities] if template_data.entities else []
+    relationships_list = [rel.dict() for rel in template_data.relationships] if template_data.relationships else []
+    
     template = Template(
         name=template_data.name,
-        title=template_data.domainConfig.title,
         description=template_data.description or template_data.domainConfig.description or "",
-        domain_type=template_data.domainConfig.domainType,
-        version=template_data.domainConfig.version,
-        status=TemplateStatus.DRAFT,
-        config_schema=template_data.domainConfig.dict(),
-        entities_config=[entity.dict() for entity in template_data.entities],
-        ui_config=template_data.domainConfig.uiConfig or {},
-        features=template_data.domainConfig.features or {},
-        custom_config=template_data.domainConfig.metadata or {},
-        created_by=str(user_id),
-        is_official=False,
+        domain_config=template_data.domainConfig.dict(),
+        entities=entities_list,
+        relationships=relationships_list,
+        tags=template_data.tags or [],
+        user_id=str(user_id),  # Convert to string for storage
         is_public=template_data.isPublic,
+        status=TemplateStatus.DRAFT.value,
     )
     
     db.add(template)
@@ -511,3 +511,7 @@ async def record_template_view(db: AsyncSession, template_id: UUID, user_id: Opt
     # db.add(usage)
     
     await db.commit()
+
+
+# Create service instance
+template_service = TemplateService()
