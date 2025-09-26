@@ -1025,3 +1025,200 @@ async def get_featured_templates():
             "is_featured": True
         }
     ]
+
+
+# Template Management API Endpoints (Day 13)
+
+@router.get("/{template_id}/manage")
+async def get_template_for_management(template_id: str):
+    """Get template details for management interface."""
+    # In real implementation: fetch from database with full details
+    # For now, return comprehensive mock data
+    return {
+        "id": template_id,
+        "name": "task_management_pro",
+        "title": "Task Management Pro",
+        "description": "Advanced task management system with team collaboration, time tracking, and project analytics.",
+        "category": "business",
+        "tags": ["tasks", "projects", "collaboration", "analytics", "time-tracking"],
+        "entities": [
+            {"name": "Task", "fields": 12, "relationships": 3},
+            {"name": "Project", "fields": 8, "relationships": 4},
+            {"name": "User", "fields": 6, "relationships": 2},
+            {"name": "Team", "fields": 5, "relationships": 3}
+        ],
+        "relationships": [
+            {"from": "Task", "to": "Project", "type": "belongs_to"},
+            {"from": "Task", "to": "User", "type": "assigned_to"},
+            {"from": "User", "to": "Team", "type": "member_of"}
+        ],
+        "workflows": [
+            {"name": "Task Creation", "steps": 5},
+            {"name": "Project Setup", "steps": 8}
+        ],
+        "version": "2.1.0",
+        "author": "TeamFlow Admin",
+        "created_at": "2025-08-15T10:00:00Z",
+        "updated_at": "2025-09-20T14:30:00Z",
+        "is_public": True,
+        "is_official": True,
+        "usage_count": 1250,
+        "rating": 4.9,
+        "total_ratings": 234,
+        "versions": [
+            {
+                "id": "v2.1.0",
+                "version": "2.1.0",
+                "description": "Added advanced analytics and reporting features",
+                "author": "TeamFlow Admin",
+                "created_at": "2025-09-20T14:30:00Z",
+                "is_current": True,
+                "changes": [
+                    "Added analytics dashboard",
+                    "Enhanced reporting system",
+                    "Improved performance",
+                    "Bug fixes and optimizations"
+                ],
+                "size": "2.4 MB"
+            },
+            {
+                "id": "v2.0.0",
+                "version": "2.0.0",
+                "description": "Major update with workflow automation",
+                "author": "TeamFlow Admin",
+                "created_at": "2025-09-01T09:15:00Z",
+                "is_current": False,
+                "changes": [
+                    "Added workflow automation",
+                    "New user interface",
+                    "Enhanced security features"
+                ],
+                "size": "2.1 MB"
+            }
+        ],
+        "permissions": [
+            {
+                "user_id": "user1",
+                "user_name": "Alice Johnson",
+                "permission": "admin",
+                "granted_at": "2025-08-15T10:00:00Z",
+                "granted_by": "System"
+            },
+            {
+                "user_id": "user2",
+                "user_name": "Bob Smith",
+                "permission": "edit",
+                "granted_at": "2025-09-01T12:00:00Z",
+                "granted_by": "Alice Johnson"
+            }
+        ],
+        "metadata": {
+            "total_entities": 4,
+            "total_fields": 31,
+            "total_relationships": 7,
+            "complexity_score": 8.5
+        }
+    }
+
+
+@router.put("/{template_id}/manage")
+async def update_template(template_id: str, template_data: dict = Body(...)):
+    """Update template information."""
+    # In real implementation: validate and update database
+    # Return updated template data
+    return {
+        "id": template_id,
+        "message": "Template updated successfully",
+        "updated_at": datetime.utcnow().isoformat(),
+        "version": "2.1.1"  # Auto-increment version
+    }
+
+
+@router.post("/{template_id}/versions")
+async def create_template_version(template_id: str, version_data: dict = Body(...)):
+    """Create a new version of the template."""
+    # In real implementation: create new version in database
+    return {
+        "id": f"v2.2.0",
+        "version": "2.2.0",
+        "description": version_data.get("description", ""),
+        "author": "Current User",
+        "created_at": datetime.utcnow().isoformat(),
+        "is_current": True,
+        "changes": ["Manual version creation"],
+        "size": "2.5 MB"
+    }
+
+
+@router.post("/{template_id}/clone")
+async def clone_template(template_id: str, clone_options: dict = Body(...)):
+    """Clone a template with specified options."""
+    new_template_id = f"{template_id}_clone_{int(datetime.utcnow().timestamp())}"
+    
+    # In real implementation: perform actual cloning in database
+    return {
+        "id": new_template_id,
+        "name": clone_options.get("new_name", f"cloned_{template_id}"),
+        "title": clone_options.get("new_title", "Cloned Template"),
+        "message": "Template cloned successfully",
+        "created_at": datetime.utcnow().isoformat()
+    }
+
+
+@router.delete("/{template_id}/manage")
+async def delete_template(template_id: str):
+    """Delete a template and all its versions."""
+    # In real implementation: soft delete template and associated data
+    return {
+        "message": f"Template {template_id} deleted successfully",
+        "deleted_at": datetime.utcnow().isoformat()
+    }
+
+
+@router.post("/{template_id}/permissions")
+async def add_template_permission(template_id: str, permission_data: dict = Body(...)):
+    """Add user permission to template."""
+    # In real implementation: validate user exists and add permission
+    return {
+        "user_id": "new_user_id",
+        "user_name": permission_data.get("user_name"),
+        "permission": permission_data.get("permission"),
+        "granted_at": datetime.utcnow().isoformat(),
+        "granted_by": "Current User"
+    }
+
+
+@router.delete("/{template_id}/permissions/{user_id}")
+async def remove_template_permission(template_id: str, user_id: str):
+    """Remove user permission from template."""
+    # In real implementation: remove permission from database
+    return {
+        "message": f"Permission removed for user {user_id}",
+        "removed_at": datetime.utcnow().isoformat()
+    }
+
+
+@router.get("/{template_id}/export")
+async def export_template(template_id: str, format: str = Query("json")):
+    """Export template in specified format."""
+    # In real implementation: generate export file
+    return {
+        "template_id": template_id,
+        "export_format": format,
+        "download_url": f"/api/v1/templates/{template_id}/download?format={format}",
+        "expires_at": datetime.utcnow().isoformat()
+    }
+
+
+@router.post("/import")
+async def import_template(template_file: dict = Body(...)):
+    """Import template from uploaded file."""
+    # In real implementation: validate and import template
+    new_template_id = f"imported_{int(datetime.utcnow().timestamp())}"
+    
+    return {
+        "id": new_template_id,
+        "name": template_file.get("name", "imported_template"),
+        "message": "Template imported successfully",
+        "imported_at": datetime.utcnow().isoformat()
+    }
