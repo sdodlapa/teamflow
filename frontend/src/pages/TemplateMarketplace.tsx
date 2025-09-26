@@ -24,7 +24,9 @@ import {
   Award,
   Zap
 } from 'lucide-react';
-import { LoadingSpinner } from '../components/LoadingComponents';
+import { 
+  SkeletonCard
+} from '../components/ui/LoadingComponents';
 
 // Marketplace interfaces  
 interface MarketplaceTemplate {
@@ -563,8 +565,52 @@ export const TemplateMarketplace: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <LoadingSpinner />
+      <div className="min-h-screen bg-gray-50">
+        {/* Header skeleton */}
+        <div className="bg-white border-b">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="py-6">
+              <div className="h-8 bg-gray-200 rounded w-64 mb-2 animate-pulse"></div>
+              <div className="h-4 bg-gray-200 rounded w-96 animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+
+        {/* Filters and search skeleton */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* Sidebar skeleton */}
+            <div className="lg:w-64">
+              <div className="bg-white rounded-lg shadow-sm border p-4">
+                <div className="h-6 bg-gray-200 rounded w-24 mb-4 animate-pulse"></div>
+                <div className="space-y-3">
+                  {Array.from({ length: 6 }).map((_, index) => (
+                    <div key={index} className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Main content skeleton */}
+            <div className="flex-1">
+              {/* Search and controls */}
+              <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                <div className="flex-1 h-10 bg-gray-200 rounded animate-pulse"></div>
+                <div className="flex gap-2">
+                  <div className="h-10 w-24 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-10 w-10 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              </div>
+
+              {/* Template grid skeleton */}
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {Array.from({ length: 9 }).map((_, index) => (
+                  <SkeletonCard key={index} />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

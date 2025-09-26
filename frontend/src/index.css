@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import loading components styles */
+@import './components/ui/loading-components.css';
+
 /* Custom base styles */
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;

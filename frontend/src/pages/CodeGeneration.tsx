@@ -23,7 +23,11 @@ import {
   ChevronRight,
   Loader2
 } from 'lucide-react';
-import { LoadingSpinner } from '../components/LoadingComponents';
+import { 
+  LoadingSpinner, 
+  ProgressBar, 
+  LoadingButton 
+} from '../components/ui/LoadingComponents';
 
 // Generation interfaces
 interface GenerationOptions {
@@ -416,15 +420,16 @@ export const GeneratedComponent: React.FC<GeneratedComponentProps> = ({ data }) 
                 </button>
               )}
               
-              {progress.status === 'idle' && (
-                <button
-                  onClick={handleStartGeneration}
-                  className="flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-                >
-                  <Play className="h-4 w-4 mr-2" />
-                  Generate Code
-                </button>
-              )}
+              <LoadingButton
+                loading={progress.status === 'running'}
+                disabled={progress.status !== 'idle'}
+                onClick={handleStartGeneration}
+                variant="primary"
+                className="bg-green-600 hover:bg-green-700 focus:ring-green-500"
+              >
+                <Play className="h-4 w-4 mr-2" />
+                Generate Code
+              </LoadingButton>
             </div>
           </div>
         </div>
@@ -571,19 +576,18 @@ export const GeneratedComponent: React.FC<GeneratedComponentProps> = ({ data }) 
                   </div>
 
                   <div className="mb-4">
-                    <div className="flex justify-between text-sm text-gray-600 mb-1">
-                      <span>{progress.currentStep}</span>
-                      <span>{progress.completedSteps}/{progress.totalSteps}</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className={`h-2 rounded-full transition-all duration-300 ${
-                          progress.status === 'completed' ? 'bg-green-500' :
-                          progress.status === 'failed' ? 'bg-red-500' :
-                          'bg-blue-500'
-                        }`}
-                        style={{ width: `${progress.progress}%` }}
-                      />
+                    <ProgressBar
+                      progress={progress.progress}
+                      label={progress.currentStep}
+                      showPercentage={true}
+                      color={
+                        progress.status === 'completed' ? 'green' :
+                        progress.status === 'failed' ? 'red' : 'blue'
+                      }
+                      animated={progress.status === 'running'}
+                    />
+                    <div className="text-xs text-gray-500 mt-1 text-right">
+                      Step {progress.completedSteps} of {progress.totalSteps}
                     </div>
                   </div>
 

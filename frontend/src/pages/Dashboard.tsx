@@ -9,7 +9,11 @@ import {
   AlertTriangle,
   Activity
 } from 'lucide-react';
-import { LoadingSpinner } from '../components/LoadingComponents';
+import { 
+  LoadingSpinner, 
+  SkeletonCard, 
+  SkeletonList
+} from '../components/ui/LoadingComponents';
 import { useDashboardStats, useTaskAnalytics, useProjectAnalytics } from '../hooks/useAnalytics';
 import { useProjects } from '../hooks/useProjects';
 import { useTasks } from '../hooks/useTasks';
@@ -44,13 +48,45 @@ const Dashboard: React.FC = () => {
     status: ['todo', 'in_progress']
   });
 
-  // Loading state
+  // Enhanced Loading state with skeleton screens
   if (statsLoading) {
     return (
       <div className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-center h-64">
-            <LoadingSpinner size="lg" />
+          {/* Header skeleton */}
+          <div className="mb-8">
+            <div className="h-8 bg-gray-200 rounded w-64 mb-2 animate-pulse"></div>
+            <div className="h-4 bg-gray-200 rounded w-96 animate-pulse"></div>
+          </div>
+
+          {/* Stats cards skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <SkeletonCard key={index} />
+            ))}
+          </div>
+
+          {/* Main content area skeleton */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Recent tasks skeleton */}
+            <div className="lg:col-span-2">
+              <div className="bg-white rounded-lg shadow-sm border">
+                <div className="p-6 border-b border-gray-200">
+                  <div className="h-6 bg-gray-200 rounded w-32 animate-pulse"></div>
+                </div>
+                <SkeletonList items={5} />
+              </div>
+            </div>
+
+            {/* Recent projects skeleton */}
+            <div>
+              <div className="bg-white rounded-lg shadow-sm border">
+                <div className="p-6 border-b border-gray-200">
+                  <div className="h-6 bg-gray-200 rounded w-40 animate-pulse"></div>
+                </div>
+                <SkeletonList items={3} showActions={false} />
+              </div>
+            </div>
           </div>
         </div>
       </div>

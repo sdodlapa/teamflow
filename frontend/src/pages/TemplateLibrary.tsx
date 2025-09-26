@@ -16,7 +16,9 @@ import {
   Package,
   Plus
 } from 'lucide-react';
-import { LoadingSpinner } from '../components/LoadingComponents';
+import { 
+  SkeletonCard
+} from '../components/ui/LoadingComponents';
 
 // Template interface
 interface Template {
@@ -275,8 +277,35 @@ const TemplateLibrary: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <LoadingSpinner size="lg" />
+      <div className="min-h-screen bg-gray-50">
+        {/* Header skeleton */}
+        <div className="bg-white border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-6 py-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <div className="h-8 bg-gray-200 rounded w-48 mb-2 animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded w-64 animate-pulse"></div>
+              </div>
+              <div className="h-10 bg-gray-200 rounded w-32 animate-pulse"></div>
+            </div>
+            
+            {/* Search and filters skeleton */}
+            <div className="flex flex-col sm:flex-row gap-4 mb-6">
+              <div className="flex-1 h-10 bg-gray-200 rounded animate-pulse"></div>
+              <div className="h-10 bg-gray-200 rounded w-32 animate-pulse"></div>
+              <div className="h-10 bg-gray-200 rounded w-24 animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+
+        {/* Content skeleton */}
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {Array.from({ length: 8 }).map((_, index) => (
+              <SkeletonCard key={index} />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
