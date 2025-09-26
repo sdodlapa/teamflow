@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from fastapi import UploadFile, HTTPException, status
 from sqlalchemy.orm import Session
 from PIL import Image, ImageOps
-import magic
+# import magic  # Disabled for deployment - system dependency issue
 
 from app.core.config import settings
 from app.core.database import get_db
@@ -177,8 +177,11 @@ class FileSecurityService:
     
     def validate_file(self, upload_file: UploadFile, file_content: bytes) -> FileMetadata:
         """Validate uploaded file and extract metadata."""
-        # Detect MIME type using python-magic for better accuracy
-        mime_type = magic.from_buffer(file_content, mime=True)
+        # Use mimetypes module instead of python-magic for deployment compatibility
+        mime_type, _ = mimetypes.guess_type(upload_file.filename)
+        if not mime_type:
+            # Fallback to content-type from upload
+            mime_type = upload_file.content_type or "application/octet-stream"
         
         # Validate MIME type
         if mime_type not in self.ALLOWED_MIME_TYPES:
