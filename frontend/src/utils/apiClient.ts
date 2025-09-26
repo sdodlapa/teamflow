@@ -1,6 +1,6 @@
 /**
- * Enhanced API Client with Error Handling
- * Centralized HTTP client with automatic error handling, retries, and loading states
+ * Enhanced API Client with Error Handling - Day 16 Enhanced
+ * Centralized HTTP client with automatic error handling, retries, loading states, and resilience
  */
 
 interface ApiError extends Error {
@@ -8,6 +8,8 @@ interface ApiError extends Error {
   statusText?: string;
   data?: any;
   code?: string;
+  type?: 'network' | 'auth' | 'validation' | 'server' | 'timeout';
+  retryable?: boolean;
   response?: {
     status: number;
     statusText: string;
@@ -40,7 +42,90 @@ class ApiClient {
 
   // Helper to create an API error
   private createApiError(response: Response, data?: any): ApiError {
-    const error = new Error(`API Error: ${response.status} ${response.statusText}`) as ApiError;
+    const error = new Error() as ApiError;
+    
+    // Determine error type and message based on status
+    switch (response.status) {
+      case 401:
+        error.message = 'Authentication required. Please log in again.';
+        error.type = 'auth';
+        error.code = 'UNAUTHORIZED';
+        error.retryable = false;
+        break;
+      case 403:
+        error.message = 'You don\'t have permission to perform this action.';
+        error.type = 'auth';
+        error.code = 'FORBIDDEN';
+        error.retryable = false;
+        break;
+      case 404:
+        error.message = 'The requested resource was not found.';
+        error.type = 'validation';
+        error.code = 'NOT_FOUND';
+        error.retryable = false;
+        break;
+      case 409:
+        error.message = 'This action conflicts with existing data.';
+        error.type = 'validation';
+        error.code = 'CONFLICT';
+        error.retryable = false;
+        break;
+      case 422:
+        error.message = 'The request data is invalid.';
+        error.type = 'validation';
+        error.code = 'VALIDATION_ERROR';
+        error.retryable = false;
+        break;
+      case 429:
+        error.message = 'Too many requests. Please wait a moment before trying again.';
+        error.type = 'server';
+        error.code = 'RATE_LIMITED';
+        error.retryable = true;
+        break;
+      case 500:
+        error.message = 'Server error. Please try again later.';
+        error.type = 'server';
+        error.code = 'INTERNAL_ERROR';
+        error.retryable = true;
+        break;
+      case 502:
+        error.message = 'Bad gateway. The server is temporarily unavailable.';
+        error.type = 'server';
+        error.code = 'BAD_GATEWAY';
+        error.retryable = true;
+        break;
+      case 503:
+        error.message = 'Service temporarily unavailable. Please try again later.';
+        error.type = 'server';
+        error.code = 'SERVICE_UNAVAILABLE';
+        error.retryable = true;
+        break;
+      case 504:
+        error.message = 'Gateway timeout. The request took too long to process.';
+        error.type = 'server';
+        error.code = 'GATEWAY_TIMEOUT';
+        error.retryable = true;
+        break;
+      default:
+        error.message = `API Error: ${response.status} ${response.statusText}`;
+        error.type = response.status >= 500 ? 'server' : 'validation';
+        error.code = 'HTTP_ERROR';
+        error.retryable = response.status >= 500;
+    }
+
+    // Try to extract more specific error from response data
+    if (data) {
+      if (typeof data === 'object') {
+        if (data.detail && typeof data.detail === 'string') {
+          error.message = data.detail;
+        } else if (data.message && typeof data.message === 'string') {
+          error.message = data.message;
+        } else if (data.error && typeof data.error === 'string') {
+          error.message = data.error;
+        }
+      }
+    }
+
     error.status = response.status;
     error.statusText = response.statusText;
     error.data = data;
@@ -49,6 +134,7 @@ class ApiClient {
       statusText: response.statusText,
       data,
     };
+
     return error;
   }
 
@@ -56,15 +142,29 @@ class ApiClient {
   private withTimeout<T>(promise: Promise<T>, timeout: number): Promise<T> {
     return new Promise((resolve, reject) => {
       const timeoutId = setTimeout(() => {
-        const error = new Error('Request timeout') as ApiError;
+        const error = new Error('Request timeout - the server is taking too long to respond') as ApiError;
         error.name = 'NetworkError';
-        error.code = 'NETWORK_ERROR';
+        error.type = 'timeout';
+        error.code = 'TIMEOUT';
+        error.retryable = true;
         reject(error);
       }, timeout);
 
       promise
         .then(resolve)
-        .catch(reject)
+        .catch((err) => {
+          // Enhance network errors
+          if (err instanceof TypeError && err.message.includes('Failed to fetch')) {
+            const networkError = new Error('Unable to connect to the server. Please check your internet connection.') as ApiError;
+            networkError.name = 'NetworkError';
+            networkError.type = 'network';
+            networkError.code = 'CONNECTION_ERROR';
+            networkError.retryable = true;
+            reject(networkError);
+          } else {
+            reject(err);
+          }
+        })
         .finally(() => clearTimeout(timeoutId));
     });
   }
@@ -92,18 +192,33 @@ class ApiClient {
 
   // Determine if we should retry the request
   private shouldRetry(error: ApiError): boolean {
-    // Retry on network errors
-    if (error.name === 'NetworkError' || !error.status) {
-      return true;
+    // Don't retry if explicitly marked as non-retryable
+    if (error.retryable === false) {
+      return false;
     }
 
-    // Retry on server errors (5xx)
-    if (error.status && error.status >= 500) {
-      return true;
+    // Retry based on error type
+    switch (error.type) {
+      case 'network':
+      case 'timeout':
+      case 'server':
+        return true;
+      case 'auth':
+      case 'validation':
+        return false;
+      default:
+        // Fallback to status-based logic
+        if (error.name === 'NetworkError' || !error.status) {
+          return true;
+        }
+        
+        // Retry on server errors (5xx) and rate limiting (429)
+        if (error.status && (error.status >= 500 || error.status === 429)) {
+          return true;
+        }
+        
+        return false;
     }
-
-    // Don't retry on client errors (4xx)
-    return false;
   }
 
   // Get authorization header

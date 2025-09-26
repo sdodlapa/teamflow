@@ -14,11 +14,21 @@ import {
   SkeletonCard, 
   SkeletonList
 } from '../components/ui/LoadingComponents';
+import ErrorBoundary from '../components/ErrorBoundary';
+import QueryErrorBoundary from '../components/QueryErrorBoundary';
 import { useDashboardStats, useTaskAnalytics, useProjectAnalytics } from '../hooks/useAnalytics';
 import { useProjects } from '../hooks/useProjects';
 import { useTasks } from '../hooks/useTasks';
 
 const Dashboard: React.FC = () => {
+  return (
+    <ErrorBoundary level="page" showDetails={import.meta.env.DEV}>
+      <DashboardContent />
+    </ErrorBoundary>
+  );
+};
+
+const DashboardContent: React.FC = () => {
   // Fetch dashboard data using React Query
   const { 
     data: dashboardStats, 
@@ -159,24 +169,22 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Key Metrics Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {/* Total Tasks */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Tasks</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.tasks.total}</p>
-                <p className={`text-sm ${getCompletionRateColor(stats.tasks.completion_rate)}`}>
-                  {formatPercentage(stats.tasks.completion_rate)} completion rate
-                </p>
+        <QueryErrorBoundary level="component">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Total Tasks */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Total Tasks</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.tasks.total}</p>
+                  <p className={`text-sm ${getCompletionRateColor(stats.tasks.completion_rate)}`}>
+                    {formatPercentage(stats.tasks.completion_rate)} completion rate</p>
+                </div>
+                <div className="p-3 bg-blue-50 rounded-full">
+                  <CheckCircle2 className="h-6 w-6 text-blue-600" />
+                </div>
               </div>
-              <div className="p-3 bg-blue-100 rounded-full">
-                <CheckCircle2 className="h-6 w-6 text-blue-600" />
-              </div>
-            </div>
-          </div>
-
-          {/* Active Projects */}
+            </div>          {/* Active Projects */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -224,6 +232,7 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
         </div>
+        </QueryErrorBoundary>
 
         {/* Charts and Analytics Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
