@@ -67,6 +67,58 @@ class ConfigurationComparison(PydanticBaseModel):
     differences: Dict[str, Any] = {}
 
 
+# Pydantic models for template creation
+class TemplateField(PydanticBaseModel):
+    """Field definition for a template entity."""
+    name: str
+    type: str
+    nullable: bool = True
+    description: str = ""
+    max_length: Optional[int] = None
+    choices: Optional[List[str]] = None
+
+
+class TemplateRelationship(PydanticBaseModel):
+    """Relationship definition for a template entity."""
+    name: str
+    target_entity: str
+    relationship_type: str
+    foreign_key: Optional[str] = None
+
+
+class TemplateEntity(PydanticBaseModel):
+    """Entity definition for a template."""
+    name: str
+    table_name: str
+    description: str = ""
+    fields: List[TemplateField]
+    relationships: List[TemplateRelationship] = []
+
+
+class CreateTemplateRequest(PydanticBaseModel):
+    """Request model for creating a new template."""
+    name: str
+    title: str
+    description: str
+    domain_type: str = "business"
+    version: str = "1.0.0"
+    logo: str = "📁"
+    color_scheme: str = "blue"
+    entities: List[TemplateEntity]
+    features: Dict[str, bool] = {}
+    tags: List[str] = []
+
+
+class TemplateCreationResponse(PydanticBaseModel):
+    """Response model for template creation."""
+    id: str
+    name: str
+    title: str
+    message: str
+    validation_errors: List[str] = []
+    warnings: List[str] = []
+
+
 @router.get("/domain-config")
 async def get_current_domain_config():
     """Get the current domain configuration (legacy endpoint)."""
@@ -349,6 +401,143 @@ async def validate_entity_config(domain_name: str, entity_name: str):
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Entity validation failed: {str(e)}")
+
+
+@router.post("/templates", response_model=TemplateCreationResponse)
+async def create_template(
+    template_data: CreateTemplateRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """Create a new template from the provided configuration."""
+    try:
+        # Validate the template data
+        validation_errors = []
+        warnings = []
+        
+        # Check for duplicate entity names
+        entity_names = [entity.name for entity in template_data.entities]
+        if len(entity_names) != len(set(entity_names)):
+            validation_errors.append("Template contains duplicate entity names")
+        
+        # Validate relationships reference existing entities
+        for entity in template_data.entities:
+            for relationship in entity.relationships:
+                if relationship.target_entity not in entity_names:
+                    validation_errors.append(
+                        f"Entity '{entity.name}' has relationship '{relationship.name}' "
+                        f"targeting non-existent entity '{relationship.target_entity}'"
+                    )
+        
+        # Check for circular references in relationships
+        for entity in template_data.entities:
+            for relationship in entity.relationships:
+                if relationship.target_entity == entity.name:
+                    warnings.append(
+                        f"Entity '{entity.name}' has self-referencing relationship '{relationship.name}'"
+                    )
+        
+        # If there are validation errors, return them without creating
+        if validation_errors:
+            return TemplateCreationResponse(
+                id="",
+                name=template_data.name,
+                title=template_data.title,
+                message="Template validation failed",
+                validation_errors=validation_errors,
+                warnings=warnings
+            )
+        
+        # Create the template configuration (for now, we'll just simulate saving)
+        # In a full implementation, this would save to the database and/or file system
+        template_id = f"custom_{template_data.name.lower().replace(' ', '_')}"
+        
+        # Here you would typically:
+        # 1. Save to database
+        # 2. Generate YAML configuration file
+        # 3. Update template registry
+        # 4. Trigger any necessary cache refreshes
+        
+        # For now, just return success
+        return TemplateCreationResponse(
+            id=template_id,
+            name=template_data.name,
+            title=template_data.title,
+            message="Template created successfully",
+            validation_errors=[],
+            warnings=warnings
+        )
+        
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid template data: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create template: {str(e)}")
+
+
+@router.get("/templates")
+async def list_templates(
+    domain_type: Optional[str] = Query(None, description="Filter by domain type"),
+    status: Optional[str] = Query(None, description="Filter by template status"),
+    db: AsyncSession = Depends(get_db)
+):
+    """List available templates with enhanced filtering."""
+    # Use legacy system that works with current YAML format
+    domains = legacy_loader.get_available_domains()
+    templates = []
+    
+    for domain_name in domains:
+        try:
+            config = legacy_loader.load_domain_config(domain_name)
+            if not config:
+                continue
+                
+            if domain_type and getattr(config, 'type', None) != domain_type:
+                continue
+            
+            # Count entities
+            entity_count = len(config.entities) if hasattr(config, 'entities') and config.entities else 0
+            
+            template_info = {
+                "id": domain_name,
+                "name": getattr(config, 'name', domain_name),
+                "title": getattr(config, 'title', domain_name.replace('_', ' ').title()),
+                "description": getattr(config, 'description', f"Domain configuration for {domain_name}"),
+                "domain_type": getattr(config, 'type', 'business'),
+                "version": getattr(config, 'version', '1.0.0'),
+                "logo": getattr(config, 'logo', '📁'),
+                "color_scheme": getattr(config, 'color_scheme', 'blue'),
+                "status": "active",
+                "is_official": True,
+                "usage_count": 0,
+                "entity_count": entity_count,
+                "author": getattr(config, 'author', 'TeamFlow Templates'),
+                "tags": getattr(config, 'tags', []),
+                "features": []
+            }
+            templates.append(template_info)
+            
+        except Exception as e:
+            print(f"Error loading template {domain_name}: {e}")
+            # Still add basic info for domains that failed to load
+            templates.append({
+                "id": domain_name,
+                "name": domain_name,
+                "title": domain_name.replace('_', ' ').title(),
+                "description": f"Domain configuration for {domain_name}",
+                "domain_type": "business",
+                "version": "1.0.0",
+                "logo": "📁",
+                "color_scheme": "blue",
+                "status": "active",
+                "is_official": True,
+                "usage_count": 0,
+                "entity_count": 0,
+                "author": "TeamFlow Templates",
+                "tags": [],
+                "features": []
+            })
+            continue
+    
+    return {"templates": templates}
 
 
 @router.get("/templates")

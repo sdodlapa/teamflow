@@ -13,7 +13,8 @@ import {
   Download,
   Star,
   Calendar,
-  Package
+  Package,
+  Plus
 } from 'lucide-react';
 import { LoadingSpinner } from '../components/LoadingComponents';
 
@@ -290,19 +291,28 @@ const TemplateLibrary: React.FC = () => {
               <h1 className="text-2xl font-bold text-gray-900">Template Library</h1>
               <p className="text-gray-600">Browse and discover domain templates for your projects</p>
             </div>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`p-2 rounded-md ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+            <div className="flex items-center space-x-3">
+              <Link
+                to="/templates/create"
+                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium"
               >
-                <Grid3X3 className="h-5 w-5" />
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`p-2 rounded-md ${viewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
-              >
-                <List className="h-5 w-5" />
-              </button>
+                <Plus className="h-4 w-4 inline mr-2" />
+                Create Template
+              </Link>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`p-2 rounded-md ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+                >
+                  <Grid3X3 className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`p-2 rounded-md ${viewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+                >
+                  <List className="h-5 w-5" />
+                </button>
+              </div>
             </div>
           </div>
 
