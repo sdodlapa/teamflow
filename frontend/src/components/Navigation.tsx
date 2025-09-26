@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ChevronDown, LogOut, Settings, User, Bell } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { CollaborationStatus } from './collaboration';
 
 interface NavigationItem {
   name: string;
@@ -22,6 +23,7 @@ const navigationItems: NavigationItem[] = [
   { name: 'Templates', path: '/templates', icon: '📦', description: 'Template library' },
   { name: 'Calendar', path: '/calendar', icon: '📅', description: 'Schedule and events' },
   { name: 'Analytics', path: '/analytics', icon: '📈', description: 'Performance insights' },
+  { name: 'Collaboration', path: '/collaboration-demo', icon: '👥', description: 'Real-time collaboration demo' },
 ];
 
 const Navigation: React.FC = () => {
@@ -94,6 +96,11 @@ const Navigation: React.FC = () => {
 
           {/* User Menu and Actions */}
           <div className="flex items-center">
+            {/* Real-time Collaboration Status */}
+            <div className="mr-3">
+              <CollaborationStatus />
+            </div>
+            
             {/* Notifications (placeholder) */}
             <button
               className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-md transition-colors mr-2"
