@@ -43,7 +43,6 @@ interface AnalyticsDashboardProps {
 }
 
 export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
-  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedView, setSelectedView] = useState<'overview' | 'performance' | 'users' | 'projects'>('overview');
   const [filters, setFilters] = useState<AnalyticsFilter>({
@@ -56,10 +55,8 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
   const { isLoading: loadingTasks } = useTaskAnalytics(30);
   const { isLoading: loadingProjects } = useProjectAnalytics(30);
 
-  // Combine loading states  
-  const totalLoading = loadingDashboard || loadingTasks || loadingProjects || loading;
-
-  // Transform real data into metrics format
+  // Combined loading state
+  const loading = loadingDashboard || loadingTasks || loadingProjects;
   const metrics: AnalyticsMetric[] = useMemo(() => {
     const stats = dashboardData?.dashboard_stats;
     if (!stats) return [];
@@ -143,12 +140,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
   ];
 
   useEffect(() => {
-    // Simulate data loading
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 1500);
-
-    return () => clearTimeout(timer);
+    // Effects for real data loading are handled by React Query
   }, [filters]);
 
   const handleRefresh = async () => {

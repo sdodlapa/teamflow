@@ -4,7 +4,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import ErrorBoundary from './components/ErrorBoundary';
 import OfflineIndicator from './components/OfflineIndicator';
 import { ToastProvider } from './contexts/ToastContext';
-import { CollaborationProvider } from './components/collaboration';
+// import { CollaborationProvider } from './components/collaboration'; // Temporarily disabled
 import { queryClient } from './lib/queryClient';
 import AppRouter from './router/AppRouter';
 import { reportError } from './utils/errorHandling';
@@ -38,9 +38,10 @@ function App() {
         <OfflineIndicator onRetry={handleOfflineRetry} />
         <QueryClientProvider client={queryClient}>
           <ToastProvider>
-            <CollaborationProvider workspaceId="main-workspace">
+            {/* Temporarily disabled CollaborationProvider to fix WebSocket flood */}
+            {/* <CollaborationProvider workspaceId="main-workspace"> */}
               <AppRouter />
-            </CollaborationProvider>
+            {/* </CollaborationProvider> */}
           </ToastProvider>
           <ReactQueryDevtools initialIsOpen={false} />
         </QueryClientProvider>

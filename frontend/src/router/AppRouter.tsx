@@ -22,6 +22,7 @@ import WorkflowAutomationBuilder from '../components/WorkflowAutomationBuilder';
 import ErrorHandlingDemo from '../pages/ErrorHandlingDemo';
 import DataManagementDemo from '../pages/DataManagementDemo';
 import AccessibilityPage from '../pages/AccessibilityPage';
+import MinimalTest from '../pages/MinimalTest';
 import NotFound from '../pages/NotFound';
 
 // Create the router configuration
@@ -39,11 +40,7 @@ const router = createBrowserRouter([
   // Private routes wrapped in authentication
   {
     path: '/',
-    element: (
-      <PrivateRoute>
-        <Dashboard />
-      </PrivateRoute>
-    ),
+    element: <MinimalTest />,
   },
   {
     path: '/dashboard',
