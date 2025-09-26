@@ -19,6 +19,7 @@ const navigationItems: NavigationItem[] = [
   { name: 'Dashboard', path: '/dashboard', icon: '📊', description: 'Overview and metrics' },
   { name: 'Tasks', path: '/tasks', icon: '📋', description: 'Task management' },
   { name: 'Projects', path: '/projects', icon: '📁', description: 'Project collaboration' },
+  { name: 'Templates', path: '/templates', icon: '📦', description: 'Template library' },
   { name: 'Calendar', path: '/calendar', icon: '📅', description: 'Schedule and events' },
   { name: 'Analytics', path: '/analytics', icon: '📈', description: 'Performance insights' },
 ];

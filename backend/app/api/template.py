@@ -15,19 +15,23 @@ from app.core.enhanced_domain_config import (
 )
 # Keep legacy imports for backward compatibility
 from app.core.template_config import (
+    TemplateConfigLoader,
     get_domain_config as legacy_get_domain_config, 
     get_available_domains as legacy_get_available_domains,
     template_config_loader as legacy_template_config_loader
 )
+
+# Initialize legacy loader with correct path
+legacy_loader = TemplateConfigLoader("../domain_configs")
 from app.services.universal_service import UniversalAnalyticsService
 from app.models.template import DomainTemplate, DomainInstance, TemplateUsage
 from app.models.base import BaseModel
 
 router = APIRouter()
 
-# Initialize enhanced domain configuration system
-enhanced_config_loader = get_domain_loader("../domain_configs")
-enhanced_config_manager = DomainConfigManager(enhanced_config_loader)
+# Initialize legacy domain configuration system (compatible with existing YAML format)
+# enhanced_config_loader = get_domain_loader("../domain_configs")
+# enhanced_config_manager = DomainConfigManager(enhanced_config_loader)
 
 
 # Pydantic models for API responses
@@ -138,33 +142,63 @@ async def list_available_domains():
 async def get_domain_details(domain_name: str):
     """Get detailed information about a specific domain."""
     try:
-        config = enhanced_config_loader.load_domain_config(domain_name)
+        config = legacy_loader.load_domain_config(domain_name)
         if not config:
             raise HTTPException(status_code=404, detail=f"Domain {domain_name} not found")
         
-        # Convert to detailed dictionary representation
-        return {
-            "domain": config.domain.dict(),
-            "entities": {
-                name: {
-                    **entity.dict(),
-                    "field_count": len(entity.fields),
-                    "relationship_count": len(entity.relationships),
-                    "business_rules_count": len(entity.business_rules)
+        # Convert legacy config to detailed dictionary representation
+        entities_info = {}
+        if hasattr(config, 'entities') and config.entities:
+            for entity in config.entities:
+                entities_info[entity.name] = {
+                    "name": entity.name,
+                    "table_name": getattr(entity, 'table_name', entity.name.lower()),
+                    "description": getattr(entity, 'description', ''),
+                    "fields": [
+                        {
+                            "name": field.name,
+                            "type": field.type,
+                            "nullable": getattr(field, 'nullable', True),
+                            "description": getattr(field, 'description', ''),
+                            "max_length": getattr(field, 'max_length', None),
+                            "choices": getattr(field, 'choices', None)
+                        }
+                        for field in getattr(entity, 'fields', [])
+                    ],
+                    "relationships": [
+                        {
+                            "name": rel.name,
+                            "target_entity": rel.target_entity,
+                            "relationship_type": rel.relationship_type,
+                            "foreign_key": getattr(rel, 'foreign_key', None)
+                        }
+                        for rel in getattr(entity, 'relationships', [])
+                    ],
+                    "field_count": len(getattr(entity, 'fields', [])),
+                    "relationship_count": len(getattr(entity, 'relationships', [])),
+                    "business_rules_count": 0  # Legacy doesn't have business rules
                 }
-                for name, entity in config.entities.items()
+        
+        return {
+            "domain": {
+                "name": getattr(config, 'name', domain_name),
+                "title": getattr(config, 'title', domain_name.replace('_', ' ').title()),
+                "description": getattr(config, 'description', f"Configuration for {domain_name}"),
+                "type": getattr(config, 'type', 'business'),
+                "version": getattr(config, 'version', '1.0.0'),
+                "logo": getattr(config, 'logo', '📁'),
+                "color_scheme": getattr(config, 'color_scheme', 'blue')
             },
-            "navigation": config.navigation,
-            "dashboard": config.dashboard,
-            "features": {name: feature.dict() for name, feature in config.features.items()},
-            "api": config.api,
-            "custom_config": config.custom_config,
+            "entities": entities_info,
+            "navigation": getattr(config, 'navigation', []),
+            "dashboard": getattr(config, 'dashboard', []),
+            "features": getattr(config, 'features', {}),
             "metadata": {
-                "total_entities": len(config.entities),
-                "total_fields": sum(len(entity.fields) for entity in config.entities.values()),
-                "total_relationships": sum(len(entity.relationships) for entity in config.entities.values()),
-                "total_business_rules": sum(len(entity.business_rules) for entity in config.entities.values()),
-                "enabled_features": sum(1 for feature in config.features.values() if feature.enabled)
+                "total_entities": len(entities_info),
+                "total_fields": sum(len(entity.get('fields', [])) for entity in entities_info.values()),
+                "total_relationships": sum(len(entity.get('relationships', [])) for entity in entities_info.values()),
+                "total_business_rules": 0,
+                "enabled_features": len([f for f in getattr(config, 'features', {}).values() if f is True])
             }
         }
     
@@ -324,42 +358,61 @@ async def list_templates(
     db: AsyncSession = Depends(get_db)
 ):
     """List available templates with enhanced filtering."""
-    domains = enhanced_config_loader.get_available_domains()
+    # Use legacy system that works with current YAML format
+    domains = legacy_loader.get_available_domains()
     templates = []
     
     for domain_name in domains:
         try:
-            config = enhanced_config_loader.load_domain_config(domain_name)
+            config = legacy_loader.load_domain_config(domain_name)
             if not config:
                 continue
                 
-            if domain_type and config.domain.domain_type != domain_type:
+            if domain_type and getattr(config, 'type', None) != domain_type:
                 continue
             
-            # Count enabled features
-            enabled_features = [name for name, feature in config.features.items() if feature.enabled]
+            # Count entities
+            entity_count = len(config.entities) if hasattr(config, 'entities') and config.entities else 0
             
             template_info = {
                 "id": domain_name,
-                "name": config.domain.name,
-                "title": config.domain.title,
-                "description": config.domain.description,
-                "domain_type": config.domain.domain_type,
-                "version": config.domain.version,
-                "logo": config.domain.logo,
-                "color_scheme": config.domain.color_scheme,
+                "name": getattr(config, 'name', domain_name),
+                "title": getattr(config, 'title', domain_name.replace('_', ' ').title()),
+                "description": getattr(config, 'description', f"Domain configuration for {domain_name}"),
+                "domain_type": getattr(config, 'type', 'business'),
+                "version": getattr(config, 'version', '1.0.0'),
+                "logo": getattr(config, 'logo', '📁'),
+                "color_scheme": getattr(config, 'color_scheme', 'blue'),
                 "status": "active",
                 "is_official": True,
                 "usage_count": 0,
-                "features": enabled_features,
-                "entity_count": len(config.entities),
-                "author": getattr(config.domain, 'author', 'TeamFlow Templates'),
-                "tags": getattr(config.domain, 'tags', [])
+                "entity_count": entity_count,
+                "author": getattr(config, 'author', 'TeamFlow Templates'),
+                "tags": getattr(config, 'tags', []),
+                "features": []
             }
             templates.append(template_info)
             
         except Exception as e:
             print(f"Error loading template {domain_name}: {e}")
+            # Still add basic info for domains that failed to load
+            templates.append({
+                "id": domain_name,
+                "name": domain_name,
+                "title": domain_name.replace('_', ' ').title(),
+                "description": f"Domain configuration for {domain_name}",
+                "domain_type": "business",
+                "version": "1.0.0",
+                "logo": "📁",
+                "color_scheme": "blue",
+                "status": "active",
+                "is_official": True,
+                "usage_count": 0,
+                "entity_count": 0,
+                "author": "TeamFlow Templates",
+                "tags": [],
+                "features": []
+            })
             continue
     
     return {"templates": templates}

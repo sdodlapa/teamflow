@@ -1,386 +1,396 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import dashboardApi from '../services/dashboardApi';
-import Layout from '../components/Layout';
-
-interface DashboardStats {
-  totalTasks: number;
-  completedTasks: number;
-  inProgressTasks: number;
-  totalProjects: number;
-  activeProjects: number;
-  overdueTasksCount: number;
-}
-
-interface RecentActivity {
-  id: string;
-  type: 'task_created' | 'task_completed' | 'project_created' | 'comment_added';
-  title: string;
-  description: string;
-  timestamp: string;
-  user?: string;
-}
+import React from 'react';
+import { 
+  Calendar, 
+  CheckCircle2, 
+  Clock, 
+  TrendingUp, 
+  Users, 
+  FolderOpen,
+  AlertTriangle,
+  Activity
+} from 'lucide-react';
+import { LoadingSpinner } from '../components/LoadingComponents';
+import { useDashboardStats, useTaskAnalytics, useProjectAnalytics } from '../hooks/useAnalytics';
+import { useProjects } from '../hooks/useProjects';
+import { useTasks } from '../hooks/useTasks';
 
 const Dashboard: React.FC = () => {
-  const { user } = useAuth();
-  const [stats, setStats] = useState<DashboardStats>({
-    totalTasks: 0,
-    completedTasks: 0,
-    inProgressTasks: 0,
-    totalProjects: 0,
-    activeProjects: 0,
-    overdueTasksCount: 0,
+  // Fetch dashboard data using React Query
+  const { 
+    data: dashboardStats, 
+    isLoading: statsLoading, 
+    error: statsError 
+  } = useDashboardStats();
+  
+  const { 
+    isLoading: taskAnalyticsLoading 
+  } = useTaskAnalytics();
+  
+  const { 
+    isLoading: projectAnalyticsLoading 
+  } = useProjectAnalytics();
+  
+  const { 
+    data: recentProjects, 
+    isLoading: projectsLoading 
+  } = useProjects({ 
+    status: ['active', 'on_hold'], 
   });
-  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  
+  const { 
+    data: recentTasks, 
+    isLoading: tasksLoading 
+  } = useTasks({ 
+    status: ['todo', 'in_progress']
+  });
 
-  // Load dashboard data
-  const loadDashboardData = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      // Load data from API service
-      const [statsData, activityData] = await Promise.all([
-        dashboardApi.getDashboardStats(),
-        dashboardApi.getRecentActivity(),
-      ]);
-
-      setStats(statsData);
-      setRecentActivity(activityData);
-    } catch (err: any) {
-      console.error('Dashboard data loading error:', err);
-      setError('Failed to load dashboard data. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadDashboardData();
-    
-    // Auto-refresh every 5 minutes
-    const interval = setInterval(loadDashboardData, 5 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const getActivityIcon = (type: RecentActivity['type']) => {
-    switch (type) {
-      case 'task_created':
-        return '📝';
-      case 'task_completed':
-        return '✅';
-      case 'project_created':
-        return '📁';
-      case 'comment_added':
-        return '💬';
-      default:
-        return '📋';
-    }
-  };
-
-  const formatTimestamp = (timestamp: string) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMinutes = Math.floor(diffMs / (1000 * 60));
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-    if (diffMinutes < 60) {
-      return `${diffMinutes}m ago`;
-    } else if (diffHours < 24) {
-      return `${diffHours}h ago`;
-    } else {
-      return `${diffDays}d ago`;
-    }
-  };
-
-  if (isLoading) {
+  // Loading state
+  if (statsLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-600"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-8">
+      <div className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-7xl mx-auto">
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <span className="text-xl">⚠️</span>
-              </div>
-              <div className="ml-3">
-                <h3 className="text-sm font-medium">Dashboard Error</h3>
-                <div className="mt-2 text-sm">{error}</div>
-                <div className="mt-4">
-                  <button
-                    onClick={loadDashboardData}
-                    className="bg-red-100 hover:bg-red-200 text-red-800 font-semibold py-2 px-4 border border-red-300 rounded shadow"
-                  >
-                    Retry
-                  </button>
-                </div>
-              </div>
-            </div>
+          <div className="flex items-center justify-center h-64">
+            <LoadingSpinner size="lg" />
           </div>
         </div>
       </div>
     );
   }
 
-  return (
-    <Layout>
-      <div className="bg-gray-50">
-        {/* Header */}
-        <div className="bg-white shadow">
-          <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between">
+  // Error state
+  if (statsError) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+            <div className="flex items-center">
+              <AlertTriangle className="h-6 w-6 text-red-600 mr-3" />
               <div>
-                <h1 className="text-3xl font-bold leading-tight text-gray-900">
-                  Dashboard
-                </h1>
-                <p className="mt-1 text-sm text-gray-600">
-                  Welcome back, {user?.full_name || user?.name || user?.email}!
-                </p>
-              </div>
-              <div className="flex items-center space-x-4">
-                <button
-                  onClick={loadDashboardData}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md shadow-sm"
+                <h3 className="text-lg font-semibold text-red-800">Failed to load dashboard data</h3>
+                <p className="text-red-600 mt-1">Please try again in a moment.</p>
+                <button 
+                  onClick={() => window.location.reload()}
+                  className="mt-3 bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors"
                 >
-                  🔄 Refresh
+                  Try Again
                 </button>
               </div>
             </div>
           </div>
         </div>
+      </div>
+    );
+  }
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 mb-8">
-          {/* Total Tasks */}
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <span className="text-2xl">📋</span>
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
-                      Total Tasks
-                    </dt>
-                    <dd className="text-lg font-medium text-gray-900">
-                      {stats.totalTasks}
-                    </dd>
-                  </dl>
-                </div>
-              </div>
+  const stats = dashboardStats || {
+    tasks: { total: 0, pending: 0, in_progress: 0, completed: 0, overdue: 0, completion_rate: 0 },
+    projects: { total: 0, active: 0, completed: 0, on_hold: 0, cancelled: 0, completion_rate: 0 },
+    team: { total_members: 0, active_members: 0, tasks_per_member: 0 },
+    deadlines: { due_today: 0, due_this_week: 0, overdue: 0 },
+    productivity: { 
+      tasks_completed_today: 0, 
+      tasks_completed_this_week: 0, 
+      tasks_completed_this_month: 0, 
+      average_completion_time: 0 
+    }
+  };
+
+  // Helper function to get completion rate color
+  const getCompletionRateColor = (rate: number) => {
+    if (rate >= 80) return 'text-green-600';
+    if (rate >= 60) return 'text-yellow-600';
+    return 'text-red-600';
+  };
+
+  // Helper function to format percentage
+  const formatPercentage = (value: number) => `${Math.round(value)}%`;
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+              <p className="text-gray-600 mt-1">Welcome back! Here's your project overview.</p>
             </div>
-            <div className="bg-gray-50 px-5 py-3">
-              <div className="text-sm">
-                <span className="text-green-600 font-medium">
-                  {stats.completedTasks} completed
-                </span>
-                <span className="text-gray-500"> • </span>
-                <span className="text-blue-600 font-medium">
-                  {stats.inProgressTasks} in progress
-                </span>
+            <div className="flex items-center space-x-2 text-sm text-gray-500">
+              <Activity className="h-4 w-4" />
+              <span>Live Data • React Query Powered</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Key Metrics Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Total Tasks */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Tasks</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.tasks.total}</p>
+                <p className={`text-sm ${getCompletionRateColor(stats.tasks.completion_rate)}`}>
+                  {formatPercentage(stats.tasks.completion_rate)} completion rate
+                </p>
+              </div>
+              <div className="p-3 bg-blue-100 rounded-full">
+                <CheckCircle2 className="h-6 w-6 text-blue-600" />
               </div>
             </div>
           </div>
 
-          {/* Projects */}
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <span className="text-2xl">📁</span>
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
-                      Projects
-                    </dt>
-                    <dd className="text-lg font-medium text-gray-900">
-                      {stats.totalProjects}
-                    </dd>
-                  </dl>
-                </div>
+          {/* Active Projects */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Active Projects</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.projects.active}</p>
+                <p className={`text-sm ${getCompletionRateColor(stats.projects.completion_rate)}`}>
+                  {formatPercentage(stats.projects.completion_rate)} on track
+                </p>
+              </div>
+              <div className="p-3 bg-green-100 rounded-full">
+                <FolderOpen className="h-6 w-6 text-green-600" />
               </div>
             </div>
-            <div className="bg-gray-50 px-5 py-3">
-              <div className="text-sm">
-                <span className="text-green-600 font-medium">
-                  {stats.activeProjects} active
-                </span>
-                <span className="text-gray-500"> • </span>
-                <span className="text-gray-600">
-                  {stats.totalProjects - stats.activeProjects} completed
-                </span>
+          </div>
+
+          {/* Team Members */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Team Members</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.team.total_members}</p>
+                <p className="text-sm text-gray-500">
+                  {stats.team.tasks_per_member.toFixed(1)} tasks/member avg
+                </p>
+              </div>
+              <div className="p-3 bg-purple-100 rounded-full">
+                <Users className="h-6 w-6 text-purple-600" />
               </div>
             </div>
           </div>
 
           {/* Overdue Tasks */}
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <span className="text-2xl">⚠️</span>
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
-                      Overdue Tasks
-                    </dt>
-                    <dd className="text-lg font-medium text-red-600">
-                      {stats.overdueTasksCount}
-                    </dd>
-                  </dl>
-                </div>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Overdue Tasks</p>
+                <p className="text-2xl font-bold text-red-600">{stats.tasks.overdue}</p>
+                <p className="text-sm text-gray-500">
+                  {stats.deadlines.due_today} due today
+                </p>
+              </div>
+              <div className="p-3 bg-red-100 rounded-full">
+                <AlertTriangle className="h-6 w-6 text-red-600" />
               </div>
             </div>
-            <div className="bg-gray-50 px-5 py-3">
-              <div className="text-sm text-gray-600">
-                {stats.overdueTasksCount === 0 
-                  ? "Great job! No overdue tasks" 
-                  : "Requires immediate attention"
-                }
-              </div>
+          </div>
+        </div>
+
+        {/* Charts and Analytics Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Productivity Trends */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Productivity Trends</h3>
+              <TrendingUp className="h-5 w-5 text-gray-400" />
             </div>
+            
+            {taskAnalyticsLoading ? (
+              <div className="flex items-center justify-center h-40">
+                <LoadingSpinner />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Today</span>
+                  <span className="font-semibold">{stats.productivity.tasks_completed_today} tasks</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">This Week</span>
+                  <span className="font-semibold">{stats.productivity.tasks_completed_this_week} tasks</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">This Month</span>
+                  <span className="font-semibold">{stats.productivity.tasks_completed_this_month} tasks</span>
+                </div>
+                <div className="pt-4 border-t border-gray-200">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Avg. Completion Time</span>
+                    <span className="font-semibold">
+                      {stats.productivity.average_completion_time.toFixed(1)}h
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Project Progress */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Project Status</h3>
+              <FolderOpen className="h-5 w-5 text-gray-400" />
+            </div>
+            
+            {projectAnalyticsLoading ? (
+              <div className="flex items-center justify-center h-40">
+                <LoadingSpinner />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Active</span>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="font-semibold">{stats.projects.active}</span>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">On Hold</span>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                    <span className="font-semibold">{stats.projects.on_hold}</span>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Completed</span>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <span className="font-semibold">{stats.projects.completed}</span>
+                  </div>
+                </div>
+                <div className="pt-4 border-t border-gray-200">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Success Rate</span>
+                    <span className={`font-semibold ${getCompletionRateColor(stats.projects.completion_rate)}`}>
+                      {formatPercentage(stats.projects.completion_rate)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Recent Activity */}
-        <div className="bg-white shadow overflow-hidden sm:rounded-md">
-          <div className="px-4 py-5 sm:px-6">
-            <h3 className="text-lg leading-6 font-medium text-gray-900">
-              Recent Activity
-            </h3>
-            <p className="mt-1 max-w-2xl text-sm text-gray-500">
-              Latest updates and changes in your workspace.
-            </p>
-          </div>
-          <ul className="divide-y divide-gray-200">
-            {recentActivity.map((activity) => (
-              <li key={activity.id}>
-                <div className="px-4 py-4 flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <span className="text-xl">{getActivityIcon(activity.type)}</span>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Recent Tasks */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Recent Tasks</h3>
+              <Clock className="h-5 w-5 text-gray-400" />
+            </div>
+            
+            {tasksLoading ? (
+              <div className="flex items-center justify-center h-40">
+                <LoadingSpinner />
+              </div>
+            ) : recentTasks && recentTasks.length > 0 ? (
+              <div className="space-y-3">
+                {recentTasks.slice(0, 5).map((task) => (
+                  <div key={task.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-900 truncate">{task.title}</p>
+                      <p className="text-sm text-gray-500">
+                        {task.priority} priority • {task.status}
+                      </p>
                     </div>
-                    <div className="ml-4">
-                      <div className="text-sm font-medium text-gray-900">
-                        {activity.description}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {activity.user && `by ${activity.user} • `}
-                        {formatTimestamp(activity.timestamp)}
-                      </div>
+                    <div className={`px-2 py-1 text-xs rounded-full ${
+                      task.priority === 'high' ? 'bg-red-100 text-red-800' :
+                      task.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-green-100 text-green-800'
+                    }`}>
+                      {task.priority}
                     </div>
                   </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-          <div className="bg-gray-50 px-4 py-3 text-right">
-            <button className="text-sm text-indigo-600 hover:text-indigo-500">
-              View all activity →
-            </button>
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-40 text-gray-500">
+                <p>No recent tasks found</p>
+              </div>
+            )}
+          </div>
+
+          {/* Recent Projects */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Active Projects</h3>
+              <Calendar className="h-5 w-5 text-gray-400" />
+            </div>
+            
+            {projectsLoading ? (
+              <div className="flex items-center justify-center h-40">
+                <LoadingSpinner />
+              </div>
+            ) : recentProjects && recentProjects.length > 0 ? (
+              <div className="space-y-3">
+                {recentProjects.slice(0, 5).map((project) => (
+                  <div key={project.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-900 truncate">{project.name}</p>
+                      <p className="text-sm text-gray-500">
+                        {project.completion_percentage}% complete • {project.task_count} tasks
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-12 h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-blue-500 transition-all"
+                          style={{ width: `${project.completion_percentage}%` }}
+                        />
+                      </div>
+                      <span className="text-xs text-gray-500 min-w-max">
+                        {project.completion_percentage}%
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-40 text-gray-500">
+                <p>No active projects found</p>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="mt-8">
-          <div className="bg-white shadow sm:rounded-lg">
-            <div className="px-4 py-5 sm:p-6">
-              <h3 className="text-lg leading-6 font-medium text-gray-900">
-                Quick Actions
-              </h3>
-              <div className="mt-5">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  <button className="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-500 rounded-lg border border-gray-300 hover:bg-gray-50">
-                    <div>
-                      <span className="rounded-lg inline-flex p-3 bg-indigo-50 text-indigo-700 ring-4 ring-white">
-                        <span className="text-xl">➕</span>
-                      </span>
-                    </div>
-                    <div className="mt-8">
-                      <h3 className="text-lg font-medium">
-                        <span className="absolute inset-0" aria-hidden="true" />
-                        Create Task
-                      </h3>
-                      <p className="mt-2 text-sm text-gray-500">
-                        Add a new task to your project
-                      </p>
-                    </div>
-                  </button>
-
-                  <button className="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-500 rounded-lg border border-gray-300 hover:bg-gray-50">
-                    <div>
-                      <span className="rounded-lg inline-flex p-3 bg-green-50 text-green-700 ring-4 ring-white">
-                        <span className="text-xl">📁</span>
-                      </span>
-                    </div>
-                    <div className="mt-8">
-                      <h3 className="text-lg font-medium">
-                        <span className="absolute inset-0" aria-hidden="true" />
-                        New Project
-                      </h3>
-                      <p className="mt-2 text-sm text-gray-500">
-                        Start a new project workspace
-                      </p>
-                    </div>
-                  </button>
-
-                  <button className="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-500 rounded-lg border border-gray-300 hover:bg-gray-50">
-                    <div>
-                      <span className="rounded-lg inline-flex p-3 bg-yellow-50 text-yellow-700 ring-4 ring-white">
-                        <span className="text-xl">📊</span>
-                      </span>
-                    </div>
-                    <div className="mt-8">
-                      <h3 className="text-lg font-medium">
-                        <span className="absolute inset-0" aria-hidden="true" />
-                        View Reports
-                      </h3>
-                      <p className="mt-2 text-sm text-gray-500">
-                        Analyze team performance
-                      </p>
-                    </div>
-                  </button>
-
-                  <button className="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-500 rounded-lg border border-gray-300 hover:bg-gray-50">
-                    <div>
-                      <span className="rounded-lg inline-flex p-3 bg-purple-50 text-purple-700 ring-4 ring-white">
-                        <span className="text-xl">⚙️</span>
-                      </span>
-                    </div>
-                    <div className="mt-8">
-                      <h3 className="text-lg font-medium">
-                        <span className="absolute inset-0" aria-hidden="true" />
-                        Settings
-                      </h3>
-                      <p className="mt-2 text-sm text-gray-500">
-                        Manage your workspace
-                      </p>
-                    </div>
-                  </button>
-                </div>
+        {/* Data Management Demo Notice */}
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg shadow-sm border border-blue-200 p-6">
+          <div className="flex items-start space-x-3">
+            <div className="flex-shrink-0">
+              <Activity className="h-6 w-6 text-blue-600" />
+            </div>
+            <div className="flex-1">
+              <h4 className="text-lg font-semibold text-blue-900">
+                Advanced Data Management Active
+              </h4>
+              <p className="text-blue-700 mt-1 mb-3">
+                This dashboard is powered by TanStack React Query with optimistic updates, 
+                intelligent caching, and real-time synchronization.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800">
+                  Optimistic Updates
+                </span>
+                <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-green-100 text-green-800">
+                  Smart Caching
+                </span>
+                <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-purple-100 text-purple-800">
+                  Real-time Sync
+                </span>
+                <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-yellow-100 text-yellow-800">
+                  Error Boundaries
+                </span>
               </div>
             </div>
           </div>
         </div>
       </div>
-      </div>
-    </Layout>
+    </div>
   );
 };
 

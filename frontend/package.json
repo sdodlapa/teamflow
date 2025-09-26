@@ -19,8 +19,8 @@
   },
   "dependencies": {
     "@headlessui/react": "^1.7.17",
-    "@tanstack/react-query": "^5.8.4",
-    "@tanstack/react-query-devtools": "^5.8.4",
+    "@tanstack/react-query": "^5.90.2",
+    "@tanstack/react-query-devtools": "^5.90.2",
     "axios": "^1.12.2",
     "clsx": "^2.0.0",
     "date-fns": "^2.30.0",

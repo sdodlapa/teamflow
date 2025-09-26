@@ -11,7 +11,10 @@ import Calendar from '../pages/Calendar';
 import Analytics from '../pages/Analytics';
 import Settings from '../pages/Settings';
 import Profile from '../pages/Profile';
+import TemplateLibrary from '../pages/TemplateLibrary';
+import DomainConfigurationDetails from '../pages/DomainConfigurationDetails';
 import ErrorHandlingDemo from '../pages/ErrorHandlingDemo';
+import DataManagementDemo from '../pages/DataManagementDemo';
 import NotFound from '../pages/NotFound';
 
 // Create the router configuration
@@ -92,10 +95,34 @@ const router = createBrowserRouter([
     ),
   },
   {
+    path: '/templates',
+    element: (
+      <PrivateRoute>
+        <TemplateLibrary />
+      </PrivateRoute>
+    ),
+  },
+  {
+    path: '/templates/domain/:domainId',
+    element: (
+      <PrivateRoute>
+        <DomainConfigurationDetails />
+      </PrivateRoute>
+    ),
+  },
+  {
     path: '/demo/error-handling',
     element: (
       <PrivateRoute>
         <ErrorHandlingDemo />
+      </PrivateRoute>
+    ),
+  },
+  {
+    path: '/demo/data-management',
+    element: (
+      <PrivateRoute>
+        <DataManagementDemo />
       </PrivateRoute>
     ),
   },
