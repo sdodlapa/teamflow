@@ -161,18 +161,27 @@ const DomainConfigurationDetails: React.FC = () => {
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="flex items-center space-x-4 mb-4">
-            <button
-              onClick={() => navigate('/templates')}
-              className="p-2 text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-100"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </button>
-            <div className="text-4xl">{config.domain.logo}</div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">{config.domain.title}</h1>
-              <p className="text-gray-600">{config.domain.description}</p>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => navigate('/templates')}
+                className="p-2 text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-100"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+              <div className="text-4xl">{config.domain.logo}</div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">{config.domain.title}</h1>
+                <p className="text-gray-600">{config.domain.description}</p>
+              </div>
             </div>
+            <button
+              onClick={() => navigate(`/templates/${domainId}/generate`)}
+              className="flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+            >
+              <Zap className="h-4 w-4 mr-2" />
+              Generate Code
+            </button>
           </div>
           
           <div className="flex items-center space-x-6 text-sm text-gray-500">

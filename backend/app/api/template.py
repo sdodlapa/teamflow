@@ -1,5 +1,6 @@
 """Enhanced template system API routes with Pydantic validation."""
 
+from datetime import datetime
 from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, HTTPException, Depends, Query, Body
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -471,6 +472,126 @@ async def create_template(
         raise HTTPException(status_code=400, detail=f"Invalid template data: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to create template: {str(e)}")
+
+
+# Pydantic models for code generation
+class CodeGenerationOptions(PydanticBaseModel):
+    """Options for code generation."""
+    include_backend: bool = True
+    include_frontend: bool = True
+    include_database: bool = True
+    include_tests: bool = False
+    include_documentation: bool = False
+    output_path: str = "/generated"
+    entities: Optional[List[str]] = None
+
+
+class CodeGenerationResponse(PydanticBaseModel):
+    """Response model for code generation."""
+    success: bool
+    generation_id: str
+    domain_name: str
+    message: str
+    files_generated: int = 0
+    total_lines: int = 0
+    generation_time_seconds: float = 0
+    output_directory: str = ""
+    errors: List[str] = []
+
+
+@router.post("/domains/{domain_name}/generate", response_model=CodeGenerationResponse)
+async def generate_code(
+    domain_name: str,
+    options: CodeGenerationOptions,
+    db: AsyncSession = Depends(get_db)
+):
+    """Generate code from a domain configuration."""
+    try:
+        # Load domain configuration
+        config = legacy_loader.load_domain_config(domain_name)
+        if not config:
+            raise HTTPException(status_code=404, detail=f"Domain {domain_name} not found")
+        
+        # Import and use the CodeGenerationOrchestrator
+        from app.services.code_generation_orchestrator import CodeGenerationOrchestrator
+        from app.core.domain_config import DomainConfig, EntityConfig, FieldConfig, FieldType
+        
+        # Convert legacy config to new DomainConfig format
+        # This is a simplified conversion - in a full implementation you'd need proper mapping
+        entities = []
+        if hasattr(config, 'entities') and config.entities:
+            for entity in config.entities:
+                fields = []
+                if hasattr(entity, 'fields') and entity.fields:
+                    for field in entity.fields:
+                        # Map field types
+                        field_type = FieldType.STRING  # Default
+                        if hasattr(field, 'type'):
+                            type_mapping = {
+                                'string': FieldType.STRING,
+                                'text': FieldType.TEXT,
+                                'integer': FieldType.INTEGER,
+                                'boolean': FieldType.BOOLEAN,
+                                'datetime': FieldType.DATETIME,
+                                'date': FieldType.DATE,
+                                'time': FieldType.TIME,
+                                'decimal': FieldType.DECIMAL,
+                                'email': FieldType.EMAIL,
+                                'phone': FieldType.PHONE,
+                                'url': FieldType.URL,
+                                'json': FieldType.JSON,
+                                'enum': FieldType.ENUM
+                            }
+                            field_type = type_mapping.get(field.type.lower(), FieldType.STRING)
+                        
+                        fields.append(FieldConfig(
+                            name=field.name,
+                            type=field_type,
+                            required=not getattr(field, 'nullable', True),
+                            description=getattr(field, 'description', '')
+                        ))
+                
+                entities.append(EntityConfig(
+                    name=entity.name,
+                    description=getattr(entity, 'description', ''),
+                    fields=fields
+                ))
+        
+        # Create DomainConfig
+        domain_config = DomainConfig(
+            name=getattr(config, 'name', domain_name),
+            description=getattr(config, 'description', f"Generated from {domain_name}"),
+            entities=entities
+        )
+        
+        # Initialize orchestrator
+        orchestrator = CodeGenerationOrchestrator()
+        
+        # Generate the application
+        result = orchestrator.generate_full_application(
+            domain_config=domain_config,
+            include_backend=options.include_backend,
+            include_frontend=options.include_frontend,
+            entities=options.entities
+        )
+        
+        # Return the result
+        return CodeGenerationResponse(
+            success=result.failed_generations == 0,
+            generation_id=f"gen_{domain_name}_{int(datetime.now().timestamp())}",
+            domain_name=result.domain_name,
+            message="Code generation completed successfully" if result.failed_generations == 0 else "Code generation completed with errors",
+            files_generated=result.total_files_created,
+            total_lines=result.total_content_length,
+            generation_time_seconds=result.generation_time_seconds,
+            output_directory=result.output_directory,
+            errors=result.errors
+        )
+        
+    except ImportError as e:
+        raise HTTPException(status_code=500, detail=f"Code generation service not available: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Code generation failed: {str(e)}")
 
 
 @router.get("/templates")

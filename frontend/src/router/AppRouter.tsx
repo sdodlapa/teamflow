@@ -14,6 +14,7 @@ import Profile from '../pages/Profile';
 import TemplateLibrary from '../pages/TemplateLibrary';
 import DomainConfigurationDetails from '../pages/DomainConfigurationDetails';
 import TemplateCreation from '../pages/TemplateCreation';
+import CodeGeneration from '../pages/CodeGeneration';
 import ErrorHandlingDemo from '../pages/ErrorHandlingDemo';
 import DataManagementDemo from '../pages/DataManagementDemo';
 import NotFound from '../pages/NotFound';
@@ -116,6 +117,14 @@ const router = createBrowserRouter([
     element: (
       <PrivateRoute>
         <TemplateCreation />
+      </PrivateRoute>
+    ),
+  },
+  {
+    path: '/templates/:templateId/generate',
+    element: (
+      <PrivateRoute>
+        <CodeGeneration />
       </PrivateRoute>
     ),
   },

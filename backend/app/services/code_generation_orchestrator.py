@@ -118,7 +118,7 @@ class CodeGenerationOrchestrator:
         total_content_length = 0
         
         # Determine which entities to generate
-        target_entities = entities or [entity.name for entity in domain_config.entities_list]
+        target_entities = entities or [entity.name for entity in domain_config.entities]
         
         # Generate for each entity
         for entity_name in target_entities:
@@ -494,7 +494,7 @@ Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 {domain_config.description or f'Full-stack application for {domain_config.name} domain management.'}
 
 ## Entities
-{chr(10).join(f'- **{entity.name}**: {entity.description or "Entity for domain operations"}' for entity in domain_config.entities_list)}
+{chr(10).join(f'- **{entity.name}**: {entity.description or "Entity for domain operations"}' for entity in domain_config.entities)}
 
 ## Structure
 ```
@@ -532,7 +532,7 @@ npm run dev
 ## Generated Components
 
 ### Backend
-{chr(10).join(f'- {entity.name} model, schema, routes, and service' for entity in domain_config.entities_list)}
+{chr(10).join(f'- {entity.name} model, schema, routes, and service' for entity in domain_config.entities)}
 
 ### Frontend
 {chr(10).join(f'- {entity.name} types, form, list, and API service' for entity in domain_config.entities_list)}

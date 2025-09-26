@@ -456,6 +456,13 @@ const TemplateLibrary: React.FC = () => {
                           <Eye className="h-4 w-4 mr-1" />
                           View Config
                         </Link>
+                        <Link
+                          to={`/templates/${template.domain_name}/generate`}
+                          className="flex-1 flex items-center justify-center px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm"
+                        >
+                          <Plus className="h-4 w-4 mr-1" />
+                          Generate
+                        </Link>
                         <button
                           onClick={() => handleTemplateDownload(template)}
                           className="flex items-center justify-center px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors text-sm"
@@ -504,6 +511,13 @@ const TemplateLibrary: React.FC = () => {
                       >
                         <Eye className="h-4 w-4 inline mr-1" />
                         View Config
+                      </Link>
+                      <Link
+                        to={`/templates/${template.domain_name}/generate`}
+                        className="px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm"
+                      >
+                        <Plus className="h-4 w-4 inline mr-1" />
+                        Generate
                       </Link>
                       <button
                         onClick={() => handleTemplateDownload(template)}
