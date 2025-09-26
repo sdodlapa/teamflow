@@ -27,8 +27,7 @@ import {
   useTimeAnalytics,
   usePerformanceMetrics,
   useExportAnalytics,
-  calculateCompletionRate,
-  type DateRange
+  calculateCompletionRate
 } from '../hooks/useAnalytics';
 import { useProjects, useProjectStats, useCreateProject } from '../hooks/useProjects';
 import { useTasks, useCreateTask, useUpdateTask } from '../hooks/useTasks';

@@ -797,3 +797,231 @@ async def template_system_health():
         "domains": domains,
         "config_loader": "functional"
     }
+
+
+# Marketplace API endpoints - Day 12
+class MarketplaceTemplate(PydanticBaseModel):
+    """Marketplace template model."""
+    id: str
+    name: str
+    title: str
+    description: str
+    category: str
+    author: dict
+    version: str
+    rating: float
+    total_ratings: int
+    downloads: int
+    price: int
+    tags: List[str]
+    features: List[str]
+    complexity: str
+    estimated_time: str
+    last_updated: str
+    entities: int
+    is_popular: bool = False
+    is_featured: bool = False
+    is_new: bool = False
+
+
+class TemplateInstallation(PydanticBaseModel):
+    """Template installation request."""
+    template_id: str
+    project_id: Optional[str] = None
+    custom_name: Optional[str] = None
+    configuration: Optional[Dict[str, Any]] = None
+
+
+class InstallationResponse(PydanticBaseModel):
+    """Template installation response."""
+    success: bool
+    installation_id: str
+    message: str
+    project_id: Optional[str] = None
+    template_id: str
+    installed_components: List[str] = []
+
+
+@router.get("/marketplace/templates", response_model=List[MarketplaceTemplate])
+async def get_marketplace_templates(
+    category: Optional[str] = Query(None, description="Filter by category"),
+    search: Optional[str] = Query(None, description="Search query"),
+    sort_by: str = Query("popular", description="Sort by: popular, rating, downloads, newest, name"),
+    price_filter: Optional[str] = Query(None, description="Price filter: free, paid"),
+    complexity: Optional[str] = Query(None, description="Complexity filter: beginner, intermediate, advanced"),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get marketplace templates with filtering and search."""
+    # Mock marketplace templates
+    marketplace_templates = [
+        MarketplaceTemplate(
+            id="task-management-pro",
+            name="task_management_pro",
+            title="Task Management Pro",
+            description="Advanced task management system with team collaboration, time tracking, and project analytics. Perfect for growing teams.",
+            category="business",
+            author={"name": "TeamFlow", "verified": True, "organization": "TeamFlow Inc."},
+            version="2.1.0",
+            rating=4.9,
+            total_ratings=234,
+            downloads=1250,
+            price=0,
+            tags=["tasks", "projects", "collaboration", "analytics"],
+            features=["Team Collaboration", "Time Tracking", "Analytics Dashboard", "Mobile App"],
+            complexity="intermediate",
+            estimated_time="30 minutes",
+            last_updated="2025-09-20",
+            entities=8,
+            is_popular=True,
+            is_featured=True,
+            is_new=False
+        ),
+        MarketplaceTemplate(
+            id="ecommerce-store",
+            name="ecommerce_store",
+            title="E-commerce Store",
+            description="Complete e-commerce solution with product catalog, shopping cart, payment processing, and order management.",
+            category="ecommerce",
+            author={"name": "Commerce Labs", "verified": True, "organization": "Commerce Labs"},
+            version="1.8.2",
+            rating=4.7,
+            total_ratings=189,
+            downloads=890,
+            price=49,
+            tags=["ecommerce", "shopping", "payments", "inventory"],
+            features=["Product Catalog", "Shopping Cart", "Payment Gateway", "Order Tracking"],
+            complexity="advanced",
+            estimated_time="45 minutes",
+            last_updated="2025-09-18",
+            entities=12,
+            is_popular=True,
+            is_featured=False,
+            is_new=False
+        ),
+        MarketplaceTemplate(
+            id="property-management",
+            name="property_management",
+            title="Property Management",
+            description="Complete property management solution with tenant tracking, maintenance requests, and rent collection.",
+            category="business",
+            author={"name": "PropTech", "verified": True, "organization": "PropTech Solutions"},
+            version="2.3.1",
+            rating=4.6,
+            total_ratings=167,
+            downloads=780,
+            price=0,
+            tags=["property", "tenants", "maintenance", "rent"],
+            features=["Tenant Management", "Maintenance Tracking", "Rent Collection", "Property Analytics"],
+            complexity="intermediate",
+            estimated_time="35 minutes",
+            last_updated="2025-09-10",
+            entities=10,
+            is_popular=True,
+            is_featured=False,
+            is_new=False
+        )
+    ]
+    
+    # Apply filters
+    filtered_templates = marketplace_templates
+    
+    if category:
+        filtered_templates = [t for t in filtered_templates if t.category == category]
+    
+    if search:
+        search_lower = search.lower()
+        filtered_templates = [
+            t for t in filtered_templates 
+            if search_lower in t.title.lower() 
+            or search_lower in t.description.lower()
+            or any(search_lower in tag.lower() for tag in t.tags)
+        ]
+    
+    if price_filter == "free":
+        filtered_templates = [t for t in filtered_templates if t.price == 0]
+    elif price_filter == "paid":
+        filtered_templates = [t for t in filtered_templates if t.price > 0]
+    
+    if complexity:
+        filtered_templates = [t for t in filtered_templates if t.complexity == complexity]
+    
+    # Apply sorting
+    if sort_by == "rating":
+        filtered_templates.sort(key=lambda x: x.rating, reverse=True)
+    elif sort_by == "downloads":
+        filtered_templates.sort(key=lambda x: x.downloads, reverse=True)
+    elif sort_by == "newest":
+        filtered_templates.sort(key=lambda x: x.last_updated, reverse=True)
+    elif sort_by == "name":
+        filtered_templates.sort(key=lambda x: x.title)
+    else:  # popular
+        filtered_templates.sort(key=lambda x: (x.downloads * 0.4 + x.rating * x.total_ratings * 0.4), reverse=True)
+    
+    return filtered_templates
+
+
+@router.post("/marketplace/templates/{template_id}/install", response_model=InstallationResponse)
+async def install_marketplace_template(
+    template_id: str,
+    installation: TemplateInstallation,
+    db: AsyncSession = Depends(get_db)
+):
+    """Install a template from the marketplace."""
+    try:
+        # Simulate template installation process
+        installation_id = f"install_{template_id}_{int(datetime.now().timestamp())}"
+        
+        # In a real implementation, this would:
+        # 1. Download template files
+        # 2. Create project structure
+        # 3. Configure template settings
+        # 4. Generate initial code
+        # 5. Set up database schema
+        
+        return InstallationResponse(
+            success=True,
+            installation_id=installation_id,
+            message=f"Template {template_id} installed successfully",
+            template_id=template_id,
+            project_id=installation.project_id,
+            installed_components=[
+                "Database Models",
+                "API Endpoints", 
+                "Frontend Components",
+                "Configuration Files"
+            ]
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Template installation failed: {str(e)}")
+
+
+@router.get("/marketplace/categories")
+async def get_marketplace_categories():
+    """Get available template categories."""
+    return [
+        {"id": "business", "name": "Business", "count": 15},
+        {"id": "ecommerce", "name": "E-commerce", "count": 8},
+        {"id": "healthcare", "name": "Healthcare", "count": 6},
+        {"id": "education", "name": "Education", "count": 4},
+        {"id": "finance", "name": "Finance", "count": 7},
+        {"id": "technology", "name": "Technology", "count": 12},
+        {"id": "government", "name": "Government", "count": 3}
+    ]
+
+
+@router.get("/marketplace/featured")
+async def get_featured_templates():
+    """Get featured marketplace templates."""
+    # Return a subset of featured templates
+    return [
+        {
+            "id": "task-management-pro",
+            "title": "Task Management Pro",
+            "description": "Advanced task management with analytics",
+            "rating": 4.9,
+            "downloads": 1250,
+            "price": 0,
+            "is_featured": True
+        }
+    ]

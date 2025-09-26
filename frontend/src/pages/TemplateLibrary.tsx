@@ -293,6 +293,13 @@ const TemplateLibrary: React.FC = () => {
             </div>
             <div className="flex items-center space-x-3">
               <Link
+                to="/marketplace"
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium"
+              >
+                <Package className="h-4 w-4 inline mr-2" />
+                Browse Marketplace
+              </Link>
+              <Link
                 to="/templates/create"
                 className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium"
               >

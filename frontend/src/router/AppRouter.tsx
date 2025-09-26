@@ -15,6 +15,7 @@ import TemplateLibrary from '../pages/TemplateLibrary';
 import DomainConfigurationDetails from '../pages/DomainConfigurationDetails';
 import TemplateCreation from '../pages/TemplateCreation';
 import CodeGeneration from '../pages/CodeGeneration';
+import TemplateMarketplace from '../pages/TemplateMarketplace';
 import ErrorHandlingDemo from '../pages/ErrorHandlingDemo';
 import DataManagementDemo from '../pages/DataManagementDemo';
 import NotFound from '../pages/NotFound';
@@ -125,6 +126,14 @@ const router = createBrowserRouter([
     element: (
       <PrivateRoute>
         <CodeGeneration />
+      </PrivateRoute>
+    ),
+  },
+  {
+    path: '/marketplace',
+    element: (
+      <PrivateRoute>
+        <TemplateMarketplace />
       </PrivateRoute>
     ),
   },
