@@ -3,9 +3,9 @@
 from fastapi import APIRouter
 
 # Import routes with file management enabled
-from app.api.routes import auth, organizations, projects, tasks, users, advanced_features, websocket, search, workflow, webhooks, security, performance, performance_optimization, admin, config, enhanced_comments, comment_attachments, comment_websockets, comment_search, task_analytics, workflow_automation, enhanced_tasks, templates, db_performance, files
+from app.api.routes import auth, organizations, projects, tasks, users, advanced_features, websocket, search, workflow, webhooks, security, performance, performance_optimization, admin, config, enhanced_comments, comment_attachments, comment_websockets, comment_search, task_analytics, workflow_automation, enhanced_tasks, templates, db_performance, files, analytics_dashboard
 # Redundant auth routes archived: fast_auth, optimized_auth
-from app.api import template, health
+from app.api import template, health, collaboration
 
 # Create main API router
 api_router = APIRouter()
@@ -27,6 +27,11 @@ api_router.include_router(
 api_router.include_router(
     websocket.router, prefix="/realtime", tags=["realtime-collaboration"]
 )
+# Real-time collaboration (Day 27 - High Value Feature)
+api_router.include_router(collaboration.router, tags=["real-time-collaboration"])
+
+# Analytics Dashboard (Day 25 - High Value Feature)  
+api_router.include_router(analytics_dashboard.router, tags=["analytics-dashboard"])
 api_router.include_router(files.router, prefix="/files", tags=["file-management"])
 api_router.include_router(search.router, prefix="/search", tags=["search"])
 api_router.include_router(workflow.router, tags=["workflow-automation"])

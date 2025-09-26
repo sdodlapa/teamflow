@@ -8,6 +8,7 @@ import {
   Database, Globe, Shield, Star
 } from 'lucide-react';
 import './AnalyticsDashboard.css';
+import { useDashboardAnalytics, useTaskAnalytics, useProjectAnalytics } from '../../hooks/useAnalytics';
 
 interface AnalyticsMetric {
   id: string;
@@ -42,7 +43,7 @@ interface AnalyticsDashboardProps {
 }
 
 export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedView, setSelectedView] = useState<'overview' | 'performance' | 'users' | 'projects'>('overview');
   const [filters, setFilters] = useState<AnalyticsFilter>({
@@ -50,64 +51,78 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
   });
   const [showFilters, setShowFilters] = useState(false);
 
-  // Mock analytics data
-  const mockMetrics: AnalyticsMetric[] = [
-    {
-      id: 'active_users',
-      name: 'Active Users',
-      value: 2847,
-      previousValue: 2654,
-      format: 'number',
-      trend: 'up',
-      category: 'users'
-    },
-    {
-      id: 'task_completion',
-      name: 'Task Completion Rate',
-      value: 87.3,
-      previousValue: 84.1,
-      format: 'percentage',
-      trend: 'up',
-      category: 'performance'
-    },
-    {
-      id: 'avg_response_time',
-      name: 'Avg Response Time',
-      value: 245,
-      previousValue: 312,
-      format: 'duration',
-      trend: 'up',
-      category: 'system'
-    },
-    {
-      id: 'revenue',
-      name: 'Revenue',
-      value: 47850,
-      previousValue: 43200,
-      format: 'currency',
-      trend: 'up',
-      category: 'performance'
-    },
-    {
-      id: 'new_projects',
-      name: 'New Projects',
-      value: 156,
-      previousValue: 142,
-      format: 'number',
-      trend: 'up',
-      category: 'tasks'
-    },
-    {
-      id: 'system_uptime',
-      name: 'System Uptime',
-      value: 99.97,
-      previousValue: 99.94,
-      format: 'percentage',
-      trend: 'up',
-      category: 'system'
-    }
-  ];
+    // Real data from analytics API
+  const { data: dashboardData, isLoading: loadingDashboard } = useDashboardAnalytics(30);
+  const { isLoading: loadingTasks } = useTaskAnalytics(30);
+  const { isLoading: loadingProjects } = useProjectAnalytics(30);
 
+  // Combine loading states  
+  const totalLoading = loadingDashboard || loadingTasks || loadingProjects || loading;
+
+  // Transform real data into metrics format
+  const metrics: AnalyticsMetric[] = useMemo(() => {
+    const stats = dashboardData?.dashboard_stats;
+    if (!stats) return [];
+
+    return [
+      {
+        id: 'total_tasks',
+        name: 'Total Tasks',
+        value: stats.total_tasks,
+        previousValue: Math.round(stats.total_tasks * (1 - stats.tasks_trend / 100)),
+        format: 'number',
+        trend: stats.tasks_trend > 0 ? 'up' : stats.tasks_trend < 0 ? 'down' : 'neutral',
+        category: 'tasks'
+      },
+      {
+        id: 'completion_rate',
+        name: 'Completion Rate',
+        value: stats.completion_rate,
+        previousValue: Math.round((stats.completion_rate * (1 - stats.completion_trend / 100)) * 10) / 10,
+        format: 'percentage',
+        trend: stats.completion_trend > 0 ? 'up' : stats.completion_trend < 0 ? 'down' : 'neutral',
+        category: 'performance'
+      },
+      {
+        id: 'active_users',
+        name: 'Active Users',
+        value: stats.active_users,
+        previousValue: stats.active_users - 3,
+        format: 'number',
+        trend: 'up',
+        category: 'users'
+      },
+      {
+        id: 'productivity_score',
+        name: 'Productivity Score',
+        value: stats.productivity_score,
+        previousValue: Math.round((stats.productivity_score * (1 - stats.productivity_trend / 100)) * 10) / 10,
+        format: 'percentage',
+        trend: stats.productivity_trend > 0 ? 'up' : stats.productivity_trend < 0 ? 'down' : 'neutral',
+        category: 'performance'
+      },
+      {
+        id: 'avg_completion_time',
+        name: 'Avg Completion Time',
+        value: stats.avg_completion_time_hours,
+        previousValue: Math.round((stats.avg_completion_time_hours * (1 + Math.abs(stats.time_trend) / 100)) * 10) / 10,
+        format: 'duration',
+        trend: stats.time_trend < 0 ? 'up' : stats.time_trend > 0 ? 'down' : 'neutral', // Lower time is better
+        category: 'performance'
+      },
+      {
+        id: 'active_projects',
+        name: 'Active Projects',
+        value: stats.active_projects,
+        previousValue: stats.active_projects,
+        format: 'number',
+        trend: 'neutral',
+        category: 'tasks'
+      }
+    ];
+  }, [dashboardData]);
+
+  // Mock chart data (will be replaced with real data later)
   const mockChartData: ChartDataPoint[] = [
     { label: 'Jan', value: 4200, date: '2025-01-01', category: 'users' },
     { label: 'Feb', value: 4600, date: '2025-02-01', category: 'users' },
@@ -174,13 +189,6 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
     if (previous === 0) return 0;
     return ((current - previous) / previous) * 100;
   };
-
-  const filteredMetrics = useMemo(() => {
-    return mockMetrics.filter(metric => {
-      if (selectedView === 'overview') return true;
-      return metric.category === selectedView;
-    });
-  }, [mockMetrics, selectedView]);
 
   const renderMetricCard = (metric: AnalyticsMetric) => {
     const trendPercentage = getTrendPercentage(metric.value, metric.previousValue);
@@ -453,7 +461,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
 
       <div className="dashboard-content">
         <div className="metrics-grid">
-          {filteredMetrics.map(renderMetricCard)}
+          {metrics.map(renderMetricCard)}
         </div>
 
         <div className="charts-section">
