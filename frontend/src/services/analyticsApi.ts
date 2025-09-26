@@ -109,6 +109,10 @@ class AnalyticsApiService {
    * Get comprehensive dashboard analytics
    */
   async getDashboardAnalytics(days: number = 30): Promise<AnalyticsDashboardData> {
+    // Temporarily force mock data for testing while authentication is being fixed
+    // TODO: Remove this when authentication is working
+    return this.getMockDashboardData(days);
+    
     try {
       const response = await apiClient.get<AnalyticsDashboardData>(
         `${this.baseUrl}/dashboard?days=${days}`
